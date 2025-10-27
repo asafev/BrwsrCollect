@@ -1,263 +1,133 @@
-# AI Agent Detection Framework
+# AI-Agent Behavioral Lab
 
-A comprehensive web-based framework for detecting AI agents, DOM manipulations, and browser automation in real-time. This tool is designed for security research and analysis of AI agent behavior patterns.
+A lightweight, self-contained HTML + vanilla JS lab for testing AI agents and capturing behavioral telemetry.
 
-## 🚀 Features
+## Files
 
-### Core Detection Capabilities
-- **DOM Mutation Detection**: Real-time monitoring of DOM changes, detecting suspicious element injections and modifications
-- **Extension Detection**: Identifies browser extensions and content scripts, particularly AI agents like Perplexity Comet
-- **Stylesheet Monitoring**: Tracks CSS injections and modifications that may indicate automated behavior
-- **Overlay Detection**: Detects high z-index elements and overlays commonly used by AI agents
-- **Live Dashboard**: Real-time comprehensive analysis and reporting
+- **index.html** - Main UI with 4 panels: Intro/Controls, Task Runner, Live Telemetry, Report
+- **styles.css** - Minimal, clean layout with responsive grid
+- **lab.js** - Main controller orchestrating test flow and telemetry collection
+- **report.js** - Metrics computation, Chart.js visualizations, and export functionality
+- **fingerprint.js** - Browser fingerprinting without external APIs
+- **sample-data.json** - Example of the exported JSON data structure
 
-### AI Agent Detection
-Based on research from Castle.io and modern detection techniques, the framework can identify:
-- **Perplexity Comet**: Specialized detection for Comet browser agent patterns
-- **OpenAI Operator**: HTTP Message Signature detection and behavioral analysis
-- **Browserbase**: Automation framework fingerprinting
-- **Generic Automation**: WebDriver, Playwright, Puppeteer detection
+## Quick Start
 
-### Detection Techniques
-- High z-index element detection (>9999)
-- Chrome extension injection monitoring
-- Style override pattern recognition
-- Mouse movement behavioral analysis
-- Timezone and environment anomaly detection
-- Canvas fingerprinting for server environments
+1. Open `index.html` in any modern browser
+2. Click "Start Test" to begin the 6-step behavioral protocol
+3. Complete all steps in sequence (each has minimum dwell times)
+4. Click "Generate Report" when prompted
+5. Click "Export Report" to download JSON, CSV, and PNG files
 
-## 📁 Project Structure
+## Test Protocol
 
-```
-htmljsres/
-├── index.html              # Main dashboard and overview
-├── css/
-│   └── style.css           # Shared styles and components
-├── js/
-│   └── ai-detector.js      # Core detection engine
-├── pages/
-│   ├── dom-monitor.html    # DOM mutation monitoring
-│   ├── extension-detector.html  # Extension detection
-│   ├── stylesheet-monitor.html  # CSS monitoring
-│   ├── overlay-detector.html    # Overlay detection
-│   └── live-dashboard.html      # Real-time dashboard
-├── server.py               # Simple HTTP server for deployment
-├── start.bat              # Windows startup script
-├── start.sh               # Unix/Linux startup script
-└── README.md              # This file
-```
+The agent must complete these steps in order:
 
-## 🏃‍♂️ Quick Start
+1. **Landing**: Wait 800-1200ms, click "Start Test"
+2. **Form**: Type `agent@lab.test`, select "Scenario B", click "Continue"
+3. **Navigation**: Open modal, then close it (X, backdrop, or Escape)
+4. **Table**: Click "Sort by Name", then "Sort by Date", then click row #3
+5. **Scrolling**: Scroll to bottom, top, then 50% (pause 500ms each)
+6. **Finish**: Click "Generate Report", then "Export Report"
 
-### Option 1: Python HTTP Server (Recommended)
-```bash
-# Clone or download the project
-cd htmljsres
+## Captured Telemetry
 
-# Python 3
-python server.py
+### High-Resolution Events
+- Mouse/pointer movements with timestamps, coordinates, movement deltas
+- Click events with target element identification
+- Scroll events with velocity calculation
+- Keyboard events (timing only, no content)
+- DOM selector usage patterns (categorized, not logged verbatim)
 
-# Or Python 2
-python -m SimpleHTTPServer 8080
-```
+### Browser Fingerprint
+- Navigator properties (UA, platform, languages, webdriver flag)
+- Screen dimensions and color depth
+- WebGL vendor/renderer information
+- Canvas fingerprint hash
+- Storage capabilities and permissions
+- Internationalization settings
 
-### Option 2: Windows Batch Script
-```cmd
-# Double-click start.bat or run:
-start.bat
-```
+### Derived Metrics
+- Mouse path length, speed, curvature, straightness ratio
+- Inter-click interval histogram and statistics
+- Scroll velocity profiles and pause detection
+- Typing cadence analysis
+- Selector usage pattern distribution
+- Heuristic behavioral flags
 
-### Option 3: Unix/Linux Shell Script
-```bash
-# Make executable and run:
-chmod +x start.sh
-./start.sh
-```
+## Heuristic Flags
 
-### Option 4: Any Web Server
-Simply serve the files from any web server (Apache, Nginx, etc.) as static content.
+The system computes several behavioral indicators:
 
-## 🌐 Access the Framework
+- **possible_programmatic_mouse**: High straight segments, low jitter, low isTrusted ratio
+- **playwrightish_selector_usage**: High use of ARIA/role or text-based selectors
+- **humanlike_scroll**: Multi-phase velocity with micro-pauses vs single jumps
+- **robotic_clicking**: Very fast, consistent click intervals
+- **synthetic_typing**: Paste detection or extremely fast typing
 
-After starting the server:
-- Open your browser to `http://localhost:8080`
-- Navigate through the different detection modules
-- Start monitoring to begin real-time detection
+## Export Formats
 
-## 📖 Usage Guide
+- **JSON**: Complete raw events + derived metrics
+- **CSV**: Key metrics + histogram data
+- **PNG**: Mouse path visualization
 
-### 1. Main Dashboard (`index.html`)
-- Overview of all detection systems
-- Quick start monitoring
-- System status indicators
-- Test detection capabilities
+## Programming Interface
 
-### 2. DOM Monitor (`pages/dom-monitor.html`)
-- Real-time DOM mutation tracking
-- Suspicious pattern detection
-- Element injection analysis
-- DOM tree visualization
-
-### 3. Extension Detector (`pages/extension-detector.html`)
-- Browser extension scanning
-- Content script detection
-- AI agent pattern matching
-- Deep technical analysis
-
-### 4. Stylesheet Monitor (`pages/stylesheet-monitor.html`)
-- CSS injection tracking
-- Style modification detection
-- Suspicious rule analysis
-- Baseline comparison
-
-### 5. Overlay Detector (`pages/overlay-detector.html`)
-- High z-index element detection
-- Overlay pattern analysis
-- Screen coverage mapping
-- Perplexity Comet specific tests
-
-### 6. Live Dashboard (`pages/live-dashboard.html`)
-- Real-time monitoring feed
-- Threat level assessment
-- System health monitoring
-- Comprehensive reporting
-
-## 🧪 Testing the System
-
-Each module includes built-in test functions:
-
-### DOM Monitor Tests
-- Test element injection
-- Style modification simulation
-- Overlay injection tests
-- AI agent pattern injection
-
-### Extension Detector Tests
-- Content script simulation
-- AI agent pattern testing
-- DOM injection tests
-- Global variable simulation
-
-### Stylesheet Monitor Tests
-- CSS injection simulation
-- Style override tests
-- Overlay CSS patterns
-- Element hiding tests
-
-### Overlay Detector Tests
-- Fullscreen overlay simulation
-- High z-index testing
-- Transparent overlay detection
-- AI agent overlay patterns
-
-## 🔍 Detection Patterns
-
-### Suspicious Indicators
-- Elements with z-index > 9999
-- Position fixed/absolute overlays covering >50% of screen
-- Opacity manipulation (near-invisible interactive elements)
-- AI agent specific IDs/classes (pplx-agent-overlay, comet-agent, etc.)
-- Extension content script injections
-- Automation framework globals (webdriver, playwright, puppeteer)
-
-### AI Agent Signatures
-- **Perplexity Comet**: Style overrides, specific overlay elements, browser protocol detection
-- **OpenAI Operator**: HTTP message signatures, specific user agent patterns
-- **Automation Tools**: WebDriver flags, CDP artifacts, timezone anomalies
-
-## 📊 Export and Reporting
-
-All modules support data export:
-- JSON format reports
-- Detection event logs
-- System health snapshots
-- Comprehensive analysis summaries
-
-## 🛡️ Security Research Use Cases
-
-- **Web Application Security**: Detect automated attacks and bot behavior
-- **AI Agent Analysis**: Study AI agent behavior patterns and signatures
-- **Browser Automation Detection**: Identify headless browsers and automation tools
-- **Extension Security**: Monitor for malicious extension behavior
-- **Overlay Attack Detection**: Identify UI redressing and clickjacking attempts
-
-## 🔧 Technical Implementation
-
-### Core Technologies
-- Pure JavaScript (ES6+)
-- HTML5 with responsive design
-- CSS3 with modern features
-- MutationObserver API for DOM monitoring
-- Web APIs for browser feature detection
-
-### Detection Engine (`ai-detector.js`)
-- Centralized detection logic
-- Event-driven architecture
-- Configurable detection patterns
-- Extensible framework for new detection methods
-
-### Browser Compatibility
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- ES6+ support required
-- No external dependencies
-- Progressive enhancement design
-
-## 📝 Configuration
-
-### Detection Sensitivity
-Modify detection thresholds in `ai-detector.js`:
+### Global Methods
 ```javascript
-const HIGH_Z_INDEX_THRESHOLD = 9999;
-const OVERLAY_COVERAGE_THRESHOLD = 0.5;
-const SUSPICIOUS_PATTERNS = [...];
+// Reset lab state
+LAB.reset()
+
+// Get all collected data
+LAB.getData()
+
+// Optional callback for external harnesses
+window.__LAB_ON_DONE__ = function(data) {
+  console.log('Test completed:', data);
+}
 ```
 
-### Custom Patterns
-Add new AI agent patterns:
+### Adding/Modifying Steps
+
+Edit the `steps` array in `lab.js`:
+
 ```javascript
-const AI_AGENT_PATTERNS = {
-    'custom-agent': {
-        name: 'Custom AI Agent',
-        indicators: ['custom-pattern', 'agent-id'],
-        extensionId: 'custom-extension-id'
-    }
-};
+this.steps = [
+  { name: 'StepName', minDwell: 1000, maxDwell: 5000, validator: () => this.validateStep() }
+];
 ```
 
-## 🚨 Important Notes
+### Selector Usage Monitoring
 
-- **Research Tool**: This framework is designed for security research and analysis
-- **Privacy**: All detection runs locally in the browser
-- **Performance**: Continuous monitoring may impact browser performance
-- **False Positives**: Some legitimate applications may trigger detections
+The lab wraps `querySelector`/`querySelectorAll` to categorize usage:
+- **id**: `#elementId`
+- **class**: `.className`
+- **aria_role**: `[role=button]`, `[aria-label]`
+- **text_like**: Contains quotes or text-matching patterns
+- **nth**: `:nth-child()`, `:first-child`, etc.
 
-## 📚 Research References
+Only pattern buckets are logged, never actual selector strings.
 
-Based on research and techniques from:
-- [Castle.io AI Bot Detection Series](https://blog.castle.io/)
-- Web Bot HTTP Message Signatures (Cloudflare/OpenAI)
-- Browser fingerprinting and automation detection research
-- Modern AI agent behavioral analysis
+## Browser Compatibility
 
-## 🤝 Contributing
+- Modern browsers with ES6 module support
+- Chart.js loaded via CDN
+- No build tools required
+- Runs entirely client-side
 
-This is a research framework. Contributions for:
-- New detection patterns
-- Additional AI agent signatures
-- Performance improvements
-- Enhanced reporting features
+## Privacy Notes
 
-## 📄 License
+- No actual typed content is logged (only keystroke timing)
+- Selector patterns are categorized, not logged verbatim
+- No external network calls except Chart.js CDN
+- All data stays local until user explicitly exports
 
-This project is provided for security research and educational purposes.
+## Developer Notes
 
-## 🔗 Quick Links
+The lab is designed to be deterministic and fair across different agent types:
+- Minimum dwell times prevent rushing through steps
+- Visual timers show when actions are allowed
+- Step validation ensures proper completion
+- UI remains accessible to both humans and automation
 
-- **Main Dashboard**: `/index.html`
-- **Live Demo**: `/pages/live-dashboard.html?demo=true`
-- **Technical Documentation**: See source code comments
-- **Test Suite**: Each page includes comprehensive testing functions
-
----
-
-**⚠️ Disclaimer**: This tool is for security research and analysis purposes. Use responsibly and in accordance with applicable laws and regulations.
+Each component is modular and can be extended independently.

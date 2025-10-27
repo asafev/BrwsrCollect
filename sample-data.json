@@ -1,0 +1,250 @@
+{
+  "meta": {
+    "lab_version": "1.0",
+    "started_at_epoch_ms": 1635343200000,
+    "finished_at_epoch_ms": 1635343245000,
+    "test_duration_ms": 45000
+  },
+  "fingerprint": {
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36",
+    "platform": "Win32",
+    "language": "en-US",
+    "languages": ["en-US", "en"],
+    "webdriver": false,
+    "hardwareConcurrency": 8,
+    "plugins_len": 3,
+    "webgl": {
+      "vendor": "Google Inc. (Intel)",
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11-27.20.100.8935)"
+    },
+    "canvas_hash": "a1b2c3d4e5f67890",
+    "screen": {
+      "w": 1920,
+      "h": 1080
+    },
+    "intl": {
+      "locale": "en-US",
+      "timeZone": "America/New_York"
+    }
+  },
+  "events": {
+    "pointer": [
+      {
+        "t": 1000.5,
+        "type": "pointermove",
+        "x": 150,
+        "y": 200,
+        "movementX": 2,
+        "movementY": 1,
+        "pointerType": "mouse",
+        "isTrusted": true,
+        "buttons": 0
+      },
+      {
+        "t": 1016.7,
+        "type": "pointermove",
+        "x": 155,
+        "y": 205,
+        "movementX": 5,
+        "movementY": 5,
+        "pointerType": "mouse",
+        "isTrusted": true,
+        "buttons": 0
+      },
+      {
+        "t": 1200.3,
+        "type": "pointerdown",
+        "x": 180,
+        "y": 220,
+        "movementX": 0,
+        "movementY": 0,
+        "pointerType": "mouse",
+        "isTrusted": true,
+        "buttons": 1
+      },
+      {
+        "t": 1250.8,
+        "type": "pointerup",
+        "x": 180,
+        "y": 220,
+        "movementX": 0,
+        "movementY": 0,
+        "pointerType": "mouse",
+        "isTrusted": true,
+        "buttons": 0
+      }
+    ],
+    "clicks": [
+      {
+        "t": 1250.8,
+        "x": 180,
+        "y": 220,
+        "target": "button#start-test"
+      },
+      {
+        "t": 5780.2,
+        "x": 300,
+        "y": 400,
+        "target": "button#continue-btn"
+      },
+      {
+        "t": 12450.5,
+        "x": 250,
+        "y": 350,
+        "target": "button#open-modal-btn"
+      }
+    ],
+    "scrolls": [
+      {
+        "t": 8500.0,
+        "y": 0,
+        "velocity": 0
+      },
+      {
+        "t": 8650.5,
+        "y": 100,
+        "velocity": 0.67
+      },
+      {
+        "t": 8800.2,
+        "y": 250,
+        "velocity": 1.0
+      },
+      {
+        "t": 9100.8,
+        "y": 300,
+        "velocity": 0.17
+      }
+    ],
+    "keys": [
+      {
+        "t": 3500.0,
+        "type": "keydown",
+        "code": "KeyA",
+        "key": "char",
+        "ctrlKey": false,
+        "altKey": false,
+        "shiftKey": false
+      },
+      {
+        "t": 3650.0,
+        "type": "keydown",
+        "code": "KeyG",
+        "key": "char",
+        "ctrlKey": false,
+        "altKey": false,
+        "shiftKey": false
+      },
+      {
+        "t": 3780.0,
+        "type": "keydown",
+        "code": "KeyE",
+        "key": "char",
+        "ctrlKey": false,
+        "altKey": false,
+        "shiftKey": false
+      }
+    ],
+    "dom": [
+      {
+        "t": 2000.0,
+        "action": "qs",
+        "bucket": "id"
+      },
+      {
+        "t": 2050.5,
+        "action": "qs",
+        "bucket": "class"
+      },
+      {
+        "t": 4500.2,
+        "action": "qs",
+        "bucket": "aria_role"
+      }
+    ],
+    "steps": [
+      {
+        "idx": 1,
+        "name": "Landing",
+        "started": 1000.0,
+        "ended": 2500.0
+      },
+      {
+        "idx": 2,
+        "name": "Form",
+        "started": 2500.0,
+        "ended": 6800.0
+      },
+      {
+        "idx": 3,
+        "name": "Navigation",
+        "started": 6800.0,
+        "ended": 10200.0
+      },
+      {
+        "idx": 4,
+        "name": "Table",
+        "started": 10200.0,
+        "ended": 18500.0
+      },
+      {
+        "idx": 5,
+        "name": "Scrolling",
+        "started": 18500.0,
+        "ended": 25000.0
+      },
+      {
+        "idx": 6,
+        "name": "Finish",
+        "started": 25000.0,
+        "ended": 28000.0
+      }
+    ]
+  },
+  "derived": {
+    "mouse": {
+      "path_len": 1250.6,
+      "avg_speed": 0.45,
+      "speed_std": 0.23,
+      "straight_ratio": 0.72,
+      "curvature_mean": 0.35,
+      "curvature_std": 0.18,
+      "jitter_std": 2.1,
+      "isTrusted_ratio": 0.95
+    },
+    "clicks": {
+      "interval_hist": [0, 0, 1, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "mean_ms": 4529.4,
+      "std_ms": 3335.0,
+      "count": 3
+    },
+    "scroll": {
+      "avg_vel": 0.46,
+      "vel_std": 0.34,
+      "peaks": [1.0],
+      "stops": 2,
+      "total_distance": 300
+    },
+    "typing": {
+      "mean_ms": 140.0,
+      "std_ms": 65.0,
+      "pasted": false,
+      "char_count": 3
+    },
+    "selectors": {
+      "id": 0.33,
+      "class": 0.33,
+      "aria_role": 0.33,
+      "text_like": 0.0,
+      "nth": 0.0,
+      "total_queries": 3
+    },
+    "flags": {
+      "possible_programmatic_mouse": false,
+      "playwrightish_selector_usage": true,
+      "humanlike_scroll": true,
+      "robotic_clicking": false,
+      "synthetic_typing": false
+    }
+  }
+}
