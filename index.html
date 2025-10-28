@@ -10,11 +10,21 @@
 <body>
     <header>
         <h1>AI-Agent Behavioral Lab</h1>
-        <div class="header-controls">
-            <button id="start-test" aria-label="Start behavioral test">Start Test</button>
-            <button id="stop-test" aria-label="Stop test and freeze data collection" style="display:none;">Stop Test</button>
-            <button id="reset-lab" aria-label="Reset lab state">Reset</button>
-            <button id="export-report" aria-label="Export test report" disabled>Export Report</button>
+        <div class="header-right">
+            <div class="header-controls">
+                <button id="start-test" aria-label="Start behavioral test">Start Test</button>
+                <button id="stop-test" aria-label="Stop test and freeze data collection" style="display:none;">Stop Test</button>
+                <button id="reset-lab" aria-label="Reset lab state">Reset</button>
+                <button id="export-report" aria-label="Export test report" disabled>Export Report</button>
+            </div>
+            <!-- Visitor ID Display -->
+            <div class="visitor-info">
+                <div class="visitor-id-widget">
+                    <label>👤 Visitor ID:</label>
+                    <span id="visitor-id-display">Initializing...</span>
+                    <span id="visitor-confidence" class="confidence-badge">-</span>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -255,13 +265,14 @@
     <!-- Modal for Navigation Step -->
     <div id="test-modal" class="modal" style="display:none;">
         <div class="modal-content">
-            <span class="modal-close" id="modal-close">&times;</span>
+            <button class="modal-close" id="modal-close" aria-label="Close modal" style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; min-width: 50px; min-height: 40px;">✕ Close</button>
             <h2>Test Modal</h2>
             <p>This is a modal for the navigation step. Close it using the X button, backdrop click, or Escape key.</p>
         </div>
     </div>
 
     <!-- Scripts -->
+    <script type="module" src="fingerprintpro.js"></script>
     <script type="module" src="fingerprint.js"></script>
     <script type="module" src="lab.js"></script>
     <script type="module" src="report.js"></script>

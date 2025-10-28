@@ -4,6 +4,7 @@
  */
 
 import { fingerprint } from './fingerprint.js';
+import { fingerprintPro } from './fingerprintpro.js';
 
 class BehavioralLab {
     constructor() {
@@ -613,6 +614,33 @@ class BehavioralLab {
             progressElement.style.width = '0%';
             startButton.disabled = false;
             stopButton.style.display = 'none';
+        }
+        
+        // Update visitor ID display
+        this.updateVisitorIdDisplay();
+    }
+
+    /**
+     * Update visitor ID display widget
+     */
+    updateVisitorIdDisplay() {
+        const visitorIdElement = document.getElementById('visitor-id-display');
+        const confidenceElement = document.getElementById('visitor-confidence');
+        
+        if (!visitorIdElement || !confidenceElement) return;
+        
+        const displayInfo = fingerprintPro.getDisplayInfo();
+        
+        if (displayInfo.status === 'Active') {
+            visitorIdElement.textContent = displayInfo.visitorId;
+            visitorIdElement.className = 'visitor-id-active';
+            confidenceElement.textContent = displayInfo.confidence;
+            confidenceElement.className = 'confidence-badge confidence-active';
+        } else {
+            visitorIdElement.textContent = displayInfo.visitorId;
+            visitorIdElement.className = 'visitor-id-pending';
+            confidenceElement.textContent = displayInfo.confidence;
+            confidenceElement.className = 'confidence-badge confidence-pending';
         }
     }
 

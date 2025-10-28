@@ -2,7 +2,10 @@
  * Browser Fingerprinting Module
  * Collects browser surface data without external APIs
  * Avoids PII while gathering environment characteristics
+ * Now enhanced with FingerprintJS Pro integration
  */
+
+import { fingerprintPro } from './fingerprintpro.js';
 
 export class BrowserFingerprint {
     constructor() {
@@ -10,10 +13,13 @@ export class BrowserFingerprint {
     }
 
     /**
-     * Collect all fingerprint data
+     * Collect all fingerprint data (local + Pro)
      * @returns {Object} Complete fingerprint object
      */
     async collect() {
+        // Initialize FingerprintJS Pro first
+        await fingerprintPro.initialize();
+        
         // Basic navigator properties
         this.collectNavigatorData();
         
@@ -37,6 +43,9 @@ export class BrowserFingerprint {
         
         // Permissions (safe queries only)
         await this.collectPermissionsData();
+        
+        // Add FingerprintJS Pro data
+        this.data.fingerprintPro = fingerprintPro.getProData();
         
         return this.data;
     }
