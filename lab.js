@@ -13,6 +13,12 @@ class BehavioralLab {
         this.stepStartTime = 0;
         this.testStartTime = 0;
         
+        // Store report generator instance for reuse
+        this.reportGenerator = null;
+        
+        // Flag to control data collection
+        this.dataCollectionActive = false;
+        
         // Telemetry buffers
         this.events = {
             pointer: [],
@@ -46,9 +52,12 @@ class BehavioralLab {
             form: { emailEntered: false, scenarioSelected: false },
             modal: { opened: false, closed: false },
             table: { sortedByName: false, sortedByDate: false, rowClicked: false },
-            scroll: { reachedBottom: false, reachedTop: false, reachedMiddle: false },
+            scroll: { testCompleted: false, metricsReceived: false },
             finish: { reportGenerated: false }
         };
+        
+        // Scroll metrics storage
+        this.scrollMetrics = null;
         
         // DOM selector usage tracking
         this.selectorUsage = {
@@ -167,6 +176,7 @@ class BehavioralLab {
     setupEventListeners() {
         // Main control buttons
         document.getElementById('start-test').addEventListener('click', () => this.startTest());
+        document.getElementById('stop-test').addEventListener('click', () => this.stopTest());
         document.getElementById('reset-lab').addEventListener('click', () => this.reset());
         document.getElementById('export-report').addEventListener('click', () => this.exportReport());
         
@@ -202,7 +212,7 @@ class BehavioralLab {
         });
         
         scenarioSelect.addEventListener('change', () => {
-            this.stepState.form.scenarioSelected = scenarioSelect.value === 'scenario-b';
+            this.stepState.form.scenarioSelected = scenarioSelect.value !== '';
             this.checkFormCompletion();
         });
         
@@ -227,24 +237,27 @@ class BehavioralLab {
             }
         });
         
-        // Table step
-        document.querySelectorAll('.sort-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+        // Table step - use event delegation to handle clicks after sorting
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.sort-btn')) {
+                const btn = e.target.closest('.sort-btn');
                 const sortType = btn.dataset.sort;
+                console.log(`Sorting by ${sortType}`);
                 if (sortType === 'name') this.stepState.table.sortedByName = true;
                 if (sortType === 'date') this.stepState.table.sortedByDate = true;
                 this.sortTable(sortType);
-            });
-        });
-        
-        document.querySelectorAll('.table-row').forEach(row => {
-            row.addEventListener('click', () => {
+            }
+            
+            if (e.target.closest('.table-row')) {
+                const row = e.target.closest('.table-row');
+                console.log(`Clicked row ${row.dataset.row}`);
                 row.classList.add('clicked');
                 if (row.dataset.row === '3') {
                     this.stepState.table.rowClicked = true;
+                    console.log('Row 3 clicked, checking table completion');
                     setTimeout(() => this.checkTableCompletion(), 100);
                 }
-            });
+            }
         });
         
         // Finish step
@@ -252,11 +265,17 @@ class BehavioralLab {
             this.generateReport();
         });
         
-        // Scroll tracking
-        const scrollContent = document.getElementById('scroll-content');
-        if (scrollContent) {
-            scrollContent.addEventListener('scroll', () => this.trackScrollPosition());
-        }
+        // Scroll step - open dedicated scroll page
+        document.getElementById('open-scroll-page-btn').addEventListener('click', () => {
+            this.openScrollPage();
+        });
+        
+        // Listen for scroll test completion messages
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'scroll-test-complete') {
+                this.handleScrollTestComplete(event.data.metrics);
+            }
+        });
     }
 
     /**
@@ -288,7 +307,7 @@ class BehavioralLab {
      * Handle pointer/mouse events
      */
     handlePointerEvent(e) {
-        if (!this.testStarted) return;
+        if (!this.testStarted || !this.dataCollectionActive) return;
         
         const event = {
             t: performance.now(),
@@ -324,7 +343,7 @@ class BehavioralLab {
      * Handle keyboard events
      */
     handleKeyEvent(e) {
-        if (!this.testStarted) return;
+        if (!this.testStarted || !this.dataCollectionActive) return;
         
         this.events.keys.push({
             t: performance.now(),
@@ -341,7 +360,7 @@ class BehavioralLab {
      * Handle scroll events
      */
     handleScrollEvent(e) {
-        if (!this.testStarted) return;
+        if (!this.testStarted || !this.dataCollectionActive) return;
         
         const now = performance.now();
         const scrollY = window.scrollY;
@@ -371,6 +390,7 @@ class BehavioralLab {
         console.log('🚀 Starting behavioral test');
         
         this.testStarted = true;
+        this.dataCollectionActive = true;
         this.testStartTime = performance.now();
         this.currentStep = 1;
         this.stepStartTime = this.testStartTime;
@@ -389,6 +409,25 @@ class BehavioralLab {
         
         // Start step timer
         this.startStepTimer(1);
+    }
+
+    /**
+     * Stop the behavioral test and freeze data collection
+     */
+    stopTest() {
+        if (!this.testStarted) return;
+        
+        console.log('⏹️ Stopping test - data collection frozen');
+        
+        this.dataCollectionActive = false;
+        
+        // Update UI to show test is stopped
+        this.updateUI();
+        
+        // Auto-generate report if not already generated
+        if (!this.reportGenerator) {
+            setTimeout(() => this.generateReport(), 500);
+        }
     }
 
     /**
@@ -414,6 +453,15 @@ class BehavioralLab {
             // Enable step controls after minimum dwell
             if (elapsed >= step.minDwell) {
                 this.enableStepControls(stepIndex);
+                
+                // Auto-complete step 1 (Landing) after minimum dwell
+                if (stepIndex === 1 && elapsed >= step.minDwell) {
+                    setTimeout(() => {
+                        if (this.currentStep === 1) {
+                            this.completeStep(1);
+                        }
+                    }, 100);
+                }
             }
             
             // Clear timer when step completes or test ends
@@ -427,15 +475,25 @@ class BehavioralLab {
      * Enable controls for a specific step
      */
     enableStepControls(stepIndex) {
+        console.log(`Enabling controls for step ${stepIndex}`);
         const controls = document.getElementById(`controls-${stepIndex}`);
         if (controls) {
             controls.style.display = 'block';
+            console.log(`Controls for step ${stepIndex} are now visible`);
+        } else {
+            console.log(`No controls found for step ${stepIndex}`);
+        }
+        
+        // Special handling for specific steps
+        if (stepIndex === 5) {
+            // Show scroll page instructions instead of inline scroll area
+            const scrollInstructions = document.getElementById('scroll-instructions');
             
-            // Enable specific controls based on step
-            if (stepIndex === 5) {
-                const scrollContent = document.getElementById('scroll-content');
-                if (scrollContent) scrollContent.style.display = 'block';
+            if (scrollInstructions) {
+                scrollInstructions.style.display = 'block';
             }
+            
+            console.log('🎯 Scroll step ready - scroll page controls enabled');
         }
     }
 
@@ -533,19 +591,28 @@ class BehavioralLab {
         const statusElement = document.getElementById('test-status');
         const progressElement = document.getElementById('progress-fill');
         const startButton = document.getElementById('start-test');
+        const stopButton = document.getElementById('stop-test');
         
         if (this.testCompleted) {
             statusElement.textContent = 'Test Completed';
             progressElement.style.width = '100%';
             startButton.disabled = true;
+            stopButton.style.display = 'none';
         } else if (this.testStarted) {
-            statusElement.textContent = `Step ${this.currentStep}/6: ${this.steps[this.currentStep - 1]?.name}`;
+            if (this.dataCollectionActive) {
+                statusElement.textContent = `Step ${this.currentStep}/6: ${this.steps[this.currentStep - 1]?.name}`;
+                stopButton.style.display = 'inline-block';
+            } else {
+                statusElement.textContent = `Test Stopped - Data Collection Frozen`;
+                stopButton.style.display = 'none';
+            }
             progressElement.style.width = `${(this.currentStep / this.steps.length) * 100}%`;
             startButton.disabled = true;
         } else {
             statusElement.textContent = 'Ready';
             progressElement.style.width = '0%';
             startButton.disabled = false;
+            stopButton.style.display = 'none';
         }
     }
 
@@ -567,9 +634,7 @@ class BehavioralLab {
     }
 
     validateScrollStep() {
-        return this.stepState.scroll.reachedBottom && 
-               this.stepState.scroll.reachedTop && 
-               this.stepState.scroll.reachedMiddle;
+        return this.stepState.scroll.testCompleted && this.stepState.scroll.metricsReceived;
     }
 
     validateFinishStep() {
@@ -581,7 +646,14 @@ class BehavioralLab {
      */
     checkFormCompletion() {
         const continueBtn = document.getElementById('continue-btn');
-        continueBtn.disabled = !this.validateFormStep();
+        const isValid = this.validateFormStep();
+        continueBtn.disabled = !isValid;
+        
+        console.log('Form validation:', {
+            emailEntered: this.stepState.form.emailEntered,
+            scenarioSelected: this.stepState.form.scenarioSelected,
+            isValid: isValid
+        });
     }
 
     /**
@@ -622,31 +694,92 @@ class BehavioralLab {
     }
 
     checkTableCompletion() {
-        if (this.validateTableStep()) {
+        const validation = this.validateTableStep();
+        console.log('Table validation:', {
+            sortedByName: this.stepState.table.sortedByName,
+            sortedByDate: this.stepState.table.sortedByDate,
+            rowClicked: this.stepState.table.rowClicked,
+            isValid: validation
+        });
+        
+        if (validation) {
+            console.log('Table step complete, moving to step 5');
             this.completeStep(4);
         }
     }
 
     /**
-     * Scroll step helpers
+     * Scroll step helpers - New dedicated scroll page approach
      */
-    trackScrollPosition() {
-        const scrollContent = document.getElementById('scroll-content');
-        if (!scrollContent) return;
+    openScrollPage() {
+        console.log('🖱️ Opening dedicated scroll test page');
         
-        const scrollTop = scrollContent.scrollTop;
-        const scrollHeight = scrollContent.scrollHeight;
-        const clientHeight = scrollContent.clientHeight;
+        // Open scroll page in a new window/popup
+        const scrollWindow = window.open(
+            'scroll-page.html', 
+            'scrollTest',
+            'width=1200,height=800,scrollbars=yes,resizable=yes'
+        );
         
-        const scrollPercent = scrollTop / (scrollHeight - clientHeight);
+        if (!scrollWindow) {
+            console.error('❌ Failed to open scroll page - popup blocked?');
+            alert('Please allow popups for this site to continue with the scroll test.');
+            return;
+        }
         
-        // Check scroll positions
-        if (scrollPercent > 0.9) this.stepState.scroll.reachedBottom = true;
-        if (scrollPercent < 0.1) this.stepState.scroll.reachedTop = true;
-        if (scrollPercent > 0.4 && scrollPercent < 0.6) this.stepState.scroll.reachedMiddle = true;
+        // Monitor window close to detect completion
+        const checkClosed = setInterval(() => {
+            if (scrollWindow.closed) {
+                clearInterval(checkClosed);
+                console.log('📋 Scroll test window closed');
+                
+                // If we haven't received metrics yet, mark as completed anyway
+                if (!this.stepState.scroll.metricsReceived) {
+                    console.log('⚠️ No metrics received, but window closed - marking as completed');
+                    this.stepState.scroll.testCompleted = true;
+                    this.stepState.scroll.metricsReceived = true;
+                    
+                    // Complete step after a short delay
+                    setTimeout(() => {
+                        if (this.currentStep === 5) {
+                            this.completeStep(5);
+                        }
+                    }, 1000);
+                }
+            }
+        }, 1000);
+    }
+
+    /**
+     * Handle completion of scroll test with metrics
+     */
+    handleScrollTestComplete(metrics) {
+        console.log('📊 Received scroll test metrics:', metrics);
         
-        // Complete step if all positions reached
-        if (this.validateScrollStep()) {
+        // Store the scroll metrics for later inclusion in report
+        this.scrollMetrics = metrics;
+        
+        // Mark scroll step as completed
+        this.stepState.scroll.testCompleted = true;
+        this.stepState.scroll.metricsReceived = true;
+        
+        // Add scroll metrics to our events collection
+        this.events.scrolls = this.events.scrolls || [];
+        
+        // Convert scroll metrics to our standard format
+        if (metrics.scrollEvents && metrics.scrollEvents.length > 0) {
+            this.events.scrolls = metrics.scrollEvents.map(event => ({
+                t: event.timestamp,
+                y: event.position,
+                velocity: event.speed || 0,
+                direction: event.direction || 0
+            }));
+        }
+        
+        console.log('✅ Scroll step completed with metrics');
+        
+        // Complete the step
+        if (this.currentStep === 5) {
             setTimeout(() => this.completeStep(5), 500);
         }
     }
@@ -661,7 +794,7 @@ class BehavioralLab {
         
         // Import report module and generate
         const { ReportGenerator } = await import('./report.js');
-        const reportGenerator = new ReportGenerator();
+        this.reportGenerator = new ReportGenerator();
         
         const reportData = {
             meta: {
@@ -671,10 +804,11 @@ class BehavioralLab {
             },
             fingerprint: fingerprint.getSummary(),
             events: this.events,
-            selectorUsage: this.selectorUsage
+            selectorUsage: this.selectorUsage,
+            scrollMetrics: this.scrollMetrics // Include detailed scroll metrics
         };
         
-        await reportGenerator.generateReport(reportData);
+        await this.reportGenerator.generateReport(reportData);
         
         // Show report panel
         document.getElementById('report-panel').style.display = 'block';
@@ -689,14 +823,19 @@ class BehavioralLab {
      * Export the complete report
      */
     async exportReport() {
-        if (!this.testCompleted) return;
+        if (!this.testCompleted) {
+            console.warn('Cannot export: test not completed');
+            return;
+        }
+        
+        if (!this.reportGenerator) {
+            console.warn('Cannot export: no report generated yet');
+            return;
+        }
         
         console.log('💾 Exporting report');
         
-        const { ReportGenerator } = await import('./report.js');
-        const reportGenerator = new ReportGenerator();
-        
-        await reportGenerator.exportReports();
+        await this.reportGenerator.exportReports();
     }
 
     /**
@@ -811,9 +950,13 @@ class BehavioralLab {
         // Reset all state
         this.testStarted = false;
         this.testCompleted = false;
+        this.dataCollectionActive = false;
         this.currentStep = 0;
         this.stepStartTime = 0;
         this.testStartTime = 0;
+        
+        // Clear report generator
+        this.reportGenerator = null;
         
         // Clear buffers
         Object.keys(this.events).forEach(key => {
@@ -825,9 +968,12 @@ class BehavioralLab {
             form: { emailEntered: false, scenarioSelected: false },
             modal: { opened: false, closed: false },
             table: { sortedByName: false, sortedByDate: false, rowClicked: false },
-            scroll: { reachedBottom: false, reachedTop: false, reachedMiddle: false },
+            scroll: { testCompleted: false, metricsReceived: false },
             finish: { reportGenerated: false }
         };
+        
+        // Clear scroll metrics
+        this.scrollMetrics = null;
         
         // Reset selector usage
         this.selectorUsage = {
@@ -850,6 +996,10 @@ class BehavioralLab {
             const controls = document.getElementById(`controls-${i}`);
             if (controls) controls.style.display = 'none';
         }
+        
+        // Hide scroll instructions (no scroll content to hide anymore)
+        const scrollInstructions = document.getElementById('scroll-instructions');
+        if (scrollInstructions) scrollInstructions.style.display = 'none';
         
         // Reset step styles
         document.querySelectorAll('.task-step').forEach(step => {

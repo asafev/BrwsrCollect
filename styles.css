@@ -65,6 +65,16 @@ button#start-test:hover:not(:disabled) {
     background: #0056b3;
 }
 
+button#stop-test {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+button#stop-test:hover:not(:disabled) {
+    background: #c82333;
+}
+
 button#export-report {
     background: #28a745;
     color: white;
@@ -264,9 +274,41 @@ th {
 .scroll-content {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #e9ecef;
+    border: 3px solid #007bff;
     border-radius: 4px;
     margin-top: 0.5rem;
+    background: #fff;
+    position: relative;
+}
+
+.scroll-content:focus {
+    outline: 3px solid #ff6b6b;
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.scroll-instructions {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    color: #856404;
+}
+
+.scroll-instructions p {
+    margin: 0.25rem 0;
+}
+
+.scroll-indicator {
+    background: #007bff;
+    color: white;
+    padding: 0.5rem;
+    text-align: center;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 2px solid #0056b3;
 }
 
 /* Telemetry Widgets */

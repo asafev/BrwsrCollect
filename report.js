@@ -7,6 +7,12 @@ export class ReportGenerator {
     constructor() {
         this.rawData = null;
         this.derivedMetrics = null;
+        
+        // Store chart instances to manage them properly
+        this.charts = {
+            clickHistogram: null,
+            scrollVelocity: null
+        };
     }
 
     /**
@@ -369,9 +375,24 @@ export class ReportGenerator {
      * Render all charts using Chart.js
      */
     async renderCharts() {
+        // Destroy existing charts before creating new ones
+        this.destroyExistingCharts();
+        
         this.renderMouseHeatmap();
         this.renderClickHistogram();
         this.renderScrollVelocity();
+    }
+
+    /**
+     * Destroy existing Chart.js instances to prevent conflicts
+     */
+    destroyExistingCharts() {
+        Object.keys(this.charts).forEach(chartKey => {
+            if (this.charts[chartKey]) {
+                this.charts[chartKey].destroy();
+                this.charts[chartKey] = null;
+            }
+        });
     }
 
     /**
@@ -439,7 +460,7 @@ export class ReportGenerator {
             labels.push(`${i * 20}-${(i + 1) * 20}ms`);
         }
 
-        new Chart(canvas, {
+        this.charts.clickHistogram = new Chart(canvas, {
             type: 'bar',
             data: {
                 labels: labels.slice(0, 50), // Show first 50 bins (0-1000ms)
@@ -489,7 +510,7 @@ export class ReportGenerator {
         const timestamps = scrollEvents.map(e => (e.t - this.rawData.meta.started_at_epoch_ms) / 1000);
         const velocities = scrollEvents.map(e => Math.abs(e.velocity));
 
-        new Chart(canvas, {
+        this.charts.scrollVelocity = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: timestamps,
@@ -574,6 +595,8 @@ export class ReportGenerator {
         if (!tbody) return;
 
         const metrics = this.derivedMetrics;
+        const scrollMetrics = this.rawData.scrollMetrics;
+        
         const rows = [
             ['Mouse Path Length', `${metrics.mouse.path_len.toFixed(1)} px`],
             ['Average Speed', `${metrics.mouse.avg_speed.toFixed(2)} px/ms`],
@@ -592,6 +615,21 @@ export class ReportGenerator {
             ['Playwright-ish Usage', metrics.flags.playwrightish_selector_usage ? 'Likely' : 'Unlikely'],
             ['Human-like Scroll', metrics.flags.humanlike_scroll ? 'Yes' : 'No']
         ];
+
+        // Add enhanced scroll metrics if available
+        if (scrollMetrics) {
+            rows.push(
+                ['--- ENHANCED SCROLL METRICS ---', '---'],
+                ['Total Scroll Distance', `${scrollMetrics.totalDistance.toFixed(0)} px`],
+                ['Average Scroll Speed', `${scrollMetrics.avgScrollSpeed.toFixed(1)} px/s`],
+                ['Direction Changes', scrollMetrics.directionChanges.toString()],
+                ['Sections Viewed', `${scrollMetrics.sectionsViewedCount}/${scrollMetrics.totalSections}`],
+                ['Scroll Smoothness', `${(scrollMetrics.scrollSmoothness * 100).toFixed(1)}%`],
+                ['Time Scrolling', `${(scrollMetrics.timeScrolling / 1000).toFixed(1)}s`],
+                ['Time Paused', `${(scrollMetrics.timePaused / 1000).toFixed(1)}s`],
+                ['Test Completion', `${scrollMetrics.completionPercentage.toFixed(1)}%`]
+            );
+        }
 
         tbody.innerHTML = rows.map(([key, value]) => 
             `<tr><td><strong>${key}</strong></td><td>${value}</td></tr>`
@@ -663,6 +701,30 @@ export class ReportGenerator {
             ['Playwright-ish Usage', metrics.flags.playwrightish_selector_usage],
             ['Human-like Scroll', metrics.flags.humanlike_scroll]
         ];
+
+        // Add enhanced scroll metrics if available
+        const scrollMetrics = this.rawData.scrollMetrics;
+        if (scrollMetrics) {
+            csvData.push(
+                ['--- ENHANCED SCROLL METRICS ---', '---'],
+                ['Total Scroll Distance (px)', scrollMetrics.totalDistance],
+                ['Average Scroll Speed (px/s)', scrollMetrics.avgScrollSpeed],
+                ['Direction Changes', scrollMetrics.directionChanges],
+                ['Sections Viewed', scrollMetrics.sectionsViewedCount],
+                ['Total Sections', scrollMetrics.totalSections],
+                ['Scroll Smoothness', scrollMetrics.scrollSmoothness],
+                ['Time Scrolling (ms)', scrollMetrics.timeScrolling],
+                ['Time Paused (ms)', scrollMetrics.timePaused],
+                ['Test Completion %', scrollMetrics.completionPercentage]
+            );
+            
+            // Add section view times if available
+            if (scrollMetrics.sectionViewTimes) {
+                Object.entries(scrollMetrics.sectionViewTimes).forEach(([section, time]) => {
+                    csvData.push([`Section ${section} View Time (ms)`, time]);
+                });
+            }
+        }
 
         // Add histogram data
         metrics.clicks.interval_hist.forEach((count, i) => {
