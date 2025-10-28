@@ -96,6 +96,9 @@ class BehavioralLab {
         // Set up event listeners
         this.setupEventListeners();
         
+        // Set up DOM mutation observer to handle element changes
+        this.setupDOMObserver();
+        
         // Initialize UI
         this.updateUI();
         
@@ -103,6 +106,47 @@ class BehavioralLab {
         this.startTelemetryCollection();
         
         console.log('✅ Lab initialized successfully');
+    }
+
+    /**
+     * Set up DOM mutation observer to handle element changes that might affect click dots
+     */
+    setupDOMObserver() {
+        // Create a MutationObserver to watch for DOM changes
+        this.domObserver = new MutationObserver((mutations) => {
+            let shouldCleanup = false;
+            
+            mutations.forEach((mutation) => {
+                // Check if any of our tracked elements were removed
+                if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+                    mutation.removedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Check if any of our dot target elements were removed
+                            const hasTrackedElement = this.clickTracking.dots.some(dot => 
+                                dot.targetElement && (
+                                    node === dot.targetElement || 
+                                    node.contains(dot.targetElement)
+                                )
+                            );
+                            if (hasTrackedElement) {
+                                shouldCleanup = true;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (shouldCleanup) {
+                // Delay cleanup slightly to allow DOM to settle
+                setTimeout(() => this.cleanupOrphanedDots(), 100);
+            }
+        });
+        
+        // Start observing
+        this.domObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
     }
 
     /**
@@ -193,6 +237,7 @@ class BehavioralLab {
         document.getElementById('stop-test').addEventListener('click', () => this.stopTest());
         document.getElementById('reset-lab').addEventListener('click', () => this.reset());
         document.getElementById('export-report').addEventListener('click', () => this.exportReport());
+        document.getElementById('export-pdf').addEventListener('click', () => this.exportPDF());
         
         // Step-specific event listeners
         this.setupStepEventListeners();
@@ -342,6 +387,12 @@ class BehavioralLab {
             const clickData = this.analyzeClickPosition(e);
             this.events.clicks.push(clickData);
             
+            // Debug positioning for problematic elements
+            const tagName = e.target.tagName.toLowerCase();
+            if (['select', 'option', 'td', 'th', 'input', 'textarea'].includes(tagName)) {
+                this.debugClickPositioning(clickData);
+            }
+            
             // Update click tracking metrics
             this.updateClickTracking(clickData);
             
@@ -383,6 +434,9 @@ class BehavioralLab {
         // Determine accuracy category
         const accuracy = centerDistance < 25 ? 'center' : centerDistance < 75 ? 'middle' : 'edge';
         
+        // Get the best container element for positioning the dot
+        const { containerElement, adjustedX, adjustedY } = this.getBestClickContainer(target, elementX, elementY);
+        
         return {
             t: performance.now(),
             x: e.clientX,
@@ -402,12 +456,115 @@ class BehavioralLab {
                 percentX: percentX,
                 percentY: percentY
             },
+            containerPosition: {
+                element: containerElement,
+                x: adjustedX,
+                y: adjustedY
+            },
             centerDistance: centerDistance,
             accuracy: accuracy,
             isTrusted: e.isTrusted,
             isCDP: isCDP,
             pointerType: e.pointerType || 'mouse'
         };
+    }
+
+    /**
+     * Find the best container element and adjust coordinates for reliable dot positioning
+     */
+    getBestClickContainer(targetElement, elementX, elementY) {
+        let containerElement = targetElement;
+        let adjustedX = elementX;
+        let adjustedY = elementY;
+        
+        const tagName = targetElement.tagName.toLowerCase();
+        const computedStyle = getComputedStyle(targetElement);
+        
+        // Handle special cases for different element types
+        switch (tagName) {
+            case 'select':
+                // Select elements can be tricky, use the select itself but ensure proper positioning
+                if (computedStyle.position === 'static') {
+                    // Check if parent has positioning context
+                    let parent = targetElement.parentElement;
+                    while (parent && getComputedStyle(parent).position === 'static') {
+                        parent = parent.parentElement;
+                        if (parent === document.body) break;
+                    }
+                    if (parent && parent !== document.body) {
+                        const parentRect = parent.getBoundingClientRect();
+                        const targetRect = targetElement.getBoundingClientRect();
+                        containerElement = parent;
+                        adjustedX = targetRect.left - parentRect.left + elementX;
+                        adjustedY = targetRect.top - parentRect.top + elementY;
+                    }
+                }
+                break;
+                
+            case 'option':
+                // Option elements are inside select, use the select instead
+                const selectElement = targetElement.closest('select');
+                if (selectElement) {
+                    const selectRect = selectElement.getBoundingClientRect();
+                    const targetRect = targetElement.getBoundingClientRect();
+                    containerElement = selectElement;
+                    adjustedX = targetRect.left - selectRect.left + elementX;
+                    adjustedY = targetRect.top - selectRect.top + elementY;
+                }
+                break;
+                
+            case 'td':
+            case 'th':
+                // Table cells - use the cell but ensure the table has proper positioning context
+                const table = targetElement.closest('table');
+                if (table) {
+                    const tableStyle = getComputedStyle(table);
+                    if (tableStyle.position === 'static') {
+                        table.style.position = 'relative';
+                    }
+                }
+                break;
+                
+            case 'input':
+            case 'textarea':
+                // Form elements might have borders/padding affecting positioning
+                const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
+                const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+                const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+                const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+                
+                // Adjust for borders and padding to position dot in the content area
+                adjustedX = elementX;
+                adjustedY = elementY;
+                break;
+                
+            case 'button':
+                // Buttons usually work well as-is, but ensure positioning context
+                break;
+                
+            default:
+                // For other elements, check if they need a positioning context
+                if (computedStyle.position === 'static') {
+                    // Look for a parent with positioning context
+                    let parent = targetElement.parentElement;
+                    while (parent && getComputedStyle(parent).position === 'static') {
+                        parent = parent.parentElement;
+                        if (parent === document.body) break;
+                    }
+                    
+                    // If we found a positioned parent, use it
+                    if (parent && parent !== document.body && parent !== document.documentElement) {
+                        const parentRect = parent.getBoundingClientRect();
+                        const targetRect = targetElement.getBoundingClientRect();
+                        containerElement = parent;
+                        adjustedX = targetRect.left - parentRect.left + elementX;
+                        adjustedY = targetRect.top - parentRect.top + elementY;
+                    }
+                }
+                break;
+        }
+        
+        return { containerElement, adjustedX, adjustedY };
     }
 
     /**
@@ -458,15 +615,31 @@ class BehavioralLab {
     }
 
     /**
-     * Add visual click dot to overlay
+     * Add visual click dot to overlay - now bound to the clicked element with smart container detection
      */
     addClickVisualization(clickData) {
+        // Use the container element determined by our smart positioning logic
+        const containerElement = clickData.containerPosition.element;
+        const targetSelector = this.getElementSelector(containerElement);
+        
+        if (!containerElement || !document.contains(containerElement)) {
+            console.warn('Container element not found or not in DOM for click visualization:', targetSelector);
+            return;
+        }
+        
         const dot = {
             x: clickData.x,
             y: clickData.y,
+            elementX: clickData.containerPosition.x,
+            elementY: clickData.containerPosition.y,
+            originalElementX: clickData.elementPosition.x,
+            originalElementY: clickData.elementPosition.y,
             accuracy: clickData.accuracy,
             isCDP: clickData.isCDP,
             timestamp: clickData.t,
+            targetElement: containerElement,
+            originalTarget: clickData.target,
+            targetSelector: targetSelector,
             id: Math.random().toString(36).substr(2, 9)
         };
         
@@ -702,8 +875,9 @@ class BehavioralLab {
         // Update UI
         this.updateUI();
         
-        // Enable export button
+        // Enable export buttons
         document.getElementById('export-report').disabled = false;
+        document.getElementById('export-pdf').disabled = false;
         
         // Auto-generate report
         setTimeout(() => this.generateReport(), 500);
@@ -1063,6 +1237,30 @@ class BehavioralLab {
     }
 
     /**
+     * Export PDF report specifically
+     */
+    async exportPDF() {
+        if (!this.testCompleted) {
+            alert('Please complete the test before exporting PDF report.');
+            return;
+        }
+        
+        if (!this.reportGenerator) {
+            alert('Please generate the report first by clicking "Generate Report".');
+            return;
+        }
+        
+        console.log('📄 Exporting PDF report');
+        
+        try {
+            await this.reportGenerator.exportPDF();
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Error generating PDF report. Please try again.');
+        }
+    }
+
+    /**
      * Helper functions
      */
     getElementSelector(element) {
@@ -1089,20 +1287,27 @@ class BehavioralLab {
     }
 
     /**
-     * Render visual click dot on overlay
+     * Render visual click dot bound to the clicked element with enhanced positioning
      */
     renderClickDot(dot) {
-        // Create click overlay if it doesn't exist
-        this.ensureClickOverlay();
+        const targetElement = dot.targetElement;
         
-        const overlay = document.getElementById('click-overlay');
+        if (!targetElement || !document.contains(targetElement)) {
+            console.warn('Target element no longer exists for dot:', dot.id);
+            return;
+        }
+        
         const dotElement = document.createElement('div');
-        dotElement.className = 'click-dot';
+        dotElement.className = 'click-dot element-bound';
         dotElement.id = `dot-${dot.id}`;
         
-        // Position the dot
-        dotElement.style.left = `${dot.x - 6}px`;
-        dotElement.style.top = `${dot.y - 6}px`;
+        // Position the dot relative to the container element using the adjusted coordinates
+        dotElement.style.position = 'absolute';
+        dotElement.style.left = `${dot.elementX}px`;
+        dotElement.style.top = `${dot.elementY}px`;
+        dotElement.style.transform = 'translate(-50%, -50%)';
+        dotElement.style.pointerEvents = 'none';
+        dotElement.style.zIndex = '10000';
         
         // Color based on accuracy: green=center, yellow=middle, red=edge
         let color = '#ff4444'; // red for edge
@@ -1110,6 +1315,10 @@ class BehavioralLab {
         else if (dot.accuracy === 'middle') color = '#ffc107'; // yellow
         
         dotElement.style.backgroundColor = color;
+        dotElement.style.width = '12px';
+        dotElement.style.height = '12px';
+        dotElement.style.borderRadius = '50%';
+        dotElement.style.boxShadow = '0 0 4px rgba(0, 0, 0, 0.3)';
         
         // Add CDP indicator
         if (dot.isCDP) {
@@ -1118,18 +1327,100 @@ class BehavioralLab {
         }
         
         // Add animation
-        dotElement.style.animation = 'clickFade 3s ease-out forwards';
+        dotElement.style.animation = 'clickFadeElement 3s ease-out forwards';
         
-        overlay.appendChild(dotElement);
+        // Ensure the target element can contain positioned elements
+        const computedStyle = getComputedStyle(targetElement);
+        if (computedStyle.position === 'static') {
+            targetElement.style.position = 'relative';
+        }
+        
+        // Special handling for specific element types
+        const tagName = targetElement.tagName.toLowerCase();
+        
+        if (tagName === 'table' && !targetElement.style.position) {
+            // Ensure tables have proper positioning for dots
+            targetElement.style.position = 'relative';
+        }
+        
+        if (['select', 'input', 'textarea'].includes(tagName)) {
+            // For form elements, add a small offset to avoid interfering with the control
+            dotElement.style.marginTop = '-2px';
+            dotElement.style.marginLeft = '-2px';
+        }
+        
+        // Add debugging info as a data attribute
+        dotElement.setAttribute('data-original-target', dot.originalTarget);
+        dotElement.setAttribute('data-container', dot.targetSelector);
+        
+        try {
+            targetElement.appendChild(dotElement);
+        } catch (error) {
+            console.warn('Failed to append dot to element:', error, targetElement);
+            // Fallback: try to append to the parent element or use overlay
+            this.renderClickDotFallback(dot, dotElement);
+        }
     }
 
     /**
-     * Remove click dot from overlay
+     * Fallback method for rendering click dots when element positioning fails
+     */
+    renderClickDotFallback(dot, dotElement) {
+        // Try parent element first
+        if (dot.targetElement.parentElement) {
+            try {
+                const parentRect = dot.targetElement.parentElement.getBoundingClientRect();
+                const targetRect = dot.targetElement.getBoundingClientRect();
+                
+                dotElement.style.left = `${targetRect.left - parentRect.left + dot.originalElementX}px`;
+                dotElement.style.top = `${targetRect.top - parentRect.top + dot.originalElementY}px`;
+                
+                if (getComputedStyle(dot.targetElement.parentElement).position === 'static') {
+                    dot.targetElement.parentElement.style.position = 'relative';
+                }
+                
+                dot.targetElement.parentElement.appendChild(dotElement);
+                return;
+            } catch (parentError) {
+                console.warn('Parent element positioning also failed:', parentError);
+            }
+        }
+        
+        // Final fallback: use the fixed overlay with absolute positioning
+        this.ensureClickOverlay();
+        const overlay = document.getElementById('click-overlay');
+        
+        // Reset positioning to fixed overlay style
+        dotElement.style.position = 'fixed';
+        dotElement.style.left = `${dot.x - 6}px`;
+        dotElement.style.top = `${dot.y - 6}px`;
+        dotElement.style.transform = 'translate(0, 0)';
+        dotElement.classList.remove('element-bound');
+        dotElement.classList.add('overlay-fallback');
+        
+        overlay.appendChild(dotElement);
+        console.warn('Used overlay fallback for dot positioning');
+    }
+
+    /**
+     * Remove click dot from its parent element
      */
     removeClickDot(dotId) {
         const dotElement = document.getElementById(`dot-${dotId}`);
         if (dotElement) {
+            // Find the original dot data to restore element positioning if needed
+            const dotData = this.clickTracking.dots.find(d => d.id === dotId);
+            
             dotElement.remove();
+            
+            // Clean up: check if we need to restore the element's position style
+            if (dotData && dotData.targetElement) {
+                const remainingDots = Array.from(dotData.targetElement.querySelectorAll('.click-dot.element-bound'));
+                if (remainingDots.length === 0) {
+                    // No more dots on this element, we could restore original position
+                    // But we'll leave it as 'relative' since it's safer and doesn't break layout
+                }
+            }
         }
     }
 
@@ -1146,12 +1437,61 @@ class BehavioralLab {
     }
 
     /**
+     * Clean up orphaned click dots whose target elements no longer exist
+     */
+    cleanupOrphanedDots() {
+        this.clickTracking.dots = this.clickTracking.dots.filter(dot => {
+            if (!dot.targetElement || !document.contains(dot.targetElement)) {
+                // Remove the visual dot if it still exists
+                this.removeClickDot(dot.id);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Update positions of all element-bound dots (useful after layout changes)
+     */
+    refreshDotPositions() {
+        this.clickTracking.dots.forEach(dot => {
+            if (dot.targetElement && document.contains(dot.targetElement)) {
+                const dotElement = document.getElementById(`dot-${dot.id}`);
+                if (dotElement) {
+                    // Update position based on current element position
+                    dotElement.style.left = `${dot.elementX}px`;
+                    dotElement.style.top = `${dot.elementY}px`;
+                }
+            }
+        });
+    }
+
+    /**
+     * Debug method to log click positioning information
+     */
+    debugClickPositioning(clickData) {
+        console.group('🎯 Click Positioning Debug');
+        console.log('Original target:', clickData.target);
+        console.log('Container element:', this.getElementSelector(clickData.containerPosition.element));
+        console.log('Original coordinates:', clickData.elementPosition);
+        console.log('Container coordinates:', clickData.containerPosition);
+        console.log('Element bounds:', clickData.elementBounds);
+        console.log('Element styles:', getComputedStyle(clickData.containerPosition.element));
+        console.groupEnd();
+    }
+
+    /**
      * Start live UI updates
      */
     startLiveUpdates() {
         setInterval(() => {
             this.updateEventStream();
             this.updateLiveMetrics();
+            
+            // Clean up orphaned dots every few seconds
+            if (Date.now() % 5000 < 500) { // roughly every 5 seconds
+                this.cleanupOrphanedDots();
+            }
         }, 500);
     }
 
@@ -1362,6 +1702,7 @@ class BehavioralLab {
         // Reset buttons
         document.getElementById('start-test').disabled = false;
         document.getElementById('export-report').disabled = true;
+        document.getElementById('export-pdf').disabled = true;
         
         console.log('✅ Lab reset complete');
     }

@@ -455,55 +455,190 @@ export class ReportGenerator {
     }
 
     /**
-     * Render mouse path heatmap (custom canvas drawing)
+     * Render simple, clean mouse path visualization (fixed implementation)
      */
     renderMouseHeatmap() {
         const canvas = document.getElementById('mouse-heatmap');
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         const moveEvents = this.rawData.events.pointer.filter(e => e.type === 'pointermove');
-        if (moveEvents.length === 0) return;
-
-        // Normalize coordinates to canvas size
-        const xCoords = moveEvents.map(e => e.x);
-        const yCoords = moveEvents.map(e => e.y);
-        
-        const minX = Math.min(...xCoords);
-        const maxX = Math.max(...xCoords);
-        const minY = Math.min(...yCoords);
-        const maxY = Math.max(...yCoords);
-
-        // Draw path
-        ctx.strokeStyle = '#007bff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-
-        moveEvents.forEach((event, i) => {
-            const x = ((event.x - minX) / (maxX - minX || 1)) * (canvas.width - 20) + 10;
-            const y = ((event.y - minY) / (maxY - minY || 1)) * (canvas.height - 20) + 10;
-
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        ctx.stroke();
-
-        // Draw click points
         const clicks = this.rawData.events.clicks;
-        ctx.fillStyle = '#dc3545';
-        clicks.forEach(click => {
-            const x = ((click.x - minX) / (maxX - minX || 1)) * (canvas.width - 20) + 10;
-            const y = ((click.y - minY) / (maxY - minY || 1)) * (canvas.height - 20) + 10;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (moveEvents.length === 0) {
+            // Show "No Data" message for empty dataset
+            ctx.fillStyle = '#6c757d';
+            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('No mouse movement data available', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        // Get coordinate boundaries
+        const allXCoords = [...moveEvents.map(e => e.x), ...clicks.map(c => c.x)];
+        const allYCoords = [...moveEvents.map(e => e.y), ...clicks.map(c => c.y)];
+        
+        const minX = Math.min(...allXCoords);
+        const maxX = Math.max(...allXCoords);
+        const minY = Math.min(...allYCoords);
+        const maxY = Math.max(...allYCoords);
+        
+        // Add padding to canvas drawing area
+        const padding = 30;
+        const drawWidth = canvas.width - (padding * 2);
+        const drawHeight = canvas.height - (padding * 2);
+        
+        // Normalize coordinates to fit canvas with proper aspect ratio
+        const dataWidth = maxX - minX || 1;
+        const dataHeight = maxY - minY || 1;
+        
+        // Calculate scale to maintain aspect ratio
+        const scaleX = drawWidth / dataWidth;
+        const scaleY = drawHeight / dataHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        // Center the drawing
+        const offsetX = padding + (drawWidth - (dataWidth * scale)) / 2;
+        const offsetY = padding + (drawHeight - (dataHeight * scale)) / 2;
+        
+        function normalizeX(x) {
+            return offsetX + (x - minX) * scale;
+        }
+        
+        function normalizeY(y) {
+            return offsetY + (y - minY) * scale;
+        }
+        
+        // Draw background grid for reference
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 10; i++) {
+            const x = padding + (drawWidth * i / 10);
+            const y = padding + (drawHeight * i / 10);
             
+            ctx.beginPath();
+            ctx.moveTo(x, padding);
+            ctx.lineTo(x, padding + drawHeight);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(padding, y);
+            ctx.lineTo(padding + drawWidth, y);
+            ctx.stroke();
+        }
+        
+        // Draw mouse path with gradient effect
+        if (moveEvents.length > 1) {
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, 'rgba(0, 123, 255, 0.8)');
+            gradient.addColorStop(0.5, 'rgba(0, 123, 255, 0.6)');
+            gradient.addColorStop(1, 'rgba(0, 123, 255, 0.4)');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            moveEvents.forEach((event, i) => {
+                const x = normalizeX(event.x);
+                const y = normalizeY(event.y);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+            
+            // Draw start point
+            const startX = normalizeX(moveEvents[0].x);
+            const startY = normalizeY(moveEvents[0].y);
+            ctx.fillStyle = '#28a745';
+            ctx.beginPath();
+            ctx.arc(startX, startY, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw end point
+            const endEvent = moveEvents[moveEvents.length - 1];
+            const endX = normalizeX(endEvent.x);
+            const endY = normalizeY(endEvent.y);
+            ctx.fillStyle = '#ffc107';
+            ctx.beginPath();
+            ctx.arc(endX, endY, 4, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        // Draw click points
+        clicks.forEach((click, i) => {
+            const x = normalizeX(click.x);
+            const y = normalizeY(click.y);
+            
+            ctx.fillStyle = '#dc3545';
             ctx.beginPath();
             ctx.arc(x, y, 5, 0, 2 * Math.PI);
             ctx.fill();
+            
+            // Add click number
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText((i + 1).toString(), x, y + 3);
         });
+        
+        // Add legend
+        const legendY = canvas.height - 15;
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'left';
+        
+        // Start point legend
+        ctx.fillStyle = '#28a745';
+        ctx.beginPath();
+        ctx.arc(15, legendY, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#495057';
+        ctx.fillText('Start', 25, legendY + 4);
+        
+        // Path legend
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(70, legendY);
+        ctx.lineTo(90, legendY);
+        ctx.stroke();
+        ctx.fillText('Path', 95, legendY + 4);
+        
+        // Click legend
+        ctx.fillStyle = '#dc3545';
+        ctx.beginPath();
+        ctx.arc(135, legendY, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#495057';
+        ctx.fillText('Clicks', 145, legendY + 4);
+        
+        // End point legend
+        ctx.fillStyle = '#ffc107';
+        ctx.beginPath();
+        ctx.arc(190, legendY, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#495057';
+        ctx.fillText('End', 200, legendY + 4);
+        
+        // Add title
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#2c3e50';
+        ctx.fillText('Mouse Movement Path', canvas.width / 2, 20);
+        
+        // Add metrics summary
+        const pathLength = this.derivedMetrics.mouse.path_len;
+        const clickCount = clicks.length;
+        ctx.font = '11px Arial';
+        ctx.fillText(`Path Length: ${pathLength.toFixed(0)}px | Clicks: ${clickCount}`, canvas.width / 2, canvas.height - 5);
     }
 
     /**
@@ -791,7 +926,7 @@ export class ReportGenerator {
     }
 
     /**
-     * Export all report formats
+     * Export all report formats including PDF
      */
     async exportReports() {
         console.log('💾 Exporting reports...');
@@ -805,7 +940,224 @@ export class ReportGenerator {
         // Export PNG (mouse path)
         this.exportPNG();
         
+        // Export PDF
+        await this.exportPDF();
+        
         console.log('✅ Export complete');
+    }
+
+    /**
+     * Export comprehensive PDF report with all visualizations and data
+     */
+    async exportPDF() {
+        console.log('📄 Generating PDF report...');
+        
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            // PDF dimensions
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15;
+            const contentWidth = pageWidth - (margin * 2);
+            
+            let yPosition = margin;
+            
+            // Title Page
+            pdf.setFontSize(24);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('AI-Agent Behavioral Report', margin, yPosition);
+            yPosition += 15;
+            
+            // Subtitle with timestamp
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'normal');
+            const timestamp = new Date().toLocaleString();
+            pdf.text(`Generated: ${timestamp}`, margin, yPosition);
+            yPosition += 10;
+            
+            // Test duration
+            const duration = this.rawData.meta.finished_at_epoch_ms - this.rawData.meta.started_at_epoch_ms;
+            pdf.text(`Test Duration: ${(duration / 1000).toFixed(1)} seconds`, margin, yPosition);
+            yPosition += 15;
+            
+            // Environment summary
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Environment Summary', margin, yPosition);
+            yPosition += 8;
+            
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            const fingerprint = this.rawData.fingerprint;
+            const envData = [
+                ['User Agent', fingerprint.ua?.substring(0, 60) + '...'],
+                ['Platform', fingerprint.platform],
+                ['WebDriver', fingerprint.webdriver?.toString()],
+                ['Viewport', `${fingerprint.screen_width}x${fingerprint.screen_height}`],
+                ['Language', fingerprint.language],
+                ['Timezone', fingerprint.timezone]
+            ];
+            
+            envData.forEach(([key, value]) => {
+                pdf.text(`${key}: ${value || 'N/A'}`, margin, yPosition);
+                yPosition += 5;
+            });
+            
+            yPosition += 10;
+            
+            // Key Metrics Summary
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Key Behavioral Metrics', margin, yPosition);
+            yPosition += 8;
+            
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            const metrics = this.derivedMetrics;
+            const keyMetrics = [
+                ['Mouse Path Length', `${metrics.mouse.path_len.toFixed(1)} px`],
+                ['Average Mouse Speed', `${metrics.mouse.avg_speed.toFixed(2)} px/ms`],
+                ['Movement Smoothness', `${(metrics.mouse.straight_ratio * 100).toFixed(1)}%`],
+                ['Click Count', metrics.clicks.count.toString()],
+                ['Click Accuracy', `${metrics.clicks.centerAccuracy?.toFixed(1) || 0}%`],
+                ['Automated Detection', metrics.flags.possible_programmatic_mouse ? 'Likely Automated' : 'Human-like'],
+                ['Scroll Behavior', metrics.flags.humanlike_scroll ? 'Natural' : 'Unnatural'],
+                ['Typing Speed', `${metrics.typing.mean_ms.toFixed(0)} ms between keys`]
+            ];
+            
+            keyMetrics.forEach(([key, value]) => {
+                pdf.text(`${key}: ${value}`, margin, yPosition);
+                yPosition += 5;
+            });
+            
+            // Add new page for visualizations
+            pdf.addPage();
+            yPosition = margin;
+            
+            // Visualizations section
+            pdf.setFontSize(18);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Behavioral Visualizations', margin, yPosition);
+            yPosition += 15;
+            
+            // Capture and add mouse path chart
+            await this.addChartToPDF(pdf, 'mouse-heatmap', 'Mouse Movement Path', margin, yPosition, contentWidth, 80);
+            yPosition += 90;
+            
+            // Capture and add click heatmap
+            await this.addChartToPDF(pdf, 'click-heatmap', 'Click Position Heatmap', margin, yPosition, contentWidth, 80);
+            yPosition += 90;
+            
+            // Check if we need a new page
+            if (yPosition > pageHeight - 100) {
+                pdf.addPage();
+                yPosition = margin;
+            }
+            
+            // Capture and add click histogram
+            await this.addChartToPDF(pdf, 'click-histogram', 'Click Interval Distribution', margin, yPosition, contentWidth, 70);
+            
+            // Add new page for detailed metrics
+            pdf.addPage();
+            yPosition = margin;
+            
+            // Detailed metrics tables
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Detailed Metrics', margin, yPosition);
+            yPosition += 10;
+            
+            // Add behavioral metrics table screenshot
+            await this.addTableToPDF(pdf, 'behavioral-table', 'Behavioral Summary', margin, yPosition, contentWidth);
+            
+            // Add footer with page numbers
+            const pageCount = pdf.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                pdf.setPage(i);
+                pdf.setFontSize(8);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, pageHeight - 10);
+            }
+            
+            // Save the PDF
+            pdf.save('behavioral-lab-report.pdf');
+            console.log('✅ PDF report generated successfully');
+            
+        } catch (error) {
+            console.error('❌ Error generating PDF:', error);
+            alert('Error generating PDF report. Please try again.');
+        }
+    }
+    
+    /**
+     * Helper function to add chart to PDF
+     */
+    async addChartToPDF(pdf, canvasId, title, x, y, width, height) {
+        try {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            // Add section title
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(title, x, y);
+            y += 8;
+            
+            // Capture canvas as image
+            const canvasImg = await html2canvas(canvas, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false
+            });
+            
+            const imgData = canvasImg.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', x, y, width, height);
+            
+        } catch (error) {
+            console.error(`Error adding chart ${canvasId} to PDF:`, error);
+            // Add placeholder text instead
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'italic');
+            pdf.text(`[Chart could not be captured: ${title}]`, x, y + 20);
+        }
+    }
+    
+    /**
+     * Helper function to add table to PDF
+     */
+    async addTableToPDF(pdf, tableId, title, x, y, width) {
+        try {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            
+            // Add section title
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(title, x, y);
+            y += 8;
+            
+            // Capture table as image
+            const tableImg = await html2canvas(table, {
+                backgroundColor: '#ffffff',
+                scale: 1.5,
+                logging: false
+            });
+            
+            const imgData = tableImg.toDataURL('image/png');
+            const aspectRatio = tableImg.height / tableImg.width;
+            const imgHeight = width * aspectRatio;
+            
+            pdf.addImage(imgData, 'PNG', x, y, width, imgHeight);
+            
+        } catch (error) {
+            console.error(`Error adding table ${tableId} to PDF:`, error);
+            // Add placeholder text instead
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'italic');
+            pdf.text(`[Table could not be captured: ${title}]`, x, y + 10);
+        }
     }
 
     /**
@@ -1024,12 +1376,13 @@ export class ReportGenerator {
     }
 
     /**
-     * Export mouse path as PNG
+     * Export mouse path as PNG (canvas-based implementation)
      */
     exportPNG() {
         const canvas = document.getElementById('mouse-heatmap');
         if (!canvas) return;
 
+        // Use canvas blob method for direct export
         canvas.toBlob((blob) => {
             this.downloadFile(blob, 'behavioral-lab-mouse-path.png');
         });

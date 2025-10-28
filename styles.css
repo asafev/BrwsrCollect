@@ -39,7 +39,14 @@ header h1 {
 
 .header-controls {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.header-controls button {
+    min-width: 120px;
+    font-weight: 500;
+    transition: all 0.3s ease;
 }
 
 /* Visitor ID Widget */
@@ -150,6 +157,20 @@ button#export-report:hover:not(:disabled) {
     background: #1e7e34;
 }
 
+button#export-pdf {
+    background: #6f42c1;
+    color: white;
+    border-color: #6f42c1;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(111, 66, 193, 0.25);
+}
+
+button#export-pdf:hover:not(:disabled) {
+    background: #5a2d91;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(111, 66, 193, 0.35);
+}
+
 .lab-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -167,10 +188,16 @@ button#export-report:hover:not(:disabled) {
 
 .panel {
     background: white;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.panel:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
 }
 
 .panel h2 {
@@ -436,19 +463,39 @@ th {
 /* Report Charts */
 .report-charts {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
     margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .report-charts {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 .chart-container {
     display: flex;
     flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
 
 .chart-container canvas {
     max-width: 100%;
     height: auto;
+    border-radius: 6px;
 }
 
 .report-tables {
@@ -610,6 +657,52 @@ button:focus, input:focus, select:focus {
     }
 }
 
+/* Element-bound click dot animation */
+@keyframes clickFadeElement {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    50% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}
+
+/* Element-bound click dots */
+.click-dot.element-bound {
+    position: absolute !important;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+/* Special handling for form elements */
+select .click-dot.element-bound,
+input .click-dot.element-bound,
+textarea .click-dot.element-bound {
+    z-index: 10001;
+}
+
+/* Ensure table elements can contain positioned dots */
+table {
+    position: relative;
+}
+
+/* Ensure form elements maintain their functionality */
+select, input, textarea, button {
+    position: relative;
+}
+
+/* Fallback overlay positioning */
+.click-dot.overlay-fallback {
+    position: fixed !important;
+    z-index: 9999;
+}
+
 /* Click Metrics Grid */
 .click-metrics-grid {
     display: grid;
@@ -721,12 +814,22 @@ button:focus, input:focus, select:focus {
     border: 1px solid #dee2e6;
 }
 
-/* Enhanced Chart Container for Click Heatmap */
+/* Enhanced Chart Container Titles */
 .chart-container h3 {
-    margin-bottom: 0.5rem;
-    color: #495057;
-    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    font-size: 1.1rem;
     font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-container h3::before {
+    content: "📊";
+    font-size: 0.9rem;
 }
 
 /* Responsive adjustments for click metrics */
