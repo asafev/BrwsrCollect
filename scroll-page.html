@@ -960,9 +960,10 @@
                         type: 'scroll-test-complete',
                         metrics: finalMetrics
                     }, '*');
+                } else {
+                    // Only close if it's a popup window, not an iframe
+                    window.close();
                 }
-                
-                window.close();
             });
         });
 

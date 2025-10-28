@@ -30,6 +30,19 @@ class BehavioralLab {
             steps: []
         };
         
+        // Click position tracking
+        this.clickTracking = {
+            dots: [], // Visual click dots for overlay
+            accuracy: {
+                total: 0,
+                center: 0,
+                edge: 0,
+                cdp: 0,
+                mouse: 0
+            },
+            heatmapData: [] // For heatmap generation
+        };
+        
         // Live metrics tracking
         this.metrics = {
             clickLatency: [],
@@ -324,19 +337,146 @@ class BehavioralLab {
         
         this.events.pointer.push(event);
         
-        // Track clicks separately
+        // Enhanced click tracking with position analysis
         if (e.type === 'click') {
-            this.events.clicks.push({
-                t: event.t,
-                x: event.x,
-                y: event.y,
-                target: this.getElementSelector(e.target)
-            });
+            const clickData = this.analyzeClickPosition(e);
+            this.events.clicks.push(clickData);
+            
+            // Update click tracking metrics
+            this.updateClickTracking(clickData);
+            
+            // Add visual click dot
+            this.addClickVisualization(clickData);
         }
         
         // Update mouse path canvas
         if (e.type === 'pointermove') {
             this.updateMousePath(event.x, event.y);
+        }
+    }
+
+    /**
+     * Analyze click position within target element
+     */
+    analyzeClickPosition(e) {
+        const target = e.target;
+        const rect = target.getBoundingClientRect();
+        
+        // Calculate position within element as percentages
+        const elementX = e.clientX - rect.left;
+        const elementY = e.clientY - rect.top;
+        const percentX = (elementX / rect.width) * 100;
+        const percentY = (elementY / rect.height) * 100;
+        
+        // Calculate distance from center
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const distanceFromCenter = Math.sqrt(
+            Math.pow(elementX - centerX, 2) + Math.pow(elementY - centerY, 2)
+        );
+        const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
+        const centerDistance = (distanceFromCenter / maxDistance) * 100;
+        
+        // Detect CDP vs mouse click
+        const isCDP = this.detectCDPClick(e);
+        
+        // Determine accuracy category
+        const accuracy = centerDistance < 25 ? 'center' : centerDistance < 75 ? 'middle' : 'edge';
+        
+        return {
+            t: performance.now(),
+            x: e.clientX,
+            y: e.clientY,
+            screenX: e.screenX || 0,
+            screenY: e.screenY || 0,
+            target: this.getElementSelector(e.target),
+            elementBounds: {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            },
+            elementPosition: {
+                x: elementX,
+                y: elementY,
+                percentX: percentX,
+                percentY: percentY
+            },
+            centerDistance: centerDistance,
+            accuracy: accuracy,
+            isTrusted: e.isTrusted,
+            isCDP: isCDP,
+            pointerType: e.pointerType || 'mouse'
+        };
+    }
+
+    /**
+     * Detect if click is from CDP (Chrome DevTools Protocol) vs real mouse
+     */
+    detectCDPClick(e) {
+        // CDP clicks typically have these characteristics:
+        // - screenX/Y are often 0 or don't match client coordinates properly
+        // - isTrusted might be false
+        // - Missing certain native event properties
+        const hasScreenCoords = e.screenX !== undefined && e.screenY !== undefined;
+        const screenCoordsValid = hasScreenCoords && (e.screenX > 0 || e.screenY > 0);
+        const hasMovement = e.movementX !== undefined || e.movementY !== undefined;
+        
+        // Heuristic: likely CDP if missing screen coords, not trusted, or inconsistent properties
+        return !e.isTrusted || 
+               !screenCoordsValid || 
+               (e.detail === 0 && e.which === 0) ||
+               (e.clientX === e.screenX && e.clientY === e.screenY && e.screenX === 0);
+    }
+
+    /**
+     * Update click tracking metrics
+     */
+    updateClickTracking(clickData) {
+        this.clickTracking.accuracy.total++;
+        
+        if (clickData.accuracy === 'center') {
+            this.clickTracking.accuracy.center++;
+        } else if (clickData.accuracy === 'edge') {
+            this.clickTracking.accuracy.edge++;
+        }
+        
+        if (clickData.isCDP) {
+            this.clickTracking.accuracy.cdp++;
+        } else {
+            this.clickTracking.accuracy.mouse++;
+        }
+        
+        // Add to heatmap data
+        this.clickTracking.heatmapData.push({
+            x: clickData.x,
+            y: clickData.y,
+            intensity: 1,
+            accuracy: clickData.accuracy,
+            isCDP: clickData.isCDP
+        });
+    }
+
+    /**
+     * Add visual click dot to overlay
+     */
+    addClickVisualization(clickData) {
+        const dot = {
+            x: clickData.x,
+            y: clickData.y,
+            accuracy: clickData.accuracy,
+            isCDP: clickData.isCDP,
+            timestamp: clickData.t,
+            id: Math.random().toString(36).substr(2, 9)
+        };
+        
+        this.clickTracking.dots.push(dot);
+        this.renderClickDot(dot);
+        
+        // Limit number of visible dots
+        if (this.clickTracking.dots.length > 50) {
+            const oldDot = this.clickTracking.dots.shift();
+            this.removeClickDot(oldDot.id);
         }
     }
 
@@ -737,45 +877,98 @@ class BehavioralLab {
     }
 
     /**
-     * Scroll step helpers - New dedicated scroll page approach
+     * Scroll step helpers - Modal approach instead of popup
      */
     openScrollPage() {
-        console.log('🖱️ Opening dedicated scroll test page');
+        console.log('🖱️ Opening dedicated scroll test modal');
         
-        // Open scroll page in a new window/popup
-        const scrollWindow = window.open(
-            'scroll-page.html', 
-            'scrollTest',
-            'width=1200,height=800,scrollbars=yes,resizable=yes'
-        );
+        // Get the scroll modal elements
+        const scrollModal = document.getElementById('scroll-modal');
+        const scrollIframe = document.getElementById('scroll-iframe');
         
-        if (!scrollWindow) {
-            console.error('❌ Failed to open scroll page - popup blocked?');
-            alert('Please allow popups for this site to continue with the scroll test.');
+        if (!scrollModal || !scrollIframe) {
+            console.error('❌ Scroll modal elements not found');
             return;
         }
         
-        // Monitor window close to detect completion
-        const checkClosed = setInterval(() => {
-            if (scrollWindow.closed) {
-                clearInterval(checkClosed);
-                console.log('📋 Scroll test window closed');
-                
-                // If we haven't received metrics yet, mark as completed anyway
-                if (!this.stepState.scroll.metricsReceived) {
-                    console.log('⚠️ No metrics received, but window closed - marking as completed');
-                    this.stepState.scroll.testCompleted = true;
-                    this.stepState.scroll.metricsReceived = true;
-                    
-                    // Complete step after a short delay
-                    setTimeout(() => {
-                        if (this.currentStep === 5) {
-                            this.completeStep(5);
-                        }
-                    }, 1000);
-                }
+        // Set the iframe source and show modal
+        scrollIframe.src = 'scroll-page.html';
+        scrollModal.style.display = 'block';
+        
+        // Add modal close functionality
+        this.setupScrollModalEvents();
+        
+        console.log('✅ Scroll test modal opened');
+    }
+
+    /**
+     * Setup scroll modal event listeners
+     */
+    setupScrollModalEvents() {
+        const scrollModal = document.getElementById('scroll-modal');
+        const scrollModalClose = document.getElementById('scroll-modal-close');
+        
+        // Close button event
+        const closeHandler = () => {
+            this.closeScrollModal();
+        };
+        
+        // Remove existing listeners to prevent duplicates
+        scrollModalClose.removeEventListener('click', closeHandler);
+        scrollModal.removeEventListener('click', this.scrollModalBackdropHandler);
+        
+        // Add new listeners
+        scrollModalClose.addEventListener('click', closeHandler);
+        
+        // Backdrop click handler
+        this.scrollModalBackdropHandler = (e) => {
+            if (e.target.id === 'scroll-modal') {
+                this.closeScrollModal();
             }
-        }, 1000);
+        };
+        scrollModal.addEventListener('click', this.scrollModalBackdropHandler);
+        
+        // ESC key handler
+        this.scrollModalEscHandler = (e) => {
+            if (e.key === 'Escape') {
+                this.closeScrollModal();
+            }
+        };
+        document.addEventListener('keydown', this.scrollModalEscHandler);
+    }
+
+    /**
+     * Close scroll modal
+     */
+    closeScrollModal() {
+        const scrollModal = document.getElementById('scroll-modal');
+        const scrollIframe = document.getElementById('scroll-iframe');
+        
+        // Hide modal
+        scrollModal.style.display = 'none';
+        
+        // Clear iframe source
+        scrollIframe.src = '';
+        
+        // Remove event listeners
+        document.removeEventListener('keydown', this.scrollModalEscHandler);
+        scrollModal.removeEventListener('click', this.scrollModalBackdropHandler);
+        
+        console.log('📋 Scroll test modal closed');
+        
+        // If we haven't received metrics yet, mark as completed anyway
+        if (!this.stepState.scroll.metricsReceived) {
+            console.log('⚠️ No metrics received, but modal closed - marking as completed');
+            this.stepState.scroll.testCompleted = true;
+            this.stepState.scroll.metricsReceived = true;
+            
+            // Complete step after a short delay
+            setTimeout(() => {
+                if (this.currentStep === 5) {
+                    this.completeStep(5);
+                }
+            }, 1000);
+        }
     }
 
     /**
@@ -783,6 +976,9 @@ class BehavioralLab {
      */
     handleScrollTestComplete(metrics) {
         console.log('📊 Received scroll test metrics:', metrics);
+        
+        // Close the scroll modal if it's open
+        this.closeScrollModal();
         
         // Store the scroll metrics for later inclusion in report
         this.scrollMetrics = metrics;
@@ -893,6 +1089,63 @@ class BehavioralLab {
     }
 
     /**
+     * Render visual click dot on overlay
+     */
+    renderClickDot(dot) {
+        // Create click overlay if it doesn't exist
+        this.ensureClickOverlay();
+        
+        const overlay = document.getElementById('click-overlay');
+        const dotElement = document.createElement('div');
+        dotElement.className = 'click-dot';
+        dotElement.id = `dot-${dot.id}`;
+        
+        // Position the dot
+        dotElement.style.left = `${dot.x - 6}px`;
+        dotElement.style.top = `${dot.y - 6}px`;
+        
+        // Color based on accuracy: green=center, yellow=middle, red=edge
+        let color = '#ff4444'; // red for edge
+        if (dot.accuracy === 'center') color = '#28a745'; // green
+        else if (dot.accuracy === 'middle') color = '#ffc107'; // yellow
+        
+        dotElement.style.backgroundColor = color;
+        
+        // Add CDP indicator
+        if (dot.isCDP) {
+            dotElement.classList.add('cdp-click');
+            dotElement.style.border = '2px solid #6f42c1';
+        }
+        
+        // Add animation
+        dotElement.style.animation = 'clickFade 3s ease-out forwards';
+        
+        overlay.appendChild(dotElement);
+    }
+
+    /**
+     * Remove click dot from overlay
+     */
+    removeClickDot(dotId) {
+        const dotElement = document.getElementById(`dot-${dotId}`);
+        if (dotElement) {
+            dotElement.remove();
+        }
+    }
+
+    /**
+     * Ensure click overlay exists
+     */
+    ensureClickOverlay() {
+        if (!document.getElementById('click-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'click-overlay';
+            overlay.className = 'click-visualization-overlay';
+            document.body.appendChild(overlay);
+        }
+    }
+
+    /**
      * Start live UI updates
      */
     startLiveUpdates() {
@@ -955,6 +1208,9 @@ class BehavioralLab {
             document.getElementById('click-latency').textContent = `${avgLatency.toFixed(0)}ms`;
         }
         
+        // Update click accuracy metrics
+        this.updateClickAccuracyMetrics();
+        
         // Update scroll cadence
         if (this.events.scrolls.length > 0) {
             const velocities = this.events.scrolls.slice(-10).map(s => Math.abs(s.velocity));
@@ -967,6 +1223,43 @@ class BehavioralLab {
         
         // Update focus state
         document.getElementById('focus-state').textContent = this.metrics.focusState;
+    }
+
+    /**
+     * Update click accuracy metrics in the UI
+     */
+    updateClickAccuracyMetrics() {
+        const accuracy = this.clickTracking.accuracy;
+        
+        // Update center accuracy percentage
+        const centerAccuracy = accuracy.total > 0 ? 
+            ((accuracy.center / accuracy.total) * 100).toFixed(1) : '0.0';
+        const centerElement = document.getElementById('click-center-accuracy');
+        if (centerElement) {
+            centerElement.textContent = `${centerAccuracy}%`;
+        }
+        
+        // Update CDP vs Mouse ratio
+        const cdpRatio = accuracy.total > 0 ? 
+            ((accuracy.cdp / accuracy.total) * 100).toFixed(1) : '0.0';
+        const cdpElement = document.getElementById('click-cdp-ratio');
+        if (cdpElement) {
+            cdpElement.textContent = `${cdpRatio}%`;
+        }
+        
+        // Update total clicks
+        const totalElement = document.getElementById('click-total-count');
+        if (totalElement) {
+            totalElement.textContent = accuracy.total.toString();
+        }
+        
+        // Update accuracy distribution
+        const edgeRatio = accuracy.total > 0 ? 
+            ((accuracy.edge / accuracy.total) * 100).toFixed(1) : '0.0';
+        const edgeElement = document.getElementById('click-edge-ratio');
+        if (edgeElement) {
+            edgeElement.textContent = `${edgeRatio}%`;
+        }
     }
 
     /**
@@ -990,6 +1283,31 @@ class BehavioralLab {
         Object.keys(this.events).forEach(key => {
             this.events[key] = [];
         });
+        
+        // Reset click tracking
+        this.clickTracking = {
+            dots: [],
+            accuracy: {
+                total: 0,
+                center: 0,
+                edge: 0,
+                cdp: 0,
+                mouse: 0
+            },
+            heatmapData: []
+        };
+        
+        // Clear click overlay
+        const overlay = document.getElementById('click-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        
+        // Close scroll modal if open
+        const scrollModal = document.getElementById('scroll-modal');
+        if (scrollModal && scrollModal.style.display !== 'none') {
+            this.closeScrollModal();
+        }
         
         // Reset step state
         this.stepState = {

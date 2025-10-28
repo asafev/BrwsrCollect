@@ -165,11 +165,69 @@ export class ReportGenerator {
         const meanInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
         const stdInterval = this.calculateStandardDeviation(intervals);
 
+        // Position analytics
+        const positionMetrics = this.computeClickPositionMetrics(clickEvents);
+
         return {
             interval_hist: histogram,
             mean_ms: meanInterval,
             std_ms: stdInterval,
-            count: clickEvents.length
+            count: clickEvents.length,
+            ...positionMetrics
+        };
+    }
+
+    /**
+     * Compute click position metrics
+     */
+    computeClickPositionMetrics(clickEvents) {
+        let centerCount = 0;
+        let edgeCount = 0;
+        let cdpCount = 0;
+        let totalCenterDistance = 0;
+        const xPositions = [];
+        const yPositions = [];
+        const heatmapData = [];
+
+        clickEvents.forEach(click => {
+            // Count accuracy categories
+            if (click.accuracy === 'center') centerCount++;
+            else if (click.accuracy === 'edge') edgeCount++;
+            
+            // Count CDP vs mouse clicks
+            if (click.isCDP) cdpCount++;
+            
+            // Accumulate center distance
+            if (click.centerDistance !== undefined) {
+                totalCenterDistance += click.centerDistance;
+            }
+            
+            // Collect positions for spread analysis
+            xPositions.push(click.x);
+            yPositions.push(click.y);
+            
+            // Prepare heatmap data
+            heatmapData.push({
+                x: click.x,
+                y: click.y,
+                intensity: 1,
+                accuracy: click.accuracy || 'unknown',
+                isCDP: click.isCDP || false
+            });
+        });
+
+        const total = clickEvents.length;
+        
+        return {
+            centerAccuracy: total > 0 ? (centerCount / total) * 100 : 0,
+            edgeRatio: total > 0 ? (edgeCount / total) * 100 : 0,
+            cdpRatio: total > 0 ? (cdpCount / total) * 100 : 0,
+            avgCenterDistance: total > 0 ? totalCenterDistance / total : 0,
+            positionSpread: {
+                x: this.calculateStandardDeviation(xPositions),
+                y: this.calculateStandardDeviation(yPositions)
+            },
+            heatmapData: heatmapData
         };
     }
 
@@ -379,6 +437,7 @@ export class ReportGenerator {
         this.destroyExistingCharts();
         
         this.renderMouseHeatmap();
+        this.renderClickHeatmap();
         this.renderClickHistogram();
         this.renderScrollVelocity();
     }
@@ -444,6 +503,93 @@ export class ReportGenerator {
             ctx.beginPath();
             ctx.arc(x, y, 5, 0, 2 * Math.PI);
             ctx.fill();
+        });
+    }
+
+    /**
+     * Render click position heatmap with accuracy visualization
+     */
+    renderClickHeatmap() {
+        const canvas = document.getElementById('click-heatmap');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const clicks = this.rawData.events.clicks;
+        if (clicks.length === 0) {
+            // Draw "No Data" message
+            ctx.fillStyle = '#666';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('No click data available', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        // Get viewport dimensions from the clicks data
+        const xCoords = clicks.map(c => c.x);
+        const yCoords = clicks.map(c => c.y);
+        
+        const minX = Math.min(...xCoords);
+        const maxX = Math.max(...xCoords);
+        const minY = Math.min(...yCoords);
+        const maxY = Math.max(...yCoords);
+
+        // Create heatmap grid
+        const gridSize = 20;
+        const gridWidth = Math.ceil(canvas.width / gridSize);
+        const gridHeight = Math.ceil(canvas.height / gridSize);
+        const heatmapGrid = Array(gridHeight).fill().map(() => Array(gridWidth).fill(0));
+
+        // Populate heatmap grid
+        clicks.forEach(click => {
+            const x = ((click.x - minX) / (maxX - minX || 1)) * (canvas.width - 20) + 10;
+            const y = ((click.y - minY) / (maxY - minY || 1)) * (canvas.height - 20) + 10;
+            
+            const gridX = Math.floor(x / gridSize);
+            const gridY = Math.floor(y / gridSize);
+            
+            if (gridX >= 0 && gridX < gridWidth && gridY >= 0 && gridY < gridHeight) {
+                heatmapGrid[gridY][gridX]++;
+            }
+        });
+
+        // Find max intensity for normalization
+        const maxIntensity = Math.max(...heatmapGrid.flat());
+
+        // Draw heatmap
+        for (let y = 0; y < gridHeight; y++) {
+            for (let x = 0; x < gridWidth; x++) {
+                const intensity = heatmapGrid[y][x];
+                if (intensity > 0) {
+                    const alpha = intensity / maxIntensity;
+                    ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.7})`;
+                    ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                }
+            }
+        }
+
+        // Draw individual click points with accuracy colors
+        clicks.forEach(click => {
+            const x = ((click.x - minX) / (maxX - minX || 1)) * (canvas.width - 20) + 10;
+            const y = ((click.y - minY) / (maxY - minY || 1)) * (canvas.height - 20) + 10;
+            
+            // Color based on accuracy
+            let color = '#ff4444'; // red for edge
+            if (click.accuracy === 'center') color = '#28a745'; // green
+            else if (click.accuracy === 'middle') color = '#ffc107'; // yellow
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, click.isCDP ? 8 : 6, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Add CDP indicator border
+            if (click.isCDP) {
+                ctx.strokeStyle = '#6f42c1';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
         });
     }
 
@@ -603,8 +749,16 @@ export class ReportGenerator {
             ['Straight Ratio', `${(metrics.mouse.straight_ratio * 100).toFixed(1)}%`],
             ['Curvature Mean', `${metrics.mouse.curvature_mean.toFixed(3)} rad`],
             ['isTrusted Ratio', `${(metrics.mouse.isTrusted_ratio * 100).toFixed(1)}%`],
+            ['--- CLICK METRICS ---', '---'],
             ['Click Count', metrics.clicks.count.toString()],
             ['Click Interval Mean', `${metrics.clicks.mean_ms.toFixed(0)} ms`],
+            ['Center Accuracy', `${metrics.clicks.centerAccuracy?.toFixed(1) || 0}%`],
+            ['Edge Click Ratio', `${metrics.clicks.edgeRatio?.toFixed(1) || 0}%`],
+            ['CDP Click Ratio', `${metrics.clicks.cdpRatio?.toFixed(1) || 0}%`],
+            ['Avg Center Distance', `${metrics.clicks.avgCenterDistance?.toFixed(1) || 0}%`],
+            ['Position Spread X', `${metrics.clicks.positionSpread?.x?.toFixed(1) || 0} px`],
+            ['Position Spread Y', `${metrics.clicks.positionSpread?.y?.toFixed(1) || 0} px`],
+            ['--- OTHER METRICS ---', '---'],
             ['Scroll Velocity Avg', `${metrics.scroll.avg_vel.toFixed(2)} px/ms`],
             ['Scroll Stops', metrics.scroll.stops.toString()],
             ['Typing Mean Interval', `${metrics.typing.mean_ms.toFixed(0)} ms`],
@@ -751,7 +905,13 @@ export class ReportGenerator {
             clickMetrics: {
                 count: metrics.clicks.count,
                 meanInterval: metrics.clicks.mean_ms,
-                stdInterval: metrics.clicks.std_ms
+                stdInterval: metrics.clicks.std_ms,
+                centerAccuracy: metrics.clicks.centerAccuracy,
+                edgeRatio: metrics.clicks.edgeRatio,
+                cdpRatio: metrics.clicks.cdpRatio,
+                avgCenterDistance: metrics.clicks.avgCenterDistance,
+                positionSpread: metrics.clicks.positionSpread,
+                heatmapDataPoints: metrics.clicks.heatmapData?.length || 0
             },
             scrollMetrics: {
                 avgVelocity: metrics.scroll.avg_vel,

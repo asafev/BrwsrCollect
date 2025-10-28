@@ -564,3 +564,213 @@ button:focus, input:focus, select:focus {
     background: #c1c1c1;
     border-radius: 3px;
 }
+
+/* Click Position Tracking Styles */
+
+/* Click Visualization Overlay */
+.click-visualization-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.click-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%);
+}
+
+.click-dot.cdp-click {
+    border-width: 2px !important;
+    border-style: solid !important;
+}
+
+/* Click dot animation */
+@keyframes clickFade {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    50% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}
+
+/* Click Metrics Grid */
+.click-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.click-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.click-metric label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.click-metric span {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.click-metric .accuracy-good {
+    color: #28a745;
+}
+
+.click-metric .accuracy-poor {
+    color: #dc3545;
+}
+
+.click-metric .cdp-indicator {
+    color: #6f42c1;
+}
+
+/* Click Legend */
+.click-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.dot-sample {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-sample.center-dot {
+    background-color: #28a745;
+}
+
+.dot-sample.middle-dot {
+    background-color: #ffc107;
+}
+
+.dot-sample.edge-dot {
+    background-color: #dc3545;
+}
+
+.dot-sample.cdp-dot {
+    background-color: #6f42c1;
+    border: 2px solid #6f42c1;
+    width: 12px;
+    height: 12px;
+}
+
+/* Heatmap Legend */
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.heatmap-gradient {
+    flex: 1;
+    height: 12px;
+    background: linear-gradient(to right, 
+        rgba(255, 0, 0, 0.1), 
+        rgba(255, 0, 0, 0.3), 
+        rgba(255, 0, 0, 0.6), 
+        rgba(255, 0, 0, 0.9)
+    );
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+/* Enhanced Chart Container for Click Heatmap */
+.chart-container h3 {
+    margin-bottom: 0.5rem;
+    color: #495057;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Responsive adjustments for click metrics */
+@media (max-width: 768px) {
+    .click-metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .click-legend {
+        gap: 0.25rem;
+    }
+    
+    .legend-item {
+        font-size: 0.75rem;
+    }
+    
+    .click-dot {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+/* Scroll Modal Styles */
+.scroll-modal-content {
+    width: 95vw !important;
+    height: 90vh !important;
+    max-width: 1400px !important;
+    max-height: 900px !important;
+    padding: 0 !important;
+    position: relative;
+}
+
+.scroll-modal-content iframe {
+    border-radius: 0 0 8px 8px;
+    margin-top: 50px; /* Space for close button */
+    height: calc(100% - 50px) !important;
+}
+
+/* Ensure scroll modal appears above click overlay */
+#scroll-modal {
+    z-index: 10000;
+}
+
+#scroll-modal .modal-content {
+    z-index: 10001;
+}
