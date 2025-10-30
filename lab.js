@@ -5,6 +5,7 @@
 
 import { fingerprint } from './fingerprint.js';
 import { fingerprintPro } from './fingerprintpro.js';
+import { initCdpSignals } from './detectors/cdpSignals.js';
 
 class BehavioralLab {
     constructor() {
@@ -53,6 +54,7 @@ class BehavioralLab {
         
         // Step definitions with timers and validation
         this.steps = [
+            { name: 'AI Agent Info', minDwell: 500, maxDwell: 30000, validator: () => this.validateAgentInfoStep() },
             { name: 'Landing', minDwell: 800, maxDwell: 1200, validator: () => true },
             { name: 'Form', minDwell: 2000, maxDwell: 8000, validator: () => this.validateFormStep() },
             { name: 'Navigation', minDwell: 1000, maxDwell: 5000, validator: () => this.validateModalStep() },
@@ -63,11 +65,20 @@ class BehavioralLab {
         
         // State tracking for step validation
         this.stepState = {
+            agentInfo: { filled: false },
             form: { emailEntered: false, scenarioSelected: false },
             modal: { opened: false, closed: false },
             table: { sortedByName: false, sortedByDate: false, rowClicked: false },
             scroll: { testCompleted: false, metricsReceived: false },
             finish: { reportGenerated: false }
+        };
+        
+        // AI Agent information storage
+        this.agentInfo = {
+            agentName: '',
+            company: '',
+            model: '',
+            userInstructions: ''
         };
         
         // Scroll metrics storage
@@ -78,6 +89,9 @@ class BehavioralLab {
             id: 0, class: 0, aria_role: 0, text_like: 0, nth: 0, total: 0
         };
         
+        // CDP detector instance
+        this.cdpDetector = null;
+        
         this.init();
     }
 
@@ -87,23 +101,29 @@ class BehavioralLab {
     async init() {
         console.log('🔬 Initializing AI-Agent Behavioral Lab');
         
-        // Collect browser fingerprint
-        this.fingerprint = await fingerprint.collect();
-        
-        // Set up DOM selector monitoring
+        // Set up DOM selector monitoring (synchronous)
         this.setupSelectorMonitoring();
         
-        // Set up event listeners
+        // Set up event listeners FIRST (synchronous - critical for user interaction)
         this.setupEventListeners();
         
-        // Set up DOM mutation observer to handle element changes
+        // Set up DOM mutation observer to handle element changes (synchronous)
         this.setupDOMObserver();
         
-        // Initialize UI
+        // Initialize UI (synchronous)
         this.updateUI();
         
-        // Start telemetry collection
+        // Start telemetry collection (synchronous)
         this.startTelemetryCollection();
+        
+        // Collect browser fingerprint (async - can happen in background)
+        fingerprint.collect().then(fp => {
+            this.fingerprint = fp;
+            console.log('✅ Fingerprint collected');
+        }).catch(err => {
+            console.warn('⚠️ Fingerprint collection failed:', err);
+            this.fingerprint = null;
+        });
         
         console.log('✅ Lab initialized successfully');
     }
@@ -260,6 +280,21 @@ class BehavioralLab {
      * Set up event listeners for each step
      */
     setupStepEventListeners() {
+        // AI Agent Info step (Step 0)
+        const agentInfoNextBtn = document.getElementById('agent-info-next-btn');
+        if (agentInfoNextBtn) {
+            agentInfoNextBtn.addEventListener('click', () => this.submitAgentInfo());
+        }
+        
+        // Add input listeners to enable/disable next button
+        const agentInfoInputs = ['agent-name', 'agent-company', 'agent-model', 'agent-instructions'];
+        agentInfoInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => this.checkAgentInfoCompletion());
+            }
+        });
+        
         // Form step
         const emailInput = document.getElementById('email-input');
         const scenarioSelect = document.getElementById('scenario-select');
@@ -275,7 +310,7 @@ class BehavioralLab {
             this.checkFormCompletion();
         });
         
-        continueBtn.addEventListener('click', () => this.completeStep(2));
+        continueBtn.addEventListener('click', () => this.completeStep(3));
         
         // Modal step
         document.getElementById('open-modal-btn').addEventListener('click', () => {
@@ -311,11 +346,10 @@ class BehavioralLab {
                 const row = e.target.closest('.table-row');
                 console.log(`Clicked row ${row.dataset.row}`);
                 row.classList.add('clicked');
-                if (row.dataset.row === '3') {
-                    this.stepState.table.rowClicked = true;
-                    console.log('Row 3 clicked, checking table completion');
-                    setTimeout(() => this.checkTableCompletion(), 100);
-                }
+                // Accept ANY row click, not just row 3
+                this.stepState.table.rowClicked = true;
+                console.log('Table row clicked, checking table completion');
+                setTimeout(() => this.checkTableCompletion(), 100);
             }
         });
         
@@ -357,6 +391,12 @@ class BehavioralLab {
         
         // Scroll events
         window.addEventListener('scroll', (e) => this.handleScrollEvent(e), { passive: true });
+        
+        // Initialize CDP signals detector
+        this.cdpDetector = initCdpSignals({ 
+            report: { metrics: {} }, 
+            bus: null 
+        });
         
         // Start live UI updates
         this.startLiveUpdates();
@@ -769,10 +809,11 @@ class BehavioralLab {
                 this.enableStepControls(stepIndex);
                 
                 // Auto-complete step 1 (Landing) after minimum dwell
-                if (stepIndex === 1 && elapsed >= step.minDwell) {
+                // Auto-complete step 2 (Landing) after minimum dwell
+                if (stepIndex === 2 && elapsed >= step.minDwell) {
                     setTimeout(() => {
-                        if (this.currentStep === 1) {
-                            this.completeStep(1);
+                        if (this.currentStep === 2) {
+                            this.completeStep(2);
                         }
                     }, 100);
                 }
@@ -799,7 +840,7 @@ class BehavioralLab {
         }
         
         // Special handling for specific steps
-        if (stepIndex === 5) {
+        if (stepIndex === 6) {
             // Show scroll page instructions instead of inline scroll area
             const scrollInstructions = document.getElementById('scroll-instructions');
             
@@ -915,7 +956,7 @@ class BehavioralLab {
             stopButton.style.display = 'none';
         } else if (this.testStarted) {
             if (this.dataCollectionActive) {
-                statusElement.textContent = `Step ${this.currentStep}/6: ${this.steps[this.currentStep - 1]?.name}`;
+                statusElement.textContent = `Step ${this.currentStep}/7: ${this.steps[this.currentStep - 1]?.name}`;
                 stopButton.style.display = 'inline-block';
             } else {
                 statusElement.textContent = `Test Stopped - Data Collection Frozen`;
@@ -961,6 +1002,10 @@ class BehavioralLab {
     /**
      * Validation functions for each step
      */
+    validateAgentInfoStep() {
+        return this.stepState.agentInfo.filled;
+    }
+    
     validateFormStep() {
         return this.stepState.form.emailEntered && this.stepState.form.scenarioSelected;
     }
@@ -983,6 +1028,50 @@ class BehavioralLab {
         return this.stepState.finish.reportGenerated;
     }
 
+    /**
+     * AI Agent Info step helpers
+     */
+    checkAgentInfoCompletion() {
+        const agentName = document.getElementById('agent-name')?.value.trim() || '';
+        const company = document.getElementById('agent-company')?.value.trim() || '';
+        const model = document.getElementById('agent-model')?.value.trim() || '';
+        const instructions = document.getElementById('agent-instructions')?.value.trim() || '';
+        
+        const isValid = agentName.length > 0 && 
+                       company.length > 0 && 
+                       model.length > 0 && 
+                       instructions.length > 0;
+        
+        const nextBtn = document.getElementById('agent-info-next-btn');
+        if (nextBtn) {
+            nextBtn.disabled = !isValid;
+        }
+        
+        return isValid;
+    }
+    
+    submitAgentInfo() {
+        if (!this.checkAgentInfoCompletion()) {
+            return;
+        }
+        
+        // Store the agent information
+        this.agentInfo = {
+            agentName: document.getElementById('agent-name').value.trim(),
+            company: document.getElementById('agent-company').value.trim(),
+            model: document.getElementById('agent-model').value.trim(),
+            userInstructions: document.getElementById('agent-instructions').value.trim(),
+            timestamp: Date.now()
+        };
+        
+        this.stepState.agentInfo.filled = true;
+        
+        console.log('🤖 AI Agent Info collected:', this.agentInfo);
+        
+        // Complete step 1 and move to step 2
+        this.completeStep(1);
+    }
+    
     /**
      * Form step helpers
      */
@@ -1010,7 +1099,7 @@ class BehavioralLab {
         document.getElementById('test-modal').style.display = 'none';
         this.stepState.modal.closed = true;
         if (this.stepState.modal.opened) {
-            setTimeout(() => this.completeStep(3), 100);
+            setTimeout(() => this.completeStep(4), 100);
         }
     }
 
@@ -1045,8 +1134,8 @@ class BehavioralLab {
         });
         
         if (validation) {
-            console.log('Table step complete, moving to step 5');
-            this.completeStep(4);
+            console.log('Table step complete, moving to step 6');
+            this.completeStep(5);
         }
     }
 
@@ -1138,8 +1227,8 @@ class BehavioralLab {
             
             // Complete step after a short delay
             setTimeout(() => {
-                if (this.currentStep === 5) {
-                    this.completeStep(5);
+                if (this.currentStep === 6) {
+                    this.completeStep(6);
                 }
             }, 1000);
         }
@@ -1177,8 +1266,8 @@ class BehavioralLab {
         console.log('✅ Scroll step completed with metrics');
         
         // Complete the step
-        if (this.currentStep === 5) {
-            setTimeout(() => this.completeStep(5), 500);
+        if (this.currentStep === 6) {
+            setTimeout(() => this.completeStep(6), 500);
         }
     }
 
@@ -1190,6 +1279,9 @@ class BehavioralLab {
         
         this.stepState.finish.reportGenerated = true;
         
+        // Get CDP metrics snapshot
+        const cdpMetrics = this.cdpDetector ? this.cdpDetector.snapshot() : null;
+        
         // Import report module and generate
         const { ReportGenerator } = await import('./report.js');
         this.reportGenerator = new ReportGenerator();
@@ -1200,10 +1292,12 @@ class BehavioralLab {
                 started_at_epoch_ms: this.testStartTime,
                 finished_at_epoch_ms: performance.now()
             },
+            agentInfo: this.agentInfo, // Include AI Agent information
             fingerprint: fingerprint.getSummary(),
             events: this.events,
             selectorUsage: this.selectorUsage,
-            scrollMetrics: this.scrollMetrics // Include detailed scroll metrics
+            scrollMetrics: this.scrollMetrics, // Include detailed scroll metrics
+            cdpMetrics: cdpMetrics // Include CDP detection metrics
         };
         
         await this.reportGenerator.generateReport(reportData);
@@ -1212,8 +1306,8 @@ class BehavioralLab {
         document.getElementById('report-panel').style.display = 'block';
         
         // Complete final step if not already done
-        if (this.currentStep === 6) {
-            this.completeStep(6);
+        if (this.currentStep === 7) {
+            this.completeStep(7);
         }
     }
 
@@ -1651,11 +1745,20 @@ class BehavioralLab {
         
         // Reset step state
         this.stepState = {
+            agentInfo: { filled: false },
             form: { emailEntered: false, scenarioSelected: false },
             modal: { opened: false, closed: false },
             table: { sortedByName: false, sortedByDate: false, rowClicked: false },
             scroll: { testCompleted: false, metricsReceived: false },
             finish: { reportGenerated: false }
+        };
+        
+        // Reset agent info
+        this.agentInfo = {
+            agentName: '',
+            company: '',
+            model: '',
+            userInstructions: ''
         };
         
         // Clear scroll metrics
@@ -1672,13 +1775,22 @@ class BehavioralLab {
         // Hide report panel
         document.getElementById('report-panel').style.display = 'none';
         
+        // Reset agent info inputs
+        const agentInfoInputs = ['agent-name', 'agent-company', 'agent-model', 'agent-instructions'];
+        agentInfoInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.value = '';
+        });
+        const agentInfoNextBtn = document.getElementById('agent-info-next-btn');
+        if (agentInfoNextBtn) agentInfoNextBtn.disabled = true;
+        
         // Reset form inputs
         document.getElementById('email-input').value = '';
         document.getElementById('scenario-select').value = '';
         document.getElementById('continue-btn').disabled = true;
         
         // Hide all step controls
-        for (let i = 2; i <= 6; i++) {
+        for (let i = 1; i <= 7; i++) {
             const controls = document.getElementById(`controls-${i}`);
             if (controls) controls.style.display = 'none';
         }

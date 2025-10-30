@@ -838,6 +838,7 @@ export class ReportGenerator {
     populateReportTables() {
         this.populateEnvironmentTable();
         this.populateBehavioralTable();
+        this.populateCdpMetricsUI();
     }
 
     /**
@@ -848,7 +849,23 @@ export class ReportGenerator {
         if (!tbody) return;
 
         const fingerprint = this.rawData.fingerprint;
-        const rows = [
+        const agentInfo = this.rawData.agentInfo;
+        
+        const rows = [];
+        
+        // Add AI Agent Info if available
+        if (agentInfo && agentInfo.agentName) {
+            rows.push(
+                ['--- AI AGENT INFO ---', '---'],
+                ['Agent Name', agentInfo.agentName],
+                ['Company', agentInfo.company],
+                ['Model', agentInfo.model],
+                ['User Instructions', agentInfo.userInstructions],
+                ['--- ENVIRONMENT ---', '---']
+            );
+        }
+        
+        rows.push(
             ['User Agent', fingerprint.ua || 'Unknown'],
             ['Platform', fingerprint.platform || 'Unknown'],
             ['Language', fingerprint.language || 'Unknown'],
@@ -861,7 +878,7 @@ export class ReportGenerator {
             ['Screen Size', `${fingerprint.screen.w}x${fingerprint.screen.h}`],
             ['Canvas Hash', fingerprint.canvas_hash || 'Unknown'],
             ['Timezone', fingerprint.intl.timeZone || 'Unknown']
-        ];
+        );
 
         tbody.innerHTML = rows.map(([key, value]) => 
             `<tr><td><strong>${key}</strong></td><td>${value}</td></tr>`
@@ -905,6 +922,28 @@ export class ReportGenerator {
             ['Human-like Scroll', metrics.flags.humanlike_scroll ? 'Yes' : 'No']
         ];
 
+        // Add CDP detection metrics if available
+        const cdpMetrics = this.rawData.cdpMetrics;
+        if (cdpMetrics) {
+            rows.push(
+                ['--- CDP DETECTION ---', '---'],
+                ['CDP Likelihood', `${cdpMetrics.cdpLikelihood.toFixed(1)}%`],
+                ['No Move Before Click', `${(cdpMetrics.noMoveBeforeClickRatio * 100).toFixed(1)}%`],
+                ['Hover Dwell Avg', `${cdpMetrics.hoverDwellAvgMs.toFixed(0)} ms`],
+                ['Pointer Jitter Avg', `${cdpMetrics.pointerJitterPxAvg.toFixed(2)} px`],
+                ['Click Center Bias', `${cdpMetrics.clickCenterBias.toFixed(1)} px`],
+                ['Identical Click Coords', `${cdpMetrics.identicalClickCoordsPct.toFixed(1)}%`],
+                ['Scroll Cadence', `${cdpMetrics.scrollCadencePxPerMs.toFixed(2)} px/ms`],
+                ['Scroll Smoothness', `${cdpMetrics.scrollSmoothnessPct.toFixed(1)}%`],
+                ['Focus Jump (no input)', `${cdpMetrics.focusJumpWithoutMousePct.toFixed(1)}%`],
+                ['Trusted Click %', `${cdpMetrics.isTrustedClickPct.toFixed(1)}%`],
+                ['Extension Frames', cdpMetrics.extFrames.toString()],
+                ['WebDriver Detected', cdpMetrics.weakHints.webdriver ? 'Yes' : 'No'],
+                ['Zero Plugins', cdpMetrics.weakHints.pluginsZero ? 'Yes' : 'No'],
+                ['Suspicious Languages', cdpMetrics.weakHints.languagesSuspicious ? 'Yes' : 'No']
+            );
+        }
+
         // Add enhanced scroll metrics if available
         if (scrollMetrics) {
             rows.push(
@@ -923,6 +962,39 @@ export class ReportGenerator {
         tbody.innerHTML = rows.map(([key, value]) => 
             `<tr><td><strong>${key}</strong></td><td>${value}</td></tr>`
         ).join('');
+    }
+
+    /**
+     * Populate CDP metrics in Key Metrics UI
+     */
+    populateCdpMetricsUI() {
+        const cdpMetrics = this.rawData.cdpMetrics;
+        
+        if (!cdpMetrics) {
+            return; // No CDP metrics available
+        }
+
+        const cdpRow = document.getElementById('cdp-detected-row');
+        const cdpValue = document.getElementById('cdp-likelihood-value');
+        
+        if (cdpRow && cdpValue) {
+            const likelihood = cdpMetrics.cdpLikelihood;
+            
+            // Set the value
+            cdpValue.textContent = `${likelihood.toFixed(1)}%`;
+            
+            // Color code based on likelihood
+            if (likelihood >= 70) {
+                cdpValue.style.color = '#d32f2f'; // High - Red
+            } else if (likelihood >= 40) {
+                cdpValue.style.color = '#f57c00'; // Medium - Orange
+            } else {
+                cdpValue.style.color = '#388e3c'; // Low - Green
+            }
+            
+            // Show the row
+            cdpRow.style.display = 'table-row';
+        }
     }
 
     /**
@@ -1016,6 +1088,8 @@ export class ReportGenerator {
             pdf.setFontSize(10);
             pdf.setFont('helvetica', 'normal');
             const metrics = this.derivedMetrics;
+            const cdpMetrics = this.rawData.cdpMetrics;
+            
             const keyMetrics = [
                 ['Mouse Path Length', `${metrics.mouse.path_len.toFixed(1)} px`],
                 ['Average Mouse Speed', `${metrics.mouse.avg_speed.toFixed(2)} px/ms`],
@@ -1026,6 +1100,11 @@ export class ReportGenerator {
                 ['Scroll Behavior', metrics.flags.humanlike_scroll ? 'Natural' : 'Unnatural'],
                 ['Typing Speed', `${metrics.typing.mean_ms.toFixed(0)} ms between keys`]
             ];
+            
+            // Add CDP detection if available
+            if (cdpMetrics) {
+                keyMetrics.push(['CDP Likelihood', `${cdpMetrics.cdpLikelihood.toFixed(1)}%`]);
+            }
             
             keyMetrics.forEach(([key, value]) => {
                 pdf.text(`${key}: ${value}`, margin, yPosition);
@@ -1191,6 +1270,9 @@ export class ReportGenerator {
                 // Enhanced scroll metrics if available
                 scrollMetrics: this.rawData.scrollMetrics || null,
                 
+                // CDP detection metrics
+                cdpMetrics: this.rawData.cdpMetrics || null,
+                
                 // Selector usage patterns
                 selectorUsage: this.rawData.selectorUsage,
                 
@@ -1314,6 +1396,7 @@ export class ReportGenerator {
     exportCSV() {
         const metrics = this.derivedMetrics;
         const fingerprint = this.rawData.fingerprint;
+        const cdpMetrics = this.rawData.cdpMetrics;
         
         const csvData = [
             ['Metric', 'Value'],
@@ -1337,6 +1420,27 @@ export class ReportGenerator {
             ['Playwright-ish Usage', metrics.flags.playwrightish_selector_usage],
             ['Human-like Scroll', metrics.flags.humanlike_scroll]
         ];
+
+        // Add CDP detection metrics if available
+        if (cdpMetrics) {
+            csvData.push(
+                ['--- CDP DETECTION ---', '---'],
+                ['CDP Likelihood %', cdpMetrics.cdpLikelihood],
+                ['No Move Before Click Ratio', cdpMetrics.noMoveBeforeClickRatio],
+                ['Hover Dwell Avg (ms)', cdpMetrics.hoverDwellAvgMs],
+                ['Pointer Jitter Avg (px)', cdpMetrics.pointerJitterPxAvg],
+                ['Click Center Bias (px)', cdpMetrics.clickCenterBias],
+                ['Identical Click Coords %', cdpMetrics.identicalClickCoordsPct],
+                ['Scroll Cadence (px/ms)', cdpMetrics.scrollCadencePxPerMs],
+                ['Scroll Smoothness %', cdpMetrics.scrollSmoothnessPct],
+                ['Focus Jump Without Mouse %', cdpMetrics.focusJumpWithoutMousePct],
+                ['Trusted Click %', cdpMetrics.isTrustedClickPct],
+                ['Extension Frames', cdpMetrics.extFrames],
+                ['WebDriver Detected', cdpMetrics.weakHints.webdriver],
+                ['Zero Plugins', cdpMetrics.weakHints.pluginsZero],
+                ['Suspicious Languages', cdpMetrics.weakHints.languagesSuspicious]
+            );
+        }
 
         // Add enhanced scroll metrics if available
         const scrollMetrics = this.rawData.scrollMetrics;
