@@ -6,6 +6,7 @@
 import { fingerprint } from './fingerprinted.js';
 import { fingerprintPro } from './fingerprintpro.js';
 import { initCdpSignals } from './detectors/cdpSignals.js';
+import { AIAgentDetector } from './agentDetector.js';
 
 class BehavioralLab {
     constructor() {
@@ -92,6 +93,9 @@ class BehavioralLab {
         // CDP detector instance
         this.cdpDetector = null;
         
+        // AI Agent detector instance
+        this.aiAgentDetector = new AIAgentDetector();
+        
         this.init();
     }
 
@@ -124,6 +128,9 @@ class BehavioralLab {
             console.warn('⚠️ Fingerprint collection failed:', err);
             this.fingerprint = null;
         });
+        
+        // Start AI agent detection (async - can happen in background)
+        this.startAgentDetection();
         
         console.log('✅ Lab initialized successfully');
     }
@@ -274,6 +281,119 @@ class BehavioralLab {
         window.addEventListener('blur', () => {
             this.metrics.focusState = 'inactive';
         });
+        
+        // Agent detection rescan button
+        const rescanBtn = document.getElementById('rescan-agents');
+        if (rescanBtn) {
+            rescanBtn.addEventListener('click', () => this.startAgentDetection());
+        }
+    }
+
+    /**
+     * Start AI agent detection and update UI
+     */
+    async startAgentDetection() {
+        console.log('🕵️ Starting AI agent detection...');
+        
+        // Update UI to show scanning state
+        this.updateAgentDetectionUI('scanning');
+        
+        try {
+            // Run all detections
+            const results = await this.aiAgentDetector.runAllDetections();
+            
+            // Update UI with results
+            this.updateAgentDetectionUI('complete', results);
+            
+            console.log('✅ Agent detection complete:', results);
+        } catch (error) {
+            console.error('❌ Agent detection failed:', error);
+            this.updateAgentDetectionUI('error', null, error);
+        }
+    }
+
+    /**
+     * Update the agent detection UI based on current state
+     */
+    updateAgentDetectionUI(state, results = null, error = null) {
+        const statusElement = document.getElementById('detection-status');
+        const detectedAgentsElement = document.getElementById('detected-agents');
+        const alertsContainer = document.getElementById('agent-alerts');
+        const scannedCountElement = document.getElementById('scanned-count');
+        const detectedCountElement = document.getElementById('detected-count');
+        
+        if (!statusElement) return;
+        
+        switch (state) {
+            case 'scanning':
+                statusElement.innerHTML = '<span class="detection-badge scanning">🔍 Scanning for AI agents...</span>';
+                if (detectedAgentsElement) detectedAgentsElement.style.display = 'none';
+                break;
+                
+            case 'complete':
+                const summary = this.aiAgentDetector.getSummary();
+                const detectedAgents = results.filter(result => result.detected);
+                
+                if (summary.hasAnyAgent) {
+                    statusElement.innerHTML = '<span class="detection-badge detected">⚠️ AI Agents Detected</span>';
+                    
+                    // Show detected agents panel only if there are detected agents
+                    if (detectedAgentsElement) {
+                        detectedAgentsElement.style.display = 'block';
+                    }
+                } else {
+                    statusElement.innerHTML = '<span class="detection-badge no-agents">✅ No AI Agents Detected</span>';
+                    
+                    // Hide detected agents panel if no agents found
+                    if (detectedAgentsElement) {
+                        detectedAgentsElement.style.display = 'none';
+                    }
+                }
+                
+                // Populate agent alerts - only show detected agents
+                if (alertsContainer && detectedAgents.length > 0) {
+                    alertsContainer.innerHTML = '';
+                    
+                    detectedAgents.forEach(result => {
+                        const alertElement = this.createAgentAlert(result);
+                        alertsContainer.appendChild(alertElement);
+                    });
+                }
+                
+                // Update summary stats
+                if (scannedCountElement) scannedCountElement.textContent = results?.length || 0;
+                if (detectedCountElement) detectedCountElement.textContent = summary.totalDetected || 0;
+                
+                break;
+                
+            case 'error':
+                statusElement.innerHTML = '<span class="detection-badge error">❌ Detection Failed</span>';
+                console.error('Agent detection error:', error);
+                break;
+        }
+    }
+
+    /**
+     * Create an agent alert element for detected agents only
+     */
+    createAgentAlert(result) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'agent-alert detected';
+        
+        const agentName = result.name.toUpperCase();
+        
+        alertDiv.innerHTML = `
+            <div class="agent-icon">🚨</div>
+            <div class="agent-info">
+                <div class="agent-name">${agentName} Agent Identified</div>
+                <div class="agent-status">DETECTED - Active automation detected</div>
+            </div>
+            <div class="confidence-indicator">
+                ${Math.round(result.confidence * 100)}% confidence
+            </div>
+        `;
+        
+        return alertDiv;
     }
 
     /**
@@ -1288,6 +1408,9 @@ class BehavioralLab {
         // Get CDP metrics snapshot
         const cdpMetrics = this.cdpDetector ? this.cdpDetector.snapshot() : null;
         
+        // Get AI agent detection data
+        const agentDetectionData = this.aiAgentDetector ? this.aiAgentDetector.getDetectionData() : null;
+        
         // Import report module and generate
         const { ReportGenerator } = await import('./report.js');
         this.reportGenerator = new ReportGenerator();
@@ -1299,6 +1422,7 @@ class BehavioralLab {
                 finished_at_epoch_ms: performance.now()
             },
             agentInfo: this.agentInfo, // Include AI Agent information
+            agentDetection: agentDetectionData, // Include AI agent detection results
             fingerprint: fingerprint.getSummary(),
             events: this.events,
             selectorUsage: this.selectorUsage,
@@ -1770,6 +1894,9 @@ class BehavioralLab {
         // Clear scroll metrics
         this.scrollMetrics = null;
         
+        // Reset AI agent detector
+        this.aiAgentDetector = new AIAgentDetector();
+        
         // Reset selector usage
         this.selectorUsage = {
             id: 0, class: 0, aria_role: 0, text_like: 0, nth: 0, total: 0
@@ -1821,6 +1948,12 @@ class BehavioralLab {
         document.getElementById('start-test').disabled = false;
         document.getElementById('export-report').disabled = true;
         document.getElementById('export-pdf').disabled = true;
+        
+        // Reset agent detection UI
+        this.updateAgentDetectionUI('scanning');
+        
+        // Restart agent detection
+        setTimeout(() => this.startAgentDetection(), 1000);
         
         console.log('✅ Lab reset complete');
     }

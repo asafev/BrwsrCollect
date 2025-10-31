@@ -47,6 +47,36 @@
                 </div>
             </section>
 
+            <!-- AI Agent Detection Panel -->
+            <section class="panel agent-detection-panel">
+                <h2>🕵️ AI Agent Detection</h2>
+                <div class="detection-status" id="detection-status">
+                    <span class="detection-badge scanning">Scanning...</span>
+                </div>
+                
+                <div class="detected-agents" id="detected-agents" style="display: none;">
+                    <div class="agent-alerts" id="agent-alerts">
+                        <!-- Detected agents will be displayed here -->
+                    </div>
+                </div>
+                
+                <div class="detection-summary" id="detection-summary">
+                    <div class="detection-stats">
+                        <span class="stat-item">
+                            <span class="stat-label">Scanned:</span>
+                            <span class="stat-value" id="scanned-count">0</span>
+                        </span>
+                        <span class="stat-item">
+                            <span class="stat-label">Detected:</span>
+                            <span class="stat-value" id="detected-count">0</span>
+                        </span>
+                    </div>
+                    <button id="rescan-agents" class="rescan-btn" title="Re-run agent detection">
+                        🔄 Rescan
+                    </button>
+                </div>
+            </section>
+
             <!-- Task Runner Panel -->
             <section class="panel task-panel">
                 <h2>Task Script</h2>
