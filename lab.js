@@ -3,7 +3,7 @@
  * Orchestrates test flow, telemetry collection, and UI updates
  */
 
-import { fingerprint } from './fingerprint.js';
+import { fingerprint } from './fingerprinted.js';
 import { fingerprintPro } from './fingerprintpro.js';
 import { initCdpSignals } from './detectors/cdpSignals.js';
 
@@ -991,6 +991,12 @@ class BehavioralLab {
             visitorIdElement.className = 'visitor-id-active';
             confidenceElement.textContent = displayInfo.confidence;
             confidenceElement.className = 'confidence-badge confidence-active';
+        } else if (displayInfo.status === 'Fallback') {
+            visitorIdElement.textContent = displayInfo.visitorId;
+            visitorIdElement.className = 'visitor-id-active';
+            visitorIdElement.title = 'Using synthetic fingerprint (external service blocked)';
+            confidenceElement.textContent = `${displayInfo.confidence} (Fallback)`;
+            confidenceElement.className = 'confidence-badge confidence-fallback';
         } else {
             visitorIdElement.textContent = displayInfo.visitorId;
             visitorIdElement.className = 'visitor-id-pending';

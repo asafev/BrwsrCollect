@@ -100,6 +100,12 @@ header h1 {
     border: 1px solid #c3e6cb;
 }
 
+.confidence-fallback {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
 .confidence-pending {
     background: #f8f9fa;
     color: #6c757d;
