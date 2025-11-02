@@ -141,6 +141,9 @@ class BehavioralLab {
     setupDOMObserver() {
         // Create a MutationObserver to watch for DOM changes
         this.domObserver = new MutationObserver((mutations) => {
+            // Only process mutations if data collection is active
+            if (!this.dataCollectionActive) return;
+            
             let shouldCleanup = false;
             
             mutations.forEach((mutation) => {
@@ -220,6 +223,9 @@ class BehavioralLab {
         }
         
         function trackSelector(selector) {
+            // Only track if data collection is active
+            if (!self.dataCollectionActive) return;
+            
             const category = categorizeSelector(selector);
             self.selectorUsage[category]++;
             self.selectorUsage.total++;
@@ -382,11 +388,32 @@ class BehavioralLab {
         
         const agentName = result.name.toUpperCase();
         
+        // Build indicators HTML if available
+        let indicatorsHtml = '';
+        if (result.indicators && result.indicators.length > 0) {
+            indicatorsHtml = `
+                <div class="detection-indicators">
+                    <div class="indicators-header">🔍 Detection Indicators:</div>
+                    <div class="indicators-list">
+                        ${result.indicators.map(indicator => `
+                            <div class="indicator-item">
+                                <div class="indicator-name">${indicator.name}</div>
+                                <div class="indicator-description">${indicator.description}</div>
+                                <div class="indicator-value">Value: ${indicator.value}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
         alertDiv.innerHTML = `
             <div class="agent-icon">🚨</div>
             <div class="agent-info">
                 <div class="agent-name">${agentName} Agent Identified</div>
                 <div class="agent-status">DETECTED - Active automation detected</div>
+                <div class="detection-method">Method: ${result.detectionMethod || 'Unknown'}</div>
+                ${indicatorsHtml}
             </div>
             <div class="confidence-indicator">
                 ${Math.round(result.confidence * 100)}% confidence
@@ -893,7 +920,16 @@ class BehavioralLab {
         
         console.log('⏹️ Stopping test - data collection frozen');
         
+        // Stop the test and disable data collection
+        this.testStarted = false;
         this.dataCollectionActive = false;
+        
+        // Stop DOM observation for cleaner shutdown
+        if (this.domObserver) {
+            console.log('📍 Disconnecting DOM observer');
+            this.domObserver.disconnect();
+            this.domObserver = null; // Clear reference
+        }
         
         // Update UI to show test is stopped
         this.updateUI();
@@ -1032,6 +1068,14 @@ class BehavioralLab {
         
         this.testCompleted = true;
         this.testStarted = false;
+        this.dataCollectionActive = false;
+        
+        // Stop DOM observation since test is complete
+        if (this.domObserver) {
+            console.log('📍 Stopping DOM observer - test completed');
+            this.domObserver.disconnect();
+            this.domObserver = null; // Clear reference
+        }
         
         // Update UI
         this.updateUI();
@@ -1405,6 +1449,16 @@ class BehavioralLab {
         
         this.stepState.finish.reportGenerated = true;
         
+        // Stop data collection when generating report
+        this.dataCollectionActive = false;
+        
+        // Stop DOM observation since report generation indicates test completion
+        if (this.domObserver) {
+            console.log('📍 Stopping DOM observer for report generation');
+            this.domObserver.disconnect();
+            this.domObserver = null; // Clear reference
+        }
+        
         // Get CDP metrics snapshot
         const cdpMetrics = this.cdpDetector ? this.cdpDetector.snapshot() : null;
         
@@ -1723,28 +1777,160 @@ class BehavioralLab {
         const tbody = document.getElementById('event-stream-body');
         if (!tbody) return;
         
-        // Get latest 20 events across all types
+        // Get all events across all types
         const allEvents = [];
         
-        // Add recent events from each type
+        // Add all events from each type
         ['pointer', 'clicks', 'scrolls', 'keys', 'dom'].forEach(type => {
-            this.events[type].slice(-5).forEach(event => {
+            this.events[type].forEach(event => {
                 allEvents.push({ ...event, eventType: type });
             });
         });
         
-        // Sort by timestamp and take latest 20
+        // Sort by timestamp (most recent first)
         allEvents.sort((a, b) => b.t - a.t);
-        const recentEvents = allEvents.slice(0, 20);
         
-        tbody.innerHTML = recentEvents.map(event => {
+        // Apply event suppression for repeated events
+        const suppressedEvents = this.suppressRepeatedEvents(allEvents);
+        
+        // Create table rows with clear event numbering
+        tbody.innerHTML = suppressedEvents.map((event, index) => {
+            const eventNumber = suppressedEvents.length - index; // Number from newest to oldest
             const time = ((event.t - this.testStartTime) / 1000).toFixed(1);
             const details = this.formatEventDetails(event);
-            return `<tr><td>${time}s</td><td>${event.eventType}</td><td>${details}</td></tr>`;
+            
+            // Special styling for suppressed events
+            const rowClass = event.isSuppressed ? 'suppressed-event' : '';
+            
+            return `<tr class="${rowClass}">
+                <td><strong>#${eventNumber}</strong></td>
+                <td>${time}s</td>
+                <td>${event.eventType}</td>
+                <td>${details}</td>
+            </tr>`;
         }).join('');
+        
+        // Auto-scroll to top to show the latest events
+        const container = document.querySelector('.event-stream-container');
+        if (container) {
+            container.scrollTop = 0;
+        }
+    }
+
+    /**
+     * Suppress repeated events to prevent UI flooding and improve readability
+     * @param {Array} events - Array of events sorted by timestamp (newest first)
+     * @returns {Array} - Processed events with repeated events suppressed
+     */
+    suppressRepeatedEvents(events) {
+        if (events.length === 0) return events;
+        
+        const suppressedEvents = [];
+        const suppressionWindow = 5000; // 5 seconds window for grouping
+        const minRepeatCount = 3; // Minimum repeats before suppressing
+        
+        let i = 0;
+        while (i < events.length) {
+            const currentEvent = events[i];
+            const eventKey = this.getEventSuppressionKey(currentEvent);
+            
+            // Look ahead to find consecutive similar events within time window
+            let consecutiveCount = 1;
+            let lastSimilarIndex = i;
+            
+            for (let j = i + 1; j < events.length; j++) {
+                const nextEvent = events[j];
+                const timeDiff = currentEvent.t - nextEvent.t;
+                
+                // Stop if we're outside the time window
+                if (timeDiff > suppressionWindow) break;
+                
+                // Check if events are similar enough to suppress
+                if (this.getEventSuppressionKey(nextEvent) === eventKey) {
+                    consecutiveCount++;
+                    lastSimilarIndex = j;
+                } else {
+                    // Break on first non-similar event to maintain chronological grouping
+                    break;
+                }
+            }
+            
+            // Decide whether to suppress or show individual events
+            if (consecutiveCount >= minRepeatCount) {
+                // Create a suppressed event entry
+                const firstEvent = events[lastSimilarIndex]; // Oldest in the group
+                const lastEvent = currentEvent; // Newest in the group
+                const timeSpan = ((lastEvent.t - firstEvent.t) / 1000).toFixed(1);
+                
+                const suppressedEvent = {
+                    ...currentEvent,
+                    isSuppressed: true,
+                    suppressedCount: consecutiveCount,
+                    timeSpan: timeSpan,
+                    suppressedDetails: {
+                        firstEventTime: firstEvent.t,
+                        lastEventTime: lastEvent.t,
+                        originalDetails: this.formatEventDetails(currentEvent)
+                    }
+                };
+                
+                suppressedEvents.push(suppressedEvent);
+                
+                // Skip all the suppressed events
+                i = lastSimilarIndex + 1;
+            } else {
+                // Add individual events (not enough repetition to suppress)
+                for (let k = i; k <= lastSimilarIndex; k++) {
+                    suppressedEvents.push(events[k]);
+                }
+                i = lastSimilarIndex + 1;
+            }
+        }
+        
+        return suppressedEvents;
+    }
+
+    /**
+     * Generate a key for event suppression grouping
+     * @param {Object} event - Event object
+     * @returns {string} - Suppression key
+     */
+    getEventSuppressionKey(event) {
+        switch (event.eventType) {
+            case 'dom':
+                // Group DOM events by action and bucket
+                return `dom:${event.action}:${event.bucket}`;
+            
+            case 'pointer':
+                // Group pointer moves (but not clicks/downs/ups)
+                if (event.type === 'pointermove') {
+                    return 'pointer:move';
+                }
+                return `pointer:${event.type}`;
+            
+            case 'keys':
+                // Group by key type and code
+                return `keys:${event.type}:${event.code}`;
+            
+            case 'scrolls':
+                // Group scroll events (they're naturally repetitive)
+                return 'scroll:event';
+            
+            case 'clicks':
+                // Don't suppress clicks - each click is important
+                return `click:${event.t}`; // Unique key prevents suppression
+            
+            default:
+                return `${event.eventType}:${event.type || 'unknown'}`;
+        }
     }
 
     formatEventDetails(event) {
+        // Handle suppressed events
+        if (event.isSuppressed) {
+            return `${event.suppressedDetails.originalDetails} <span style="color: #666; font-style: italic;">(×${event.suppressedCount} over ${event.timeSpan}s)</span>`;
+        }
+        
         switch (event.eventType) {
             case 'pointer':
                 return `${event.type} (${event.x},${event.y})`;
@@ -1951,6 +2137,12 @@ class BehavioralLab {
         
         // Reset agent detection UI
         this.updateAgentDetectionUI('scanning');
+        
+        // Restart DOM observation if it was stopped
+        if (this.domObserver) {
+            this.domObserver.disconnect();
+        }
+        this.setupDOMObserver();
         
         // Restart agent detection
         setTimeout(() => this.startAgentDetection(), 1000);

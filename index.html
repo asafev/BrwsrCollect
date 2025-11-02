@@ -19,6 +19,7 @@
                 <button id="reset-lab" aria-label="Reset lab state">Reset</button>
                 <button id="export-report" aria-label="Export test report" disabled>Export Report</button>
                 <button id="export-pdf" aria-label="Export comprehensive PDF report" disabled>📄 Export PDF</button>
+                <button id="fingerprint-analysis" aria-label="View browser fingerprint analysis" onclick="window.open('fingerprint-analysis.html', '_blank')" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">🔍 Fingerprint</button>
             </div>
             <!-- Visitor ID Display -->
             <div class="visitor-info">
@@ -237,11 +238,12 @@
 
                 <!-- Event Stream Table -->
                 <div class="telemetry-widget">
-                    <h3>Event Stream (Latest 20)</h3>
+                    <h3>Event Stream (All Events)</h3>
                     <div class="event-stream-container">
                         <table id="event-stream">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Time</th>
                                     <th>Type</th>
                                     <th>Details</th>
