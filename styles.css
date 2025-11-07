@@ -177,6 +177,49 @@ button#export-pdf:hover:not(:disabled) {
     box-shadow: 0 4px 8px rgba(111, 66, 193, 0.35);
 }
 
+button#toggle-mouse-trail {
+    background: white;
+    color: #495057;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+button#toggle-mouse-trail:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #8A2BE2;
+    color: #8A2BE2;
+}
+
+button#toggle-mouse-trail.enabled,
+button#toggle-mouse-trail[style*="background-color: rgb(138, 43, 226)"] {
+    background: #8A2BE2 !important;
+    color: white !important;
+    border-color: #8A2BE2 !important;
+    box-shadow: 0 2px 4px rgba(138, 43, 226, 0.25);
+}
+
+button#toggle-mouse-trail.enabled:hover,
+button#toggle-mouse-trail[style*="background-color: rgb(138, 43, 226)"]:hover {
+    background: #7A1FC4 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(138, 43, 226, 0.35);
+}
+
+/* Persistent trails button state */
+button#toggle-mouse-trail[style*="background-color: rgb(255, 107, 53)"] {
+    background: #FF6B35 !important;
+    color: white !important;
+    border-color: #FF6B35 !important;
+    box-shadow: 0 2px 4px rgba(255, 107, 53, 0.25);
+}
+
+button#toggle-mouse-trail[style*="background-color: rgb(255, 107, 53)"]:hover {
+    background: #E55A2B !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 107, 53, 0.35);
+}
+
 .lab-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -977,6 +1020,142 @@ select, input, textarea, button {
     z-index: 9999;
 }
 
+/* Mouse Trail Visualization Styles */
+.mouse-trail-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #8A2BE2; /* Purple */
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.8;
+    box-shadow: 0 0 2px rgba(138, 43, 226, 0.6);
+    transform: translate(-50%, -50%);
+    transition: opacity 0.1s ease-out;
+}
+
+.mouse-trail-dot:hover {
+    pointer-events: auto; /* Enable hover for tooltip */
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 6px rgba(138, 43, 226, 0.8);
+    z-index: 9999;
+}
+
+/* Mouse trail fade-out animation */
+@keyframes mouseTrailFade {
+    0% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.7);
+    }
+}
+
+/* Persistent trail animation (no fade) */
+@keyframes mouseTrailPersist {
+    0% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0.7;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Persistent trail dots - slightly more visible */
+.mouse-trail-dot.persistent-trail {
+    opacity: 0.7 !important;
+    box-shadow: 0 0 3px rgba(138, 43, 226, 0.8) !important;
+}
+
+/* Mouse trail tooltip styles */
+.mouse-trail-tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 10001;
+    max-width: 200px;
+    white-space: nowrap;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.mouse-trail-tooltip .tooltip-coords,
+.mouse-trail-tooltip .tooltip-scroll,
+.mouse-trail-tooltip .tooltip-time {
+    margin: 2px 0;
+}
+
+.mouse-trail-tooltip strong {
+    color: #8A2BE2;
+    font-weight: 600;
+}
+
+/* Mouse Trail Line Styles - Connecting lines between trail points */
+.mouse-trail-line {
+    position: absolute;
+    background-color: #8A2BE2; /* Purple - same as dots */
+    pointer-events: none;
+    z-index: 9997; /* Below dots but above content */
+    opacity: 0.7;
+    border-radius: 1px;
+    transform-origin: 0 50%;
+    transition: opacity 0.1s ease-out;
+}
+
+.mouse-trail-line:hover {
+    opacity: 0.9;
+}
+
+/* Mouse trail line fade-out animation - opacity only to preserve rotation */
+@keyframes mouseTrailLineFade {
+    0% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Persistent trail line animation (no fade) - opacity only to preserve rotation */
+@keyframes mouseTrailLinePersist {
+    0% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0.6;
+    }
+}
+
+/* Persistent trail lines - slightly more visible */
+.mouse-trail-line.persistent-trail-line {
+    opacity: 0.6 !important;
+}
+
 /* Click Metrics Grid */
 .click-metrics-grid {
     display: grid;
@@ -1104,6 +1283,102 @@ select, input, textarea, button {
 .chart-container h3::before {
     content: "📊";
     font-size: 0.9rem;
+}
+
+/* Behavioral Indicators Styles */
+.behavioral-indicators-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+}
+
+.behavioral-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.behavioral-stat {
+    text-align: center;
+}
+
+.behavioral-stat label {
+    display: block;
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.behavioral-stat span {
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: block;
+}
+
+.risk-none { color: #28a745; }
+.risk-low { color: #ffc107; }
+.risk-medium { color: #fd7e14; }
+.risk-high { color: #dc3545; }
+
+.behavioral-indicators-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.behavioral-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.behavioral-indicator:hover {
+    background: #f1f3f4;
+    transform: translateX(2px);
+}
+
+.indicator-icon {
+    font-size: 1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.indicator-name {
+    flex: 1;
+    font-size: 0.85rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+.indicator-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: #e9ecef;
+    color: #495057;
+    min-width: 30px;
+    text-align: center;
+}
+
+.indicator-status.detected {
+    background: #dc3545;
+    color: white;
+}
+
+.indicator-status.warning {
+    background: #ffc107;
+    color: #212529;
 }
 
 /* Responsive adjustments for click metrics */

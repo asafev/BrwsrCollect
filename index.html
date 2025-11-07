@@ -14,9 +14,10 @@
         <h1>AI-Agent Behavioral Lab</h1>
         <div class="header-right">
             <div class="header-controls">
-                <button id="start-test" aria-label="Start behavioral test">Start Test</button>
-                <button id="stop-test" aria-label="Stop test and freeze data collection" style="display:none;">Stop Test</button>
+                <button id="start-test" class="start-test" aria-label="Start behavioral test">Start Test</button>
+                <button id="stop-test" class="stop-test" aria-label="Stop test and freeze data collection" style="display:none;">Stop Test</button>
                 <button id="reset-lab" aria-label="Reset lab state">Reset</button>
+                <button id="toggle-mouse-trail" aria-label="Toggle mouse trail visualization" title="Toggle mouse trail visualization">🖱️ Trails</button>
                 <button id="export-report" aria-label="Export test report" disabled>Export Report</button>
                 <button id="export-pdf" aria-label="Export comprehensive PDF report" disabled>📄 Export PDF</button>
                 <button id="fingerprint-analysis" aria-label="View browser fingerprint analysis" onclick="window.open('fingerprint-analysis.html', '_blank')" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">🔍 Fingerprint</button>
@@ -318,6 +319,54 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Behavioral Indicators Widget -->
+                <div class="telemetry-widget">
+                    <h3>🎯 Behavioral Indicators</h3>
+                    <div class="behavioral-indicators-container">
+                        <div class="behavioral-summary">
+                            <div class="behavioral-stat">
+                                <label>Risk Level</label>
+                                <span id="behavioral-risk-level" class="risk-none">None</span>
+                            </div>
+                            <div class="behavioral-stat">
+                                <label>Detected</label>
+                                <span id="behavioral-detected-count">0</span>
+                            </div>
+                            <div class="behavioral-stat">
+                                <label>Confidence</label>
+                                <span id="behavioral-max-confidence">0%</span>
+                            </div>
+                        </div>
+                        <div class="behavioral-indicators-list" id="behavioral-indicators-live">
+                            <div class="behavioral-indicator">
+                                <span class="indicator-icon">🎯</span>
+                                <span class="indicator-name">Central Clicks</span>
+                                <span class="indicator-status" id="central-clicks-status">0</span>
+                            </div>
+                            <div class="behavioral-indicator">
+                                <span class="indicator-icon">🖱️</span>
+                                <span class="indicator-name">No Movement Clicks</span>
+                                <span class="indicator-status" id="no-movement-clicks-status">0</span>
+                            </div>
+                            <div class="behavioral-indicator">
+                                <span class="indicator-icon">📜</span>
+                                <span class="indicator-name">Non-Human Scrolling</span>
+                                <span class="indicator-status" id="non-human-scrolling-status">0</span>
+                            </div>
+                            <div class="behavioral-indicator">
+                                <span class="indicator-icon">⏱️</span>
+                                <span class="indicator-name">Artificial Timing</span>
+                                <span class="indicator-status" id="artificial-timing-status">0</span>
+                            </div>
+                            <div class="behavioral-indicator">
+                                <span class="indicator-icon">👻</span>
+                                <span class="indicator-name">Missing Trails</span>
+                                <span class="indicator-status" id="missing-trails-status">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Report Panel -->
@@ -364,14 +413,61 @@
                     </div>
                 </div>
 
-                <div class="report-tables">
-                    <div class="table-container">
-                        <h3>Environment</h3>
-                        <table id="environment-table">
-                            <tbody id="environment-body">
+                <!-- Mouse Movement & Click Data Table -->
+                <div class="table-container">
+                    <h3>Mouse Movement & Click Data</h3>
+                    <div style="margin-bottom: 10px; font-size: 14px; color: #666;">
+                        <span id="movement-data-summary">Loading movement data...</span>
+                        <button id="toggle-movement-table" style="margin-left: 10px; padding: 5px 10px; font-size: 12px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Show Table</button>
+                    </div>
+                    <div id="movement-table-container" style="display: none; max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px;">
+                        <table id="movement-table" style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">#</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Type</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">X</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Y</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Timestamp (ms)</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Relative Time</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="movement-table-body">
+                                <!-- Data will be populated by JavaScript -->
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Scroll Data Table -->
+                <div class="table-container">
+                    <h3>Scroll Event Data</h3>
+                    <div style="margin-bottom: 10px; font-size: 14px; color: #666;">
+                        <span id="scroll-data-summary">Loading scroll data...</span>
+                        <button id="toggle-scroll-table" style="margin-left: 10px; padding: 5px 10px; font-size: 12px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">Show Table</button>
+                    </div>
+                    <div id="scroll-table-container" style="display: none; max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px;">
+                        <table id="scroll-table" style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">#</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Timestamp (ms)</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Relative Time</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Delta Y</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Delta X</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Velocity</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Page Y</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scroll-table-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="report-tables">
                     
                     <div class="table-container">
                         <h3>Behavioral Summary</h3>
@@ -403,7 +499,9 @@
     </div>
 
     <!-- Scripts -->
-     <script type="module" src="lab.js"></script>
+    <script type="module" src="behavioralStorage.js"></script>
+    <script type="module" src="behavioralDetector.js"></script>
+    <script type="module" src="lab.js"></script>
     <script type="module" src="report.js"></script>
     <script type="module" src="fingerprintpro.js"></script>
     <script type="module" src="fingerprinted.js"></script>

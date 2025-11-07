@@ -27,7 +27,7 @@ export class FingerprintJSPro {
             );
             
             // Import and load FingerprintJS Pro with timeout
-            const loadPromise = import('https://fpjscdn.net/v3/FZ2sQAGAWJRN6mM3fLpj')
+            const loadPromise = import('./FPpro.js')
                 .then(FingerprintJS => FingerprintJS.load())
                 .then(fp => fp.get());
             

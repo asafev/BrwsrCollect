@@ -240,6 +240,104 @@
             margin-bottom: 1rem;
         }
 
+        /* Behavioral Indicators Styles */
+        .behavioral-indicators-section {
+            margin: 2rem 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+        }
+
+        .behavioral-indicators-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .behavioral-indicators-header.no-indicators {
+            background: linear-gradient(135deg, #28a745 0%, #20a038 100%);
+        }
+
+        .behavioral-indicators-header h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.5rem;
+        }
+
+        .behavioral-indicators-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .behavioral-list {
+            padding: 1.5rem;
+        }
+
+        .behavioral-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .behavioral-item.detected {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .behavioral-icon {
+            font-size: 1.2rem;
+            margin-top: 0.2rem;
+        }
+
+        .behavioral-content {
+            flex: 1;
+        }
+
+        .behavioral-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #2c3e50;
+        }
+
+        .behavioral-description {
+            color: #495057;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .behavioral-details {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .behavioral-detail {
+            background: #e9ecef;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .behavioral-confidence {
+            background: #d4edda;
+            color: #155724;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .behavioral-confidence.high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
         /* Metrics Table Styles */
         .metrics-table-container {
             background: white;
@@ -299,6 +397,7 @@
         .section-webApis { border-left-color: #20c997; }
         .section-document { border-left-color: #6c757d; }
         .section-security { border-left-color: #e83e8c; }
+        .section-aiAgentDetection { border-left-color: #ff6b6b; }
 
         .metrics-table td {
             padding: 0.75rem 1rem;
@@ -549,6 +648,31 @@
                 </div>
             </div>
 
+            <!-- Behavioral Indicators Section -->
+            <div class="behavioral-indicators-section" id="behavioral-indicators-section">
+                <div class="behavioral-indicators-header" id="behavioral-header">
+                    <h3 id="behavioral-title">🎯 Behavioral Analysis</h3>
+                    <p id="behavioral-subtitle">Analysis of user interaction patterns and behavioral indicators</p>
+                    <div class="indicators-summary" id="behavioral-summary">
+                        <div class="summary-stat">
+                            <span class="number" id="behavioral-detected">0</span>
+                            <span class="label">Detected Patterns</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="number" id="behavioral-confidence">0%</span>
+                            <span class="label">Max Confidence</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="number" id="behavioral-risk">None</span>
+                            <span class="label">Risk Level</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="behavioral-list" id="behavioral-list">
+                    <!-- Behavioral indicators will be populated here -->
+                </div>
+            </div>
+
             <!-- Export Controls -->
             <div class="export-controls">
                 <button class="export-btn" onclick="exportFingerprintData('json')">
@@ -587,6 +711,7 @@
 
     <script type="module">
         import { BrowserFingerprintAnalyzer } from './browserFingerprint.js';
+        import { BehavioralStorageManager } from './behavioralStorage.js';
 
         let fingerprintData = null;
 
@@ -604,6 +729,7 @@
                 // Populate the UI
                 populateSummary(fingerprintData.summary);
                 populateSuspiciousIndicators(fingerprintData.suspiciousIndicators, fingerprintData.suspiciousSummary);
+                populateBehavioralIndicators(fingerprintData.metrics.behavioralIndicators);
                 populateMetrics(fingerprintData.metrics);
                 
             } catch (error) {
@@ -748,7 +874,165 @@
             }
         }
 
-        // Populate metrics table
+        // Populate behavioral indicators section
+        function populateBehavioralIndicators(behavioralData) {
+            const section = document.getElementById('behavioral-indicators-section');
+            const header = document.getElementById('behavioral-header');
+            const title = document.getElementById('behavioral-title');
+            const subtitle = document.getElementById('behavioral-subtitle');
+            const behavioralList = document.getElementById('behavioral-list');
+            
+            if (!behavioralData || behavioralData.error) {
+                // No behavioral data or error
+                header.className = 'behavioral-indicators-header no-indicators';
+                title.innerHTML = '🎯 Behavioral Analysis';
+                subtitle.textContent = 'No behavioral data available or error loading data';
+                
+                document.getElementById('behavioral-detected').textContent = '0';
+                document.getElementById('behavioral-confidence').textContent = '0%';
+                document.getElementById('behavioral-risk').textContent = 'None';
+                
+                behavioralList.innerHTML = `
+                    <div class="no-indicators-message">
+                        <div class="icon">📊</div>
+                        <h4>No Behavioral Data</h4>
+                        <p>${behavioralData?.error?.description || 'Behavioral analysis requires an active test session from the main lab page.'}</p>
+                        <p style="font-size: 0.9rem; color: #6c757d; margin-top: 1rem;">
+                            To collect behavioral data, please run a test session from the main AI-Agent Behavioral Lab page.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Extract summary data
+            const detected = Object.keys(behavioralData).filter(key => 
+                behavioralData[key] && behavioralData[key].value === true
+            ).length;
+            
+            const maxConfidence = behavioralData.maxConfidence?.value || 0;
+            const riskLevel = behavioralData.riskLevel?.value || 'None';
+            
+            // Update summary stats
+            document.getElementById('behavioral-detected').textContent = detected;
+            document.getElementById('behavioral-confidence').textContent = `${Math.round(maxConfidence * 100)}%`;
+            document.getElementById('behavioral-risk').textContent = riskLevel;
+            
+            // Style header based on risk level
+            if (riskLevel === 'HIGH' || riskLevel === 'MEDIUM') {
+                header.className = 'behavioral-indicators-header';
+                title.innerHTML = '🚨 Behavioral Anomalies Detected';
+                subtitle.textContent = 'Suspicious interaction patterns detected during testing';
+            } else if (detected > 0) {
+                header.className = 'behavioral-indicators-header';
+                title.innerHTML = '⚠️ Behavioral Patterns Detected';
+                subtitle.textContent = 'Some automated behavior patterns identified';
+            } else {
+                header.className = 'behavioral-indicators-header no-indicators';
+                title.innerHTML = '✅ Natural Behavior Patterns';
+                subtitle.textContent = 'User interactions appear consistent with human behavior';
+            }
+            
+            // Clear and populate behavioral list
+            behavioralList.innerHTML = '';
+            
+            // Add session info if available
+            if (behavioralData.sessionDuration && behavioralData.sessionDuration.value > 0) {
+                const sessionInfo = document.createElement('div');
+                sessionInfo.className = 'behavioral-session-info';
+                sessionInfo.style.cssText = `
+                    background: #e7f3ff;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin-bottom: 1rem;
+                    border-left: 4px solid #0066cc;
+                `;
+                sessionInfo.innerHTML = `
+                    <h4 style="margin: 0 0 0.5rem 0; color: #0066cc;">📊 Session Information</h4>
+                    <p style="margin: 0; color: #495057;">
+                        Session Duration: ${behavioralData.sessionDuration.value}s | 
+                        Total Events: ${behavioralData.totalEvents?.value || 0} | 
+                        Analysis Summary: ${behavioralData.summary?.value || 'No summary available'}
+                    </p>
+                `;
+                behavioralList.appendChild(sessionInfo);
+            }
+            
+            // Add individual behavioral indicators
+            const indicatorKeys = [
+                'centralButtonClicks',
+                'clicksWithoutMouseMovement', 
+                'nonHumanScrolling',
+                'artificialTiming',
+                'missingMouseTrails'
+            ];
+            
+            indicatorKeys.forEach(key => {
+                const indicator = behavioralData[key];
+                if (!indicator) return;
+                
+                const item = document.createElement('div');
+                item.className = `behavioral-item ${indicator.value ? 'detected' : ''}`;
+                
+                const icon = indicator.value ? '🚨' : '✅';
+                const confidenceClass = indicator.confidence > 0.7 ? 'high' : '';
+                
+                item.innerHTML = `
+                    <div class="behavioral-icon">${icon}</div>
+                    <div class="behavioral-content">
+                        <div class="behavioral-name">${formatBehavioralName(key)}</div>
+                        <div class="behavioral-description">${indicator.description}</div>
+                        <div class="behavioral-details">
+                            <span class="behavioral-detail">Count: ${indicator.count}</span>
+                            <span class="behavioral-detail">Threshold: ${indicator.threshold}</span>
+                            <span class="behavioral-confidence ${confidenceClass}">
+                                Confidence: ${Math.round(indicator.confidence * 100)}%
+                            </span>
+                            ${indicator.value ? '<span class="behavioral-detail" style="background: #f8d7da; color: #721c24;">DETECTED</span>' : ''}
+                        </div>
+                        ${indicator.details && indicator.details.length > 0 ? `
+                            <details style="margin-top: 0.5rem;">
+                                <summary style="cursor: pointer; color: #667eea;">Recent Examples (${indicator.details.length})</summary>
+                                <div style="margin-top: 0.5rem; font-size: 0.8rem;">
+                                    ${indicator.details.map(detail => `
+                                        <div style="background: #f8f9fa; padding: 0.25rem 0.5rem; margin: 0.25rem 0; border-radius: 4px;">
+                                            ${JSON.stringify(detail, null, 2).substring(0, 200)}...
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+                
+                behavioralList.appendChild(item);
+            });
+            
+            if (behavioralList.children.length === 0 || 
+                (behavioralList.children.length === 1 && behavioralList.querySelector('.behavioral-session-info'))) {
+                const noIndicators = document.createElement('div');
+                noIndicators.className = 'no-indicators-message';
+                noIndicators.innerHTML = `
+                    <div class="icon">🎯</div>
+                    <h4>No Behavioral Indicators Detected</h4>
+                    <p>All interaction patterns appear normal and consistent with human behavior.</p>
+                `;
+                behavioralList.appendChild(noIndicators);
+            }
+        }
+        
+        // Helper function to format behavioral indicator names
+        function formatBehavioralName(key) {
+            const names = {
+                'centralButtonClicks': 'Central Button Clicks',
+                'clicksWithoutMouseMovement': 'Clicks Without Mouse Movement',
+                'nonHumanScrolling': 'Non-Human Scrolling',
+                'artificialTiming': 'Artificial Timing Patterns',
+                'missingMouseTrails': 'Missing Mouse Trails'
+            };
+            return names[key] || key;
+        }
+
         function populateMetrics(metrics) {
             const tableBody = document.getElementById('metrics-table-body');
             tableBody.innerHTML = '';
@@ -844,7 +1128,8 @@
                 webApis: '🔌',
                 document: '📄',
                 security: '🔒',
-                apiOverrides: '🔍'
+                apiOverrides: '🔍',
+                aiAgentDetection: '🕵️'
             };
             return icons[categoryName] || '📊';
         }
@@ -974,7 +1259,51 @@
                 'jsonStringify': 'JSON.stringify.toString()',
                 'objectDefineProperty': 'Object.defineProperty.toString()',
                 'setTimeoutOverride': 'setTimeout.toString()',
-                'setIntervalOverride': 'setInterval.toString()'
+                'setIntervalOverride': 'setInterval.toString()',
+
+                // AI Agent Detection
+                'funcToString': 'Function.prototype.toString.toString()',
+                'errorToString': 'Error.prototype.toString.toString()',
+                'addEventListener': 'EventTarget.prototype.addEventListener.toString()',
+                'dispatchEvent': 'EventTarget.prototype.dispatchEvent.toString()',
+                'querySelector': 'Document.prototype.querySelector.toString()',
+                'querySelectorAll': 'Document.prototype.querySelectorAll.toString()',
+                'getComputedStyle': 'getComputedStyle.toString()',
+                'createElement': 'Document.prototype.createElement.toString()',
+                'appendChild': 'Node.prototype.appendChild.toString()',
+                'removeChild': 'Node.prototype.removeChild.toString()',
+                'canvasToDataURL': 'HTMLCanvasElement.prototype.toDataURL.toString()',
+                'canvasGetContext': 'HTMLCanvasElement.prototype.getContext.toString()',
+                'webglGetParameter': 'WebGLRenderingContext.prototype.getParameter.toString()',
+                'fetchSig': 'fetch.toString()',
+                'xmlHttpRequest': 'XMLHttpRequest.toString()',
+                'websocketSig': 'WebSocket.toString()',
+                'requestAnimationFrame': 'requestAnimationFrame.toString()',
+                'cancelAnimationFrame': 'cancelAnimationFrame.toString()',
+                'navigatorUAGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "userAgent").get.toString()',
+                'navigatorLangGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "languages").get.toString()',
+                'navigatorPlatformGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "platform").get.toString()',
+                'navigatorVendorGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "vendor").get.toString()',
+                'navigatorWebdriverGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "webdriver").get.toString()',
+                'geolocationGetCurrentPosition': 'navigator.geolocation.getCurrentPosition.toString()',
+                'geolocationWatchPosition': 'navigator.geolocation.watchPosition.toString()',
+                'clipboardRead': 'navigator.clipboard.read.toString()',
+                'clipboardWrite': 'navigator.clipboard.write.toString()',
+                'localStorageSetItem': 'Storage.prototype.setItem.toString()',
+                'localStorageGetItem': 'Storage.prototype.getItem.toString()',
+                'getUserMedia': 'navigator.mediaDevices.getUserMedia.toString()',
+                'cryptoGetRandomValues': 'crypto.getRandomValues.toString()',
+                'cryptoRandomUUID': 'crypto.randomUUID.toString()',
+                'crossRealm_funcToString_diff': 'Cross-realm Function.toString comparison',
+                'crossRealm_JSON_stringify_diff': 'Cross-realm JSON.stringify comparison',
+                'crossRealm_Object_defineProperty_diff': 'Cross-realm Object.defineProperty comparison',
+                'crossRealm_navigator_userAgent_getter_diff': 'Cross-realm Navigator.userAgent getter comparison',
+                'proxy_permissionsQuery_proxied': 'Proxy detection for permissions.query',
+                'proxy_setTimeout_proxied': 'Proxy detection for setTimeout',
+                'proxy_funcToString_proxied': 'Proxy detection for Function.toString',
+                'proxy_fetch_proxied': 'Proxy detection for fetch',
+                'contextConsistency': 'Advanced cross-context execution consistency analysis',
+                'permissionsTests': 'Permissions API behavior tests'
             };
 
             return codeMap[metricName] || `${category}.${metricName}`;
@@ -993,7 +1322,8 @@
                 webApis: '🔌 Web APIs',
                 document: '📄 Document Properties',
                 security: '🔒 Security Features',
-                apiOverrides: '🔍 API Overrides'
+                apiOverrides: '🔍 API Overrides',
+                aiAgentDetection: '🕵️ AI Agent Detection'
             };
             return categoryNames[name] || name;
         }

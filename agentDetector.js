@@ -327,7 +327,7 @@ class AIAgentDetector {
             
             // Check for permissions API anomalies
             if (navigator.permissions && 
-                navigator.permissions.query.toString().includes('function query() { [native code] }') === false) {
+                !this._isNativeFunction(navigator.permissions.query.toString(), 'query')) {
                 indicators.push({
                     name: 'permissions_api_anomaly',
                     description: 'Permissions API query function signature anomaly - modified/overridden function detected',
@@ -393,6 +393,45 @@ class AIAgentDetector {
             console.debug('Error in Playwright detection:', error);
             return false;
         }
+    }
+
+    /**
+     * Check if a function string represents a native browser function
+     * Accounts for cross-browser differences in native code formatting
+     * @private
+     * @param {string} functionString - The function.toString() result
+     * @param {string} functionName - Expected function name (optional, for validation)
+     * @returns {boolean} True if the function appears to be native
+     */
+    _isNativeFunction(functionString, functionName = null) {
+        if (!functionString || typeof functionString !== 'string') {
+            return false;
+        }
+
+        // Normalize whitespace and remove extra newlines for cross-browser compatibility
+        const normalized = functionString.replace(/\s+/g, ' ').trim();
+
+        // Check for various native code patterns across browsers:
+        // Chrome: "function query() { [native code] }"
+        // Firefox: "function query() {\n    [native code]\n}"
+        // Safari: "function query() { [native code] }"
+        const nativePatterns = [
+            /function\s+\w*\(\)\s*\{\s*\[native code\]\s*\}/i,  // Standard pattern
+            /\[native code\]/i,  // Fallback - just check for native code marker
+            /\{\s*\[native code\]\s*\}/i  // Just the native code block
+        ];
+
+        // Additional validation: if function name provided, ensure it matches
+        if (functionName) {
+            const functionNamePattern = new RegExp(`function\\s+${functionName}\\s*\\(`, 'i');
+            if (!functionNamePattern.test(normalized)) {
+                // Function name doesn't match expected - likely overridden
+                return false;
+            }
+        }
+
+        // Check if any native pattern matches
+        return nativePatterns.some(pattern => pattern.test(normalized));
     }
 
     /**

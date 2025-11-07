@@ -4,6 +4,10 @@
  * Based on security research patterns and automation detection techniques
  */
 
+import { AIAgentDetector } from './aiAgentDetector.js';
+import { ContextAnalyzer } from './contextAnalyzer.js';
+import { BehavioralStorageManager } from './behavioralStorage.js';
+
 /**
  * Suspicious Indicator Detection System
  * Detects patterns that suggest sandbox environments or AI agents
@@ -346,7 +350,7 @@ class SuspiciousIndicatorDetector {
         try {
             if (navigator.permissions && navigator.permissions.query) {
                 const queryString = navigator.permissions.query.toString();
-                if (!queryString.includes('function query() { [native code] }')) {
+                if (!this._isNativeFunction(queryString, 'query')) {
                     this._addIndicator({
                         name: 'permissions_api_override',
                         category: 'API Overrides',
@@ -365,6 +369,45 @@ class SuspiciousIndicatorDetector {
 
         // Add more API override checks here as needed
         this._checkAdditionalAPIOverrides();
+    }
+
+    /**
+     * Check if a function string represents a native browser function
+     * Accounts for cross-browser differences in native code formatting
+     * @private
+     * @param {string} functionString - The function.toString() result
+     * @param {string} functionName - Expected function name (optional, for validation)
+     * @returns {boolean} True if the function appears to be native
+     */
+    _isNativeFunction(functionString, functionName = null) {
+        if (!functionString || typeof functionString !== 'string') {
+            return false;
+        }
+
+        // Normalize whitespace and remove extra newlines for cross-browser compatibility
+        const normalized = functionString.replace(/\s+/g, ' ').trim();
+
+        // Check for various native code patterns across browsers:
+        // Chrome: "function query() { [native code] }"
+        // Firefox: "function query() {\n    [native code]\n}"
+        // Safari: "function query() { [native code] }"
+        const nativePatterns = [
+            /function\s+\w*\(\)\s*\{\s*\[native code\]\s*\}/i,  // Standard pattern
+            /\[native code\]/i,  // Fallback - just check for native code marker
+            /\{\s*\[native code\]\s*\}/i  // Just the native code block
+        ];
+
+        // Additional validation: if function name provided, ensure it matches
+        if (functionName) {
+            const functionNamePattern = new RegExp(`function\\s+${functionName}\\s*\\(`, 'i');
+            if (!functionNamePattern.test(normalized)) {
+                // Function name doesn't match expected - likely overridden
+                return false;
+            }
+        }
+
+        // Check if any native pattern matches
+        return nativePatterns.some(pattern => pattern.test(normalized));
     }
 
     /**
@@ -560,6 +603,7 @@ class BrowserFingerprintAnalyzer {
         this.analysisComplete = false;
         this.timestamp = Date.now();
         this.suspiciousIndicatorDetector = new SuspiciousIndicatorDetector();
+        this.aiAgentDetector = new AIAgentDetector();
         this.suspiciousIndicators = [];
     }
 
@@ -604,14 +648,41 @@ class BrowserFingerprintAnalyzer {
             apiOverrides: this._analyzeAPIOverrides()
         };
 
-        // Analyze suspicious indicators
+        // Run AI Agent Detection
+        console.log('🤖 Running AI Agent detection...');
+        const aiAgentResults = await this.aiAgentDetector.detectAIAgent();
+        if (aiAgentResults.success) {
+            // Add AI agent metrics to the main metrics collection
+            const aiMetrics = this.aiAgentDetector.getFormattedResults();
+            this.metrics = { ...this.metrics, ...aiMetrics };
+            
+            console.log('🤖 AI Agent detection complete:', aiAgentResults);
+        } else {
+            console.warn('⚠️ AI Agent detection failed:', aiAgentResults.error);
+        }
+
+        // Collect Behavioral Indicators from stored data
+        console.log('🎯 Collecting behavioral indicators...');
+        this.metrics.behavioralIndicators = this._analyzeBehavioralIndicators();
+
+        // Analyze suspicious indicators (includes both original and AI agent indicators)
         const suspiciousResults = this.suspiciousIndicatorDetector.analyzeSuspiciousIndicators(this.metrics);
         this.suspiciousIndicators = suspiciousResults.indicators; // Filtered indicators
+        
+        // Add AI agent indicators to the suspicious indicators
+        if (aiAgentResults.success) {
+            const aiIndicators = this.aiAgentDetector.getSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...aiIndicators];
+        }
+        
         this.suspiciousAnalysis = suspiciousResults; // Full analysis including reasoning
 
         this.analysisComplete = true;
         console.log('✅ Browser fingerprint analysis complete:', this.metrics);
         console.log('🚨 Suspicious indicators analysis:', suspiciousResults);
+        if (aiAgentResults.success) {
+            console.log('🤖 AI Agent indicators:', this.aiAgentDetector.getSuspiciousIndicators());
+        }
         return this.metrics;
     }
 
@@ -1263,7 +1334,7 @@ class BrowserFingerprintAnalyzer {
         try {
             if (navigator.permissions && navigator.permissions.query) {
                 const queryString = navigator.permissions.query.toString();
-                const isNative = queryString.includes('function query() { [native code] }');
+                const isNative = this._isNativeFunction(queryString, 'query');
                 result.permissionsQuery = {
                     value: isNative ? '[Native Code]' : queryString,
                     description: 'Permissions API query function signature',
@@ -1418,13 +1489,37 @@ class BrowserFingerprintAnalyzer {
      * Get comprehensive analysis results
      */
     getAnalysisResults() {
+        // Combine suspicious indicators from both detectors
+        const combinedSuspiciousIndicators = [...this.suspiciousIndicators];
+        
+        // Calculate combined summary
+        const originalSummary = this.suspiciousIndicatorDetector.getSummary();
+        const aiSummary = this.aiAgentDetector.getSummary();
+        
+        // Merge the summaries
+        const combinedSummary = {
+            totalIndicators: originalSummary.totalIndicators + aiSummary.totalIndicators,
+            totalDetectedIndicators: originalSummary.totalDetectedIndicators + aiSummary.totalIndicators,
+            riskCounts: {
+                HIGH: originalSummary.riskCounts.HIGH + aiSummary.riskCounts.HIGH,
+                MEDIUM: originalSummary.riskCounts.MEDIUM + aiSummary.riskCounts.MEDIUM,
+                LOW: originalSummary.riskCounts.LOW + aiSummary.riskCounts.LOW
+            },
+            hasSuspiciousActivity: originalSummary.hasSuspiciousActivity || aiSummary.hasSuspiciousActivity,
+            suspicionScore: Math.min((originalSummary.suspicionScore + aiSummary.suspicionScore) / 2, 1.0),
+            reasoning: aiSummary.totalIndicators > 0 
+                ? `${originalSummary.reasoning}. AI Agent Detection: ${aiSummary.reasoning}`
+                : originalSummary.reasoning
+        };
+
         return {
             timestamp: this.timestamp,
             analysisComplete: this.analysisComplete,
             metrics: this.metrics,
-            suspiciousIndicators: this.suspiciousIndicators, // Filtered indicators
+            suspiciousIndicators: combinedSuspiciousIndicators, // Combined indicators
             suspiciousAnalysis: this.suspiciousAnalysis, // Full analysis with reasoning
-            suspiciousSummary: this.suspiciousIndicatorDetector.getSummary(),
+            suspiciousSummary: combinedSummary, // Combined summary
+            aiAgentSummary: aiSummary, // Separate AI agent summary
             summary: this._generateSummary()
         };
     }
@@ -1515,7 +1610,78 @@ class BrowserFingerprintAnalyzer {
         if (positiveCount >= 1) return 'Medium';
         return 'Low';
     }
+
+    /**
+     * Analyze behavioral indicators from stored data
+     * @private
+     */
+    _analyzeBehavioralIndicators() {
+        try {
+            // Initialize or get existing behavioral storage
+            const behavioralStorage = window.BehavioralStorage || new BehavioralStorageManager();
+            
+            // Get current behavioral indicators
+            const indicators = behavioralStorage.getBehavioralIndicators();
+            const summary = behavioralStorage.getDetectionSummary();
+            const sessionData = behavioralStorage.getSessionData();
+            
+            console.log('📊 Behavioral indicators loaded:', indicators);
+            console.log('📈 Detection summary:', summary);
+
+            // Transform indicators into fingerprint format
+            const behavioralMetrics = {
+                summary: {
+                    value: summary.summary,
+                    description: 'Overall behavioral analysis summary'
+                },
+                riskLevel: {
+                    value: summary.riskLevel,
+                    description: 'Risk assessment based on detected behavioral patterns'
+                },
+                detectedCount: {
+                    value: summary.detectedCount,
+                    description: 'Number of behavioral indicators detected'
+                },
+                totalEvents: {
+                    value: summary.totalEvents,
+                    description: 'Total behavioral events analyzed'
+                },
+                maxConfidence: {
+                    value: Math.round(summary.maxConfidence * 100) / 100,
+                    description: 'Highest confidence score among all indicators'
+                },
+                sessionDuration: {
+                    value: sessionData.startTime ? Math.round((Date.now() - sessionData.startTime) / 1000) : 0,
+                    description: 'Session duration in seconds'
+                }
+            };
+
+            // Add individual indicator details
+            Object.keys(indicators).forEach(key => {
+                const indicator = indicators[key];
+                behavioralMetrics[key] = {
+                    value: indicator.detected,
+                    description: indicator.description,
+                    count: indicator.count,
+                    confidence: Math.round(indicator.confidence * 100) / 100,
+                    threshold: indicator.threshold,
+                    details: indicator.details.slice(-3) // Last 3 details
+                };
+            });
+
+            return behavioralMetrics;
+            
+        } catch (error) {
+            console.warn('⚠️ Error analyzing behavioral indicators:', error);
+            return {
+                error: {
+                    value: true,
+                    description: 'Failed to load behavioral indicators: ' + error.message
+                }
+            };
+        }
+    }
 }
 
 // Export for use in other modules
-export { BrowserFingerprintAnalyzer, SuspiciousIndicatorDetector };
+export { BrowserFingerprintAnalyzer, SuspiciousIndicatorDetector, AIAgentDetector, ContextAnalyzer };

@@ -836,9 +836,232 @@ export class ReportGenerator {
      * Populate report tables with computed metrics
      */
     populateReportTables() {
+        this.populateMovementDataTable();
+        this.populateScrollDataTable();
         this.populateEnvironmentTable();
         this.populateBehavioralTable();
         this.populateCdpMetricsUI();
+    }
+
+    /**
+     * Populate mouse movement and click data table
+     */
+    populateMovementDataTable() {
+        const tbody = document.getElementById('movement-table-body');
+        const summaryElement = document.getElementById('movement-data-summary');
+        const toggleButton = document.getElementById('toggle-movement-table');
+        const tableContainer = document.getElementById('movement-table-container');
+        
+        if (!tbody || !summaryElement || !toggleButton || !tableContainer) {
+            console.warn('Movement table elements not found');
+            return;
+        }
+
+        // Use the exact same data as the heatmaps
+        const moveEvents = this.rawData.events.pointer.filter(e => e.type === 'pointermove');
+        const clicks = this.rawData.events.clicks;
+
+        // Combine and create unified events (same as heatmap source)
+        const movements = moveEvents.map(e => ({
+            type: 'mousemove',
+            x: Math.round(e.x),
+            y: Math.round(e.y),
+            timestamp: e.t,
+            details: `dx: ${e.movementX || 0}, dy: ${e.movementY || 0}`
+        }));
+
+        const clickEvents = clicks.map(c => ({
+            type: 'click',
+            x: Math.round(c.x),
+            y: Math.round(c.y),
+            timestamp: c.t,
+            details: `${c.button || 'left'} → ${c.target || 'unknown'}`
+        }));
+
+        // Combine and sort by timestamp (same as heatmap processing)
+        const allEvents = [...movements, ...clickEvents].sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Calculate summary
+        const totalEvents = allEvents.length;
+        const totalMoves = movements.length;
+        const totalClicks = clickEvents.length;
+        const timeSpan = totalEvents > 0 ? 
+            ((allEvents[allEvents.length - 1].timestamp - allEvents[0].timestamp) / 1000).toFixed(1) : 0;
+
+        summaryElement.textContent = `${totalEvents} events (${totalMoves} moves, ${totalClicks} clicks) spanning ${timeSpan}s`;
+
+        // Setup toggle functionality
+        let isTableVisible = false;
+        toggleButton.onclick = () => {
+            isTableVisible = !isTableVisible;
+            tableContainer.style.display = isTableVisible ? 'block' : 'none';
+            toggleButton.textContent = isTableVisible ? 'Hide Table' : 'Show Table';
+            
+            // Populate table only when first shown
+            if (isTableVisible && tbody.children.length === 0) {
+                this.populateMovementTableRows(tbody, allEvents);
+            }
+        };
+        
+        console.log('Movement table setup complete:', {
+            totalEvents,
+            totalMoves,
+            totalClicks,
+            timeSpan
+        });
+    }
+
+    /**
+     * Populate scroll data table
+     */
+    populateScrollDataTable() {
+        const tbody = document.getElementById('scroll-table-body');
+        const summaryElement = document.getElementById('scroll-data-summary');
+        const toggleButton = document.getElementById('toggle-scroll-table');
+        const tableContainer = document.getElementById('scroll-table-container');
+        
+        if (!tbody || !summaryElement || !toggleButton || !tableContainer) {
+            console.warn('Scroll table elements not found');
+            return;
+        }
+
+        // Use the exact same data as the scroll velocity chart
+        const scrollEvents = this.rawData.events.scrolls;
+        
+        // Calculate summary
+        const totalScrolls = scrollEvents.length;
+        const timeSpan = scrollEvents.length > 0 ? 
+            ((scrollEvents[scrollEvents.length - 1].t - scrollEvents[0].t) / 1000).toFixed(1) : 0;
+        const avgVelocity = scrollEvents.length > 0 ?
+            (scrollEvents.reduce((sum, e) => sum + Math.abs(e.velocity || 0), 0) / scrollEvents.length).toFixed(1) : 0;
+
+        summaryElement.textContent = `${totalScrolls} scroll events spanning ${timeSpan}s (avg velocity: ${avgVelocity} px/ms)`;
+
+        // Setup toggle functionality
+        let isTableVisible = false;
+        toggleButton.onclick = () => {
+            isTableVisible = !isTableVisible;
+            tableContainer.style.display = isTableVisible ? 'block' : 'none';
+            toggleButton.textContent = isTableVisible ? 'Hide Table' : 'Show Table';
+            
+            // Populate table only when first shown
+            if (isTableVisible && tbody.children.length === 0) {
+                this.populateScrollTableRows(tbody, scrollEvents);
+            }
+        };
+        
+        console.log('Scroll table setup complete:', {
+            totalScrolls,
+            timeSpan,
+            avgVelocity
+        });
+    }
+
+    /**
+     * Populate the actual table rows (called lazily when table is first shown)
+     * @param {HTMLElement} tbody - Table body element
+     * @param {Array} allEvents - Combined movement and click events
+     */
+    populateMovementTableRows(tbody, allEvents) {
+        // Clear existing rows
+        tbody.innerHTML = '';
+        
+        const startTime = allEvents.length > 0 ? allEvents[0].timestamp : 0;
+
+        allEvents.forEach((event, index) => {
+            const row = document.createElement('tr');
+            
+            // Color code different event types
+            const bgColor = event.type === 'click' ? '#fff3cd' : '#f8f9fa'; // Light yellow for clicks, light gray for moves
+            row.style.backgroundColor = bgColor;
+            
+            const relativeTime = ((event.timestamp - startTime) / 1000).toFixed(3);
+            
+            row.innerHTML = `
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${index + 1}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: ${event.type === 'click' ? '#856404' : '#495057'};">
+                    ${event.type === 'click' ? '🖱️ CLICK' : '↔️ MOVE'}
+                </td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${event.x}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${event.y}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${event.timestamp}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">+${relativeTime}s</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; font-size: 11px;">${event.details}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+
+        // Add a summary row at the end
+        const summaryRow = document.createElement('tr');
+        summaryRow.style.backgroundColor = '#e9ecef';
+        summaryRow.style.fontWeight = 'bold';
+        summaryRow.innerHTML = `
+            <td colspan="7" style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                📊 Total: ${allEvents.length} events | 
+                Mouse moves: ${allEvents.filter(e => e.type === 'mousemove').length} | 
+                Clicks: ${allEvents.filter(e => e.type === 'click').length} |
+                Duration: ${allEvents.length > 0 ? ((allEvents[allEvents.length - 1].timestamp - allEvents[0].timestamp) / 1000).toFixed(2) : 0}s
+            </td>
+        `;
+        tbody.appendChild(summaryRow);
+    }
+
+    /**
+     * Populate the actual scroll table rows (called lazily when table is first shown)
+     * @param {HTMLElement} tbody - Table body element
+     * @param {Array} scrollEvents - Scroll events data
+     */
+    populateScrollTableRows(tbody, scrollEvents) {
+        // Clear existing rows
+        tbody.innerHTML = '';
+        
+        const startTime = scrollEvents.length > 0 ? scrollEvents[0].t : 0;
+
+        scrollEvents.forEach((event, index) => {
+            const row = document.createElement('tr');
+            
+            // Alternate row colors for readability
+            const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
+            row.style.backgroundColor = bgColor;
+            
+            const relativeTime = ((event.t - startTime) / 1000).toFixed(3);
+            const velocity = Math.abs(event.velocity || 0).toFixed(2);
+            
+            row.innerHTML = `
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${index + 1}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${event.t}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">+${relativeTime}s</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace; color: ${event.deltaY < 0 ? '#dc3545' : '#28a745'};">${event.deltaY || 0}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${event.deltaX || 0}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace; font-weight: bold;">${velocity}</td>
+                <td style="padding: 4px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${Math.round(event.pageY || 0)}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+
+        // Add a summary row at the end
+        const summaryRow = document.createElement('tr');
+        summaryRow.style.backgroundColor = '#e9ecef';
+        summaryRow.style.fontWeight = 'bold';
+        
+        const totalDistance = scrollEvents.reduce((sum, e) => sum + Math.abs(e.deltaY || 0), 0);
+        const avgVelocity = scrollEvents.length > 0 ? 
+            (scrollEvents.reduce((sum, e) => sum + Math.abs(e.velocity || 0), 0) / scrollEvents.length).toFixed(2) : 0;
+        const maxVelocity = scrollEvents.length > 0 ? 
+            Math.max(...scrollEvents.map(e => Math.abs(e.velocity || 0))).toFixed(2) : 0;
+        
+        summaryRow.innerHTML = `
+            <td colspan="7" style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                📊 Total: ${scrollEvents.length} scrolls | 
+                Distance: ${totalDistance}px | 
+                Avg velocity: ${avgVelocity} px/ms | 
+                Max velocity: ${maxVelocity} px/ms |
+                Duration: ${scrollEvents.length > 0 ? ((scrollEvents[scrollEvents.length - 1].t - scrollEvents[0].t) / 1000).toFixed(2) : 0}s
+            </td>
+        `;
+        tbody.appendChild(summaryRow);
     }
 
     /**
