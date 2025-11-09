@@ -1129,7 +1129,9 @@
                 document: '📄',
                 security: '🔒',
                 apiOverrides: '🔍',
-                aiAgentDetection: '🕵️'
+                aiAgentDetection: '🕵️',
+                stringSignatureAutomation: '🔬',
+                behavioralIndicators: '🎯'
             };
             return icons[categoryName] || '📊';
         }
@@ -1303,7 +1305,15 @@
                 'proxy_funcToString_proxied': 'Proxy detection for Function.toString',
                 'proxy_fetch_proxied': 'Proxy detection for fetch',
                 'contextConsistency': 'Advanced cross-context execution consistency analysis',
-                'permissionsTests': 'Permissions API behavior tests'
+                'permissionsTests': 'Permissions API behavior tests',
+
+                // String Signature Automation Detection
+                'setTimeout_signature': '(Error.toString()).replace(/\\s/g, "") === ((setTimeout.toString()).replace(/setTimeout/g, "Error")).replace(/\\s/g, "")',
+                'setInterval_signature': '(Error.toString()).replace(/\\s/g, "") === ((setInterval.toString()).replace(/setInterval/g, "Error")).replace(/\\s/g, "")',
+                'function_bind_signature': '(Error.toString()).replace(/\\s/g, "") === ((Function.prototype.bind.toString()).replace(/bind/g, "Error")).replace(/\\s/g, "")',
+                'function_toString_signature': '(Error.toString()).replace(/\\s/g, "") === ((Function.prototype.toString.toString()).replace(/toString/g, "Error")).replace(/\\s/g, "")',
+                'function_bind_availability': 'typeof Function.prototype.bind === "function"',
+                'phantomjs_stack_trace': '(new Error()).stack.match(/phantomjs/gi) !== null'
             };
 
             return codeMap[metricName] || `${category}.${metricName}`;
@@ -1323,7 +1333,9 @@
                 document: '📄 Document Properties',
                 security: '🔒 Security Features',
                 apiOverrides: '🔍 API Overrides',
-                aiAgentDetection: '🕵️ AI Agent Detection'
+                aiAgentDetection: '🕵️ AI Agent Detection',
+                stringSignatureAutomation: '🔬 String Signature Automation Detection',
+                behavioralIndicators: '🎯 Behavioral Indicators'
             };
             return categoryNames[name] || name;
         }

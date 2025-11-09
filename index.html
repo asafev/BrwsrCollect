@@ -18,6 +18,8 @@
                 <button id="stop-test" class="stop-test" aria-label="Stop test and freeze data collection" style="display:none;">Stop Test</button>
                 <button id="reset-lab" aria-label="Reset lab state">Reset</button>
                 <button id="toggle-mouse-trail" aria-label="Toggle mouse trail visualization" title="Toggle mouse trail visualization">🖱️ Trails</button>
+                <button id="toggle-scroll-viz" aria-label="Toggle scroll visualization" title="Toggle scroll movement visualization">📊 Scroll Viz</button>
+                <button id="settings-btn" aria-label="Open settings panel" title="Configure speed thresholds">⚙️ Settings</button>
                 <button id="export-report" aria-label="Export test report" disabled>Export Report</button>
                 <button id="export-pdf" aria-label="Export comprehensive PDF report" disabled>📄 Export PDF</button>
                 <button id="fingerprint-analysis" aria-label="View browser fingerprint analysis" onclick="window.open('fingerprint-analysis.html', '_blank')" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">🔍 Fingerprint</button>
@@ -495,6 +497,73 @@
         <div class="modal-content scroll-modal-content">
             <button class="modal-close" id="scroll-modal-close" aria-label="Close scroll test" style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; min-width: 50px; min-height: 40px; z-index: 1001;">✕ Close</button>
             <iframe id="scroll-iframe" src="" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+        </div>
+    </div>
+
+    <!-- Settings Modal for Speed Thresholds -->
+    <div id="settings-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px; padding: 30px;">
+            <button class="modal-close" id="settings-modal-close" aria-label="Close settings">✕</button>
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">⚙️ Speed Detection Settings</h2>
+            
+            <!-- Mouse Speed Settings -->
+            <div class="settings-section" style="margin-bottom: 30px;">
+                <h3 style="color: #34495e; margin-bottom: 15px;">🖱️ Mouse Speed Thresholds</h3>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <input type="checkbox" id="mouse-speed-enabled" checked style="width: 20px; height: 20px;">
+                    <label for="mouse-speed-enabled" style="font-weight: 600;">Enable Speed-Based Coloring</label>
+                </div>
+                <div class="threshold-input" style="margin-bottom: 12px;">
+                    <label for="mouse-normal-threshold" style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display:inline-block;width:16px;height:16px;background:#FFD700;border:1px solid #999;"></span>
+                        Normal Speed (Yellow): 0 - 
+                    </label>
+                    <input type="number" id="mouse-normal-threshold" value="800" min="100" max="5000" style="width: 100px; padding: 5px; margin-left: 5px;"> px/sec
+                </div>
+                <div class="threshold-input" style="margin-bottom: 12px;">
+                    <label for="mouse-fast-threshold" style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display:inline-block;width:16px;height:16px;background:#FF8C00;border:1px solid #999;"></span>
+                        Fast Speed (Orange):
+                    </label>
+                    <input type="number" id="mouse-fast-threshold" value="2000" min="500" max="10000" style="width: 100px; padding: 5px; margin-left: 5px;"> px/sec
+                </div>
+                <div class="threshold-info" style="padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 13px; color: #666;">
+                    <span style="display:inline-block;width:16px;height:16px;background:#FF0000;border:1px solid #999;margin-right:5px;"></span>
+                    <strong>Automated (Red):</strong> Above fast threshold
+                </div>
+            </div>
+            
+            <!-- Scroll Speed Settings -->
+            <div class="settings-section" style="margin-bottom: 30px;">
+                <h3 style="color: #34495e; margin-bottom: 15px;">📊 Scroll Speed Thresholds</h3>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <input type="checkbox" id="scroll-viz-enabled" checked style="width: 20px; height: 20px;">
+                    <label for="scroll-viz-enabled" style="font-weight: 600;">Enable Scroll Visualization</label>
+                </div>
+                <div class="threshold-input" style="margin-bottom: 12px;">
+                    <label for="scroll-smooth-threshold" style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display:inline-block;width:16px;height:16px;background:#FFD700;border:1px solid #999;"></span>
+                        Smooth Scroll (Yellow): 0 - 
+                    </label>
+                    <input type="number" id="scroll-smooth-threshold" value="500" min="100" max="3000" style="width: 100px; padding: 5px; margin-left: 5px;"> px/sec
+                </div>
+                <div class="threshold-input" style="margin-bottom: 12px;">
+                    <label for="scroll-fast-threshold" style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display:inline-block;width:16px;height:16px;background:#FF8C00;border:1px solid #999;"></span>
+                        Fast Scroll (Orange):
+                    </label>
+                    <input type="number" id="scroll-fast-threshold" value="2000" min="500" max="10000" style="width: 100px; padding: 5px; margin-left: 5px;"> px/sec
+                </div>
+                <div class="threshold-info" style="padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 13px; color: #666;">
+                    <span style="display:inline-block;width:16px;height:16px;background:#FF0000;border:1px solid #999;margin-right:5px;"></span>
+                    <strong>Automated (Red):</strong> Above fast threshold
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 25px;">
+                <button id="reset-settings-btn" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">Reset Defaults</button>
+                <button id="apply-settings-btn" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Apply Settings</button>
+            </div>
         </div>
     </div>
 

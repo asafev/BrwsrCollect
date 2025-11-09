@@ -257,7 +257,25 @@ export class AIAgentDetector {
             
             // Notification APIs (extended detection)
             notificationConstructor: () => safeToString(Notification),
-            permissionStatusOnchange: () => safeToString(PermissionStatus.prototype.onchange),
+            permissionStatusOnchange: () => {
+                try {
+                    // Use descriptor inspection to avoid "Illegal invocation" error
+                    // PermissionStatus.prototype.onchange is an accessor that requires a real instance
+                    const descriptor = Object.getOwnPropertyDescriptor(PermissionStatus.prototype, 'onchange');
+                    if (!descriptor) return 'not-found';
+                    
+                    // Inspect the getter/setter functions themselves (if they exist)
+                    const parts = [];
+                    if (descriptor.get) parts.push(`get:${safeToString(descriptor.get)}`);
+                    if (descriptor.set) parts.push(`set:${safeToString(descriptor.set)}`);
+                    if (parts.length === 0 && descriptor.value !== undefined) {
+                        return safeToString(descriptor.value);
+                    }
+                    return parts.join('|') || 'no-accessor';
+                } catch (e) {
+                    return `error:${e.message}`;
+                }
+            },
             
             // Critical Navigator Property Getters (commonly spoofed for fingerprinting evasion)
             navigatorPluginsGetter: () => safeToString(Object.getOwnPropertyDescriptor(Navigator.prototype, 'plugins')?.get),

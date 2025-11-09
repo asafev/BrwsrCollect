@@ -3,6 +3,8 @@
  * Detects various AI agents and browser extensions that might be automating the page
  */
 
+import { isNativeFunction } from './utils/functionUtils.js';
+
 class AIAgentDetector {
     constructor() {
         this.detectedAgents = new Set();
@@ -22,6 +24,7 @@ class AIAgentDetector {
         const detectors = [
             { name: 'Manus', detector: this.detectManusExtension },
             { name: 'Comet', detector: this.detectCometAIAgent },
+            { name: 'Genspark', detector: this.detectGenspark },
             // Add more detectors here as they're implemented
             { name: 'Selenium', detector: this.detectSelenium },
             { name: 'Puppeteer', detector: this.detectPuppeteer },
@@ -33,25 +36,30 @@ class AIAgentDetector {
                 const detectionResult = await detector.call(this);
                 
                 // Handle both old format (boolean) and new format (object with indicators)
-                let detected, indicators = [];
+                let detected, indicators = [], confidence = 0.0, primarySignal = null;
                 if (typeof detectionResult === 'boolean') {
                     detected = detectionResult;
                 } else if (detectionResult && typeof detectionResult === 'object') {
                     detected = detectionResult.detected;
                     indicators = detectionResult.indicators || [];
+                    // Use returned confidence if available, otherwise calculate based on agent type
+                    confidence = detectionResult.confidence || 0.0;
+                    primarySignal = detectionResult.primarySignal || null;
                 } else {
                     detected = false;
                 }
                 
-                // Calculate confidence based on detection method and agent type
-                let confidence = 0.0;
-                if (detected) {
+                // Calculate confidence based on detection method and agent type (only if not already set)
+                if (detected && confidence === 0.0) {
                     switch (name) {
                         case 'Manus':
                             confidence = 0.9; // High confidence - extension fetch is very reliable
                             break;
                         case 'Comet':
                             confidence = 0.85; // Very high confidence - CSS fingerprinting is robust
+                            break;
+                        case 'Genspark':
+                            confidence = 0.95; // Very high confidence - unique DOM element
                             break;
                         case 'Selenium':
                             confidence = 0.95; // Very high confidence - multiple artifact validation
@@ -73,13 +81,15 @@ class AIAgentDetector {
                     timestamp: Date.now(),
                     confidence: confidence,
                     detectionMethod: this._getDetectionMethod(name),
-                    indicators: indicators
+                    indicators: indicators,
+                    primarySignal: primarySignal
                 };
                 
                 if (detected) {
                     this.detectedAgents.add(name);
                     const indicatorNames = indicators.map(ind => ind.name).join(', ');
-                    console.log(`✅ ${name} agent detected with ${(confidence * 100).toFixed(1)}% confidence${indicatorNames ? ` (indicators: ${indicatorNames})` : ''}`);
+                    const signalInfo = primarySignal ? ` [${primarySignal}]` : '';
+                    console.log(`✅ ${name} agent detected with ${(confidence * 100).toFixed(1)}% confidence${signalInfo}${indicatorNames ? ` (indicators: ${indicatorNames})` : ''}`);
                 } else {
                     console.log(`❌ ${name} agent not detected`);
                 }
@@ -125,6 +135,26 @@ class AIAgentDetector {
             }
         } catch (err) {
             console.log("Manus extension not detected (fetch error):", err.message);
+            return false;
+        }
+    }
+
+    /**
+     * Detect Genspark AI Agent
+     * Checks for the presence of the genspark-float-bar DOM element
+     */
+    async detectGenspark() {
+        try {
+            const gensparkElement = document.getElementById('genspark-float-bar');
+            if (gensparkElement) {
+                console.log('Genspark AI Agent detected via DOM element');
+                return true;
+            } else {
+                console.log('Genspark AI Agent not detected');
+                return false;
+            }
+        } catch (error) {
+            console.warn('Error during Genspark detection:', error);
             return false;
         }
     }
@@ -327,7 +357,7 @@ class AIAgentDetector {
             
             // Check for permissions API anomalies
             if (navigator.permissions && 
-                !this._isNativeFunction(navigator.permissions.query.toString(), 'query')) {
+                !isNativeFunction(navigator.permissions.query.toString(), 'query')) {
                 indicators.push({
                     name: 'permissions_api_anomaly',
                     description: 'Permissions API query function signature anomaly - modified/overridden function detected',
@@ -350,89 +380,260 @@ class AIAgentDetector {
     }
 
     /**
-     * Detect Playwright automation with specific indicators
+     * Detect Playwright automation with comprehensive signal analysis
+     * @returns {Object} Detection result with status, confidence, and detailed signals
      */
     async detectPlaywright() {
+        const indicators = [];
+        
         try {
-            // Direct Playwright object detection
-            if (window.playwright !== undefined) return true;
+            const signals = {
+                cdp: false,
+                playwrightGlobals: false,
+                webdriver: false,
+                fingerprint: false,
+                permissions: false,
+                initScripts: false
+            };
             
-            // Check for navigator.webdriver being explicitly true
-            if (navigator.webdriver === true) return true;
-            
-            // Playwright-specific artifacts
-            if (window.__playwright !== undefined) return true;
-            if (window._playwrightInstance !== undefined) return true;
-            
-            // Check for Playwright's specific user agent patterns
-            const userAgent = navigator.userAgent;
-            if (userAgent.includes('HeadlessChrome') && 
-                userAgent.includes('Mozilla/5.0')) {
-                // Additional validation to avoid false positives
-                if (window.chrome && !window.chrome.runtime) {
-                    return true;
-                }
-            }
-            
-            // Check for missing webGL context (common in Playwright headless)
+            // ========================================
+            // 1. CDP (Chrome DevTools Protocol) Detection
+            // Most reliable signal - used by Cloudflare, DataDome, Castle.io
+            // ========================================
             try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                if (!gl && navigator.webdriver !== false) {
-                    // This alone isn't enough, need additional indicators
-                    if (window.outerHeight === 0 || navigator.plugins.length === 0) {
-                        return true;
+                let cdpDetected = false;
+                const testError = new Error();
+                
+                Object.defineProperty(testError, 'stack', {
+                    configurable: true,
+                    get: function() {
+                        cdpDetected = true;
+                        return '';
                     }
+                });
+                
+                // Trigger serialization only when CDP Runtime.enable is active
+                console.debug(testError);
+                
+                if (cdpDetected) {
+                    signals.cdp = true;
+                    indicators.push({
+                        name: 'CDP_Runtime_Active',
+                        description: 'Chrome DevTools Protocol Runtime.enable detected via error stack serialization',
+                        value: 'CDP active'
+                    });
                 }
             } catch (e) {
-                // WebGL check failed, could be indicator
+                // Silent fail - CDP check failed
             }
             
-            return false;
+            // ========================================
+            // 2. Playwright-Specific Global Properties
+            // Playwright injects these into the window object
+            // ========================================
+            
+            // Check for Playwright binding functions (most reliable)
+            if (typeof window.__playwright__binding__ !== 'undefined') {
+                signals.playwrightGlobals = true;
+                indicators.push({
+                    name: 'Playwright_Binding',
+                    description: 'Playwright binding function detected in window object',
+                    value: typeof window.__playwright__binding__
+                });
+            }
+            
+            // Check for Playwright init scripts marker
+            if (typeof window.__pwInitScripts !== 'undefined') {
+                signals.initScripts = true;
+                indicators.push({
+                    name: 'Playwright_Init_Scripts',
+                    description: 'Playwright initialization scripts marker detected',
+                    value: typeof window.__pwInitScripts
+                });
+            }
+            
+            // Check for other Playwright-specific properties
+            const playwrightProps = [
+                '__playwright__',
+                '_playwrightInstance',
+                '__pw_manual',
+                '__PW_inspect',
+                'playwright'
+            ];
+            
+            for (const prop of playwrightProps) {
+                if (typeof window[prop] !== 'undefined') {
+                    signals.playwrightGlobals = true;
+                    indicators.push({
+                        name: `Playwright_Global_${prop}`,
+                        description: `Playwright-specific global property detected: ${prop}`,
+                        value: typeof window[prop]
+                    });
+                    break; // Only report first match to avoid duplicates
+                }
+            }
+            
+            // ========================================
+            // 3. Navigator.webdriver Detection
+            // Must be explicitly true, not just truthy
+            // ========================================
+            if (navigator.webdriver === true) {
+                signals.webdriver = true;
+                indicators.push({
+                    name: 'Navigator_WebDriver',
+                    description: 'Navigator webdriver property explicitly set to true',
+                    value: navigator.webdriver
+                });
+            }
+            
+            // ========================================
+            // 4. Permissions API Inconsistency
+            // Playwright often has permission API issues
+            // ========================================
+            if (navigator.permissions && navigator.permissions.query) {
+                try {
+                    const permissionStatus = await navigator.permissions.query({ name: 'notifications' });
+                    // Normal browsers should have valid permission states
+                    if (!permissionStatus || typeof permissionStatus.state === 'undefined') {
+                        signals.permissions = true;
+                        indicators.push({
+                            name: 'Permissions_API_Anomaly',
+                            description: 'Permissions API returned invalid or undefined state',
+                            value: permissionStatus ? 'invalid state' : 'null response'
+                        });
+                    }
+                } catch (permErr) {
+                    // Some automation tools throw errors on permissions API
+                    if (permErr.message && permErr.message.includes('not supported')) {
+                        signals.permissions = true;
+                        indicators.push({
+                            name: 'Permissions_API_Error',
+                            description: 'Permissions API query threw "not supported" error',
+                            value: permErr.message
+                        });
+                    }
+                }
+            }
+            
+            // ========================================
+            // 5. Fingerprint Inconsistency Detection
+            // Check for common automation fingerprint mismatches
+            // ========================================
+            
+            // 5a. Chrome Runtime Check (for Chromium-based browsers)
+            if (window.chrome && !window.chrome.runtime) {
+                // Legitimate Chrome should have chrome.runtime
+                const isChrome = /Chrome/.test(navigator.userAgent) && 
+                                /Google Inc/.test(navigator.vendor);
+                if (isChrome) {
+                    signals.fingerprint = true;
+                    indicators.push({
+                        name: 'Chrome_Runtime_Missing',
+                        description: 'Chrome detected in UA but chrome.runtime is missing',
+                        value: 'runtime missing'
+                    });
+                }
+            }
+            
+            // 5b. WebGL Consistency Check
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || 
+                           canvas.getContext('experimental-webgl');
+                
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                        
+                        // Check for server-grade GPUs (common in data centers)
+                        const serverGPUs = [
+                            'SwiftShader',
+                            'llvmpipe',
+                            'Microsoft Basic Render Driver',
+                            'Google SwiftShader'
+                        ];
+                        
+                        if (serverGPUs.some(gpu => renderer.includes(gpu))) {
+                            // Only flag if combined with other signals
+                            if (signals.cdp || signals.webdriver || signals.playwrightGlobals) {
+                                signals.fingerprint = true;
+                                indicators.push({
+                                    name: 'WebGL_Server_GPU',
+                                    description: 'Server-grade GPU detected in combination with other automation signals',
+                                    value: renderer
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (glError) {
+                // Silent fail on WebGL check
+            }
+            
+            // ========================================
+            // 6. Decision Logic - Minimize False Positives
+            // ========================================
+            
+            // High confidence detection (any of these alone is sufficient)
+            if (signals.cdp || signals.playwrightGlobals || signals.initScripts) {
+                const reason = signals.cdp ? 'CDP_Runtime_Active' : 
+                              signals.playwrightGlobals ? 'Playwright_Globals' :
+                              'Playwright_Init_Scripts';
+                
+                return {
+                    detected: true,
+                    confidence: 0.95, // High confidence
+                    indicators: indicators,
+                    primarySignal: reason
+                };
+            }
+            
+            // Medium confidence - multiple signals required
+            const mediumSignals = [
+                signals.webdriver,
+                signals.permissions,
+                signals.fingerprint
+            ].filter(Boolean).length;
+            
+            if (mediumSignals >= 2) {
+                return {
+                    detected: true,
+                    confidence: 0.75, // Medium confidence
+                    indicators: indicators,
+                    primarySignal: 'Multiple_Automation_Signals'
+                };
+            }
+            
+            // Low confidence - webdriver alone (could be legitimate automation)
+            if (signals.webdriver && mediumSignals === 1) {
+                return {
+                    detected: true,
+                    confidence: 0.50, // Low confidence
+                    indicators: indicators,
+                    primarySignal: 'WebDriver_Only'
+                };
+            }
+            
+            // No detection
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                primarySignal: 'None'
+            };
+            
         } catch (error) {
             console.debug('Error in Playwright detection:', error);
-            return false;
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
         }
     }
 
-    /**
-     * Check if a function string represents a native browser function
-     * Accounts for cross-browser differences in native code formatting
-     * @private
-     * @param {string} functionString - The function.toString() result
-     * @param {string} functionName - Expected function name (optional, for validation)
-     * @returns {boolean} True if the function appears to be native
-     */
-    _isNativeFunction(functionString, functionName = null) {
-        if (!functionString || typeof functionString !== 'string') {
-            return false;
-        }
-
-        // Normalize whitespace and remove extra newlines for cross-browser compatibility
-        const normalized = functionString.replace(/\s+/g, ' ').trim();
-
-        // Check for various native code patterns across browsers:
-        // Chrome: "function query() { [native code] }"
-        // Firefox: "function query() {\n    [native code]\n}"
-        // Safari: "function query() { [native code] }"
-        const nativePatterns = [
-            /function\s+\w*\(\)\s*\{\s*\[native code\]\s*\}/i,  // Standard pattern
-            /\[native code\]/i,  // Fallback - just check for native code marker
-            /\{\s*\[native code\]\s*\}/i  // Just the native code block
-        ];
-
-        // Additional validation: if function name provided, ensure it matches
-        if (functionName) {
-            const functionNamePattern = new RegExp(`function\\s+${functionName}\\s*\\(`, 'i');
-            if (!functionNamePattern.test(normalized)) {
-                // Function name doesn't match expected - likely overridden
-                return false;
-            }
-        }
-
-        // Check if any native pattern matches
-        return nativePatterns.some(pattern => pattern.test(normalized));
-    }
 
     /**
      * Get detection method description for an agent
@@ -444,9 +645,10 @@ class AIAgentDetector {
         const methods = {
             'Manus': 'Chrome Extension Resource Fetch',
             'Comet': 'CSS Variable Injection Fingerprinting',
+            'Genspark': 'DOM Element Detection',
             'Selenium': 'WebDriver Property & Artifact Detection',
             'Puppeteer': 'Headless Browser & Runtime Analysis',
-            'Playwright': 'Framework Signature & Context Detection'
+            'Playwright': 'CDP Runtime + Framework Signature Detection'
         };
         return methods[agentName] || 'Unknown Detection Method';
     }

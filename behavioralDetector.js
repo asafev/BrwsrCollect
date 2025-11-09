@@ -230,76 +230,117 @@ class BehavioralIndicatorsDetector {
 
     /**
      * Detect clicks without mouse movement (teleporting cursor)
+     * Simplified to detect Comet-like behavior: single mouse move before click
      * @param {Object} clickData 
      */
     detectClicksWithoutMouseMovement(clickData) {
         try {
-            const mouseTrailBefore = this.getRecentMouseTrail(this.config.noMouseMovement.timeThreshold);
+            // Skip the start-test button as that's where tracking begins
+            const isStartButton = clickData.target && 
+                (clickData.target.includes('start-test') || 
+                 clickData.target.includes('#start-test'));
             
-            // Calculate total movement in the time window before click
-            let totalMovement = 0;
-            for (let i = 1; i < mouseTrailBefore.length; i++) {
-                const prev = mouseTrailBefore[i - 1];
-                const curr = mouseTrailBefore[i];
-                totalMovement += Math.sqrt(
-                    Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2)
-                );
+            if (isStartButton) {
+                console.log('🎯 Skipping start-test button for mouse movement detection');
+                return;
             }
 
-            const hasMinimalMovement = totalMovement <= this.config.noMouseMovement.movementThreshold;
-            const hasMovementData = mouseTrailBefore.length >= 2;
-            const hasNoMovementData = mouseTrailBefore.length === 0;
+            const mouseTrailBefore = this.getRecentMouseTrail(this.config.noMouseMovement.timeThreshold);
+            const trailLength = mouseTrailBefore.length;
+            
+            console.log('🔍 Mouse trail analysis:', {
+                target: clickData.target,
+                trailLength: trailLength,
+                trailPoints: mouseTrailBefore.length,
+                timeWindow: this.config.noMouseMovement.timeThreshold
+            });
 
-            // Detect two scenarios:
-            // 1. Minimal movement with movement data (normal case)
-            // 2. NO movement data at all (AI agents that don't move mouse)
-            if (hasMinimalMovement && hasMovementData) {
-                // Scenario 1: Some movement data but very minimal movement
-                const lastKnownPosition = this.mouseTrail[this.mouseTrail.length - 2] || this.lastMousePosition;
-                const jumpDistance = Math.sqrt(
-                    Math.pow(clickData.x - lastKnownPosition.x, 2) + 
-                    Math.pow(clickData.y - lastKnownPosition.y, 2)
-                );
-
-                const isSignificantJump = jumpDistance > 50; // 50+ pixel jump
-                const confidence = Math.min(
-                    (jumpDistance / 200) + 0.5, // Boost confidence for minimal movement
-                    1.0
-                );
-
-                if (confidence >= this.config.noMouseMovement.confidenceThreshold) {
-                    this.storage.updateIndicator('clicksWithoutMouseMovement', {
-                        increment: true,
-                        confidence: confidence,
-                        detail: {
-                            scenario: 'minimal_movement',
-                            jumpDistance: Math.round(jumpDistance),
-                            movementBeforeClick: Math.round(totalMovement),
-                            timeWindow: this.config.noMouseMovement.timeThreshold,
-                            target: clickData.target,
-                            description: 'Click with minimal mouse movement detected'
-                        }
-                    });
-                }
-            } 
-            else if (hasNoMovementData) {
-                // Scenario 3: First click ever with no prior mouse activity - very suspicious
-                const confidence = 0.95; // Very high confidence for first-click teleporting
+            // **COMET DETECTION**: Exactly 1 mouse move before click is a strong bot indicator
+            // Comet AI agent is known to generate exactly one mouse movement before each click
+            if (trailLength === 1) {
+                const confidence = 0.95; // Very high confidence - this is a strong Comet signature
+                
+                console.log('🤖 COMET PATTERN DETECTED: Single mouse move before click!', {
+                    target: clickData.target,
+                    confidence: confidence,
+                    description: 'Exactly 1 mouse movement - Comet-like behavior'
+                });
 
                 this.storage.updateIndicator('clicksWithoutMouseMovement', {
                     increment: true,
                     confidence: confidence,
                     detail: {
-                        scenario: 'first_click_teleport',
-                        jumpDistance: 'N/A - no prior position',
-                        movementBeforeClick: 0,
-                        timeWindow: this.config.noMouseMovement.timeThreshold,
+                        scenario: 'comet_single_move',
+                        mouseTrailLength: 1,
                         target: clickData.target,
-                        mouseTrailLength: 0,
-                        description: 'First click with no prior mouse activity - strong AI agent indicator'
+                        timeWindow: this.config.noMouseMovement.timeThreshold,
+                        description: 'COMET PATTERN: Exactly 1 mouse move before click - strong AI agent indicator',
+                        agentType: 'Comet-like'
                     }
                 });
+                return; // Early return - we found the smoking gun
             }
+
+            // **SCENARIO 2**: No mouse movement at all (0 trail points)
+            if (trailLength === 0) {
+                const confidence = 0.90; // High confidence for no movement
+                
+                console.log('🤖 NO MOVEMENT DETECTED before click', {
+                    target: clickData.target,
+                    confidence: confidence
+                });
+
+                this.storage.updateIndicator('clicksWithoutMouseMovement', {
+                    increment: true,
+                    confidence: confidence,
+                    detail: {
+                        scenario: 'no_movement',
+                        mouseTrailLength: 0,
+                        target: clickData.target,
+                        timeWindow: this.config.noMouseMovement.timeThreshold,
+                        description: 'No mouse movement before click - AI agent indicator'
+                    }
+                });
+                return;
+            }
+
+            // **SCENARIO 3**: Very few movements (2-3 points) with minimal total distance
+            if (trailLength >= 2 && trailLength <= 3) {
+                let totalMovement = 0;
+                for (let i = 1; i < mouseTrailBefore.length; i++) {
+                    const prev = mouseTrailBefore[i - 1];
+                    const curr = mouseTrailBefore[i];
+                    totalMovement += Math.sqrt(
+                        Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2)
+                    );
+                }
+
+                // If movement is minimal (< 5 pixels total), it's suspicious
+                if (totalMovement <= 5) {
+                    const confidence = 0.75; // Medium-high confidence
+                    
+                    console.log('🤖 MINIMAL MOVEMENT DETECTED', {
+                        target: clickData.target,
+                        trailLength: trailLength,
+                        totalMovement: Math.round(totalMovement),
+                        confidence: confidence
+                    });
+
+                    this.storage.updateIndicator('clicksWithoutMouseMovement', {
+                        increment: true,
+                        confidence: confidence,
+                        detail: {
+                            scenario: 'minimal_movement',
+                            mouseTrailLength: trailLength,
+                            totalMovement: Math.round(totalMovement),
+                            target: clickData.target,
+                            timeWindow: this.config.noMouseMovement.timeThreshold,
+                            description: `Only ${trailLength} mouse points with ${Math.round(totalMovement)}px movement`
+                        }
+                    });
+                }
+            }
+
         } catch (error) {
             console.warn('Error detecting clicks without movement:', error);
         }

@@ -48,7 +48,7 @@ class BehavioralLab {
             heatmapData: [] // For heatmap generation
         };
         
-        // Mouse trail tracking system - Enhanced with realistic rendering
+        // Mouse trail tracking system - Enhanced with realistic rendering and speed-based color coding
         // This system provides visual feedback of mouse movement patterns for behavioral analysis
         this.mouseTrail = {
             enabled: true,
@@ -70,9 +70,51 @@ class BehavioralLab {
             // Visual parameters
             dotSize: 1, // Trail dot size in pixels
             lineWidth: 4, // Connecting line width in pixels
-            trailColor: '#8A2BE2', // Purple color for both dots and lines
+            trailColor: '#8A2BE2', // Purple color for both dots and lines (default, overridden by speed)
             scrollOffset: { x: 0, y: 0 }, // Legacy - no longer needed with absolute positioning
-            tooltip: null // Tooltip element for coordinates display on hover
+            tooltip: null, // Tooltip element for coordinates display on hover
+            
+            // FEATURE: Speed-based color coding for AI detection
+            speedColoringEnabled: true, // Enable/disable speed-based color coding
+            speedThresholds: {
+                normal: 800,      // 0-800 px/sec: Normal human speed (Yellow)
+                fast: 2000,       // 800-2000 px/sec: Fast human/suspicious (Orange)
+                // 2000+ px/sec: Likely non-human/automated (Red)
+            },
+            speedColors: {
+                normal: '#FFD700',    // Yellow - normal human speed
+                fast: '#FF8C00',      // Orange - fast/suspicious speed
+                automated: '#FF0000'  // Red - likely automated/non-human
+            }
+        };
+        
+        // FEATURE: Scroll movement visualization system
+        // Provides visual feedback of scroll behavior to detect automated patterns
+        this.scrollVisualization = {
+            enabled: true, // Enable/disable scroll visualization
+            container: null, // The main visualization container element
+            indicator: null, // The scroll position indicator element
+            events: [], // Array of scroll events with speed data
+            maxEvents: 100, // Maximum scroll events to track
+            lastScrollTime: 0,
+            lastScrollY: 0,
+            
+            // Speed thresholds for scroll detection
+            speedThresholds: {
+                smooth: 500,     // 0-500 px/sec: Smooth human scrolling
+                fast: 2000,      // 500-2000 px/sec: Fast human scrolling
+                // 2000+ px/sec: Likely automated scrolling
+            },
+            speedColors: {
+                smooth: '#FFD700',    // Yellow - smooth human scrolling
+                fast: '#FF8C00',      // Orange - fast human scrolling
+                automated: '#FF0000'  // Red - likely automated scrolling
+            },
+            
+            // Visual parameters
+            barWidth: 8, // Width of the scroll indicator bar in pixels
+            segmentHeight: 20, // Height of each scroll event segment
+            fadeOutDuration: 3000 // How long segments stay visible (ms)
         };
         
         // Live metrics tracking
@@ -161,6 +203,9 @@ class BehavioralLab {
         
         // Start telemetry collection (synchronous)
         this.startTelemetryCollection();
+        
+        // Initialize scroll visualization (synchronous)
+        this.initializeScrollVisualization();
         
         // Initialize FingerprintJS Pro (async - can happen in background)
         fingerprintPro.initialize().then(() => {
@@ -329,6 +374,34 @@ class BehavioralLab {
             trailToggle.addEventListener('click', () => this.handleMouseTrailToggle());
         } else {
             console.warn('Mouse trail toggle button not found in DOM');
+        }
+        
+        // Scroll visualization toggle button
+        const scrollVizToggle = document.getElementById('toggle-scroll-viz');
+        if (scrollVizToggle) {
+            scrollVizToggle.addEventListener('click', () => this.handleScrollVizToggle());
+        }
+        
+        // Settings button
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => this.openSettings());
+        }
+        
+        // Settings modal controls
+        const settingsModalClose = document.getElementById('settings-modal-close');
+        if (settingsModalClose) {
+            settingsModalClose.addEventListener('click', () => this.closeSettings());
+        }
+        
+        const applySettingsBtn = document.getElementById('apply-settings-btn');
+        if (applySettingsBtn) {
+            applySettingsBtn.addEventListener('click', () => this.applySettings());
+        }
+        
+        const resetSettingsBtn = document.getElementById('reset-settings-btn');
+        if (resetSettingsBtn) {
+            resetSettingsBtn.addEventListener('click', () => this.resetSettings());
         }
         
         document.getElementById('export-report').addEventListener('click', () => this.exportReport());
@@ -518,6 +591,14 @@ class BehavioralLab {
             this.updateIndicatorStatus('artificial-timing-status', indicators.artificialTiming);
             this.updateIndicatorStatus('missing-trails-status', indicators.missingMouseTrails);
             
+            // **COMET DETECTION**: Check if we detected Comet-like behavior in real-time
+            if (updateData && updateData.indicatorName === 'clicksWithoutMouseMovement') {
+                const detail = updateData.indicator.lastDetail;
+                if (detail && detail.scenario === 'comet_single_move') {
+                    this.showCometAlert(detail);
+                }
+            }
+            
             // Log update if it's from a specific event
             if (updateData) {
                 console.log(`🎯 Behavioral indicator updated: ${updateData.indicatorName}`, updateData.indicator);
@@ -526,6 +607,84 @@ class BehavioralLab {
         } catch (error) {
             console.warn('Error updating behavioral indicators UI:', error);
         }
+    }
+
+    /**
+     * Show real-time Comet detection alert in AI Agent Detection panel
+     */
+    showCometAlert(detail) {
+        const alertsContainer = document.getElementById('agent-alerts');
+        const detectedAgentsElement = document.getElementById('detected-agents');
+        
+        if (!alertsContainer) return;
+        
+        // Check if we already have a Comet alert (don't duplicate)
+        const existingAlert = document.getElementById('comet-alert');
+        if (existingAlert) {
+            // Update the count on existing alert
+            const countElement = existingAlert.querySelector('.comet-detection-count');
+            if (countElement) {
+                const currentCount = parseInt(countElement.textContent) || 1;
+                countElement.textContent = currentCount + 1;
+            }
+            
+            // Add pulse animation to highlight the update
+            existingAlert.classList.remove('pulse-animation');
+            void existingAlert.offsetWidth; // Trigger reflow
+            existingAlert.classList.add('pulse-animation');
+            
+            return;
+        }
+        
+        // Show the detected agents section
+        if (detectedAgentsElement) {
+            detectedAgentsElement.style.display = 'block';
+        }
+        
+        // Create new Comet alert
+        const cometAlert = document.createElement('div');
+        cometAlert.id = 'comet-alert';
+        cometAlert.className = 'agent-alert comet-detected pulse-animation';
+        cometAlert.style.cssText = `
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            border: 2px solid #ff0000;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+            animation: pulse 2s ease-in-out;
+        `;
+        
+        cometAlert.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 32px;">🤖</div>
+                <div style="flex: 1;">
+                    <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">
+                        ⚠️ COMET-LIKE AGENT DETECTED
+                    </div>
+                    <div style="font-size: 13px; opacity: 0.95; margin-bottom: 8px;">
+                        Detected <span class="comet-detection-count" style="font-weight: bold; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px;">1</span> click(s) with exactly 1 mouse movement
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.9; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px;">
+                        <strong>Pattern:</strong> Single mouse move before click<br>
+                        <strong>Confidence:</strong> 95% - Strong AI Agent Signature<br>
+                        <strong>Target:</strong> ${detail.target || 'Unknown'}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert at the top of alerts container
+        alertsContainer.insertBefore(cometAlert, alertsContainer.firstChild);
+        
+        // Update detection status badge
+        const statusElement = document.getElementById('detection-status');
+        if (statusElement) {
+            statusElement.innerHTML = '<span class="detection-badge detected">🚨 COMET Agent Detected</span>';
+        }
+        
+        console.log('🚨 COMET ALERT displayed in UI');
     }
 
     /**
@@ -1197,6 +1356,9 @@ class BehavioralLab {
             y: scrollY,
             velocity: velocity
         });
+        
+        // Track scroll event for visualization
+        this.trackScrollEvent(e);
         
         // Behavioral analysis of scroll event
         this.behavioralDetector.analyzeScroll(e);
@@ -2197,10 +2359,13 @@ class BehavioralLab {
         const distance = Math.sqrt(Math.pow(x - lastPos.x, 2) + Math.pow(y - lastPos.y, 2));
         const timeDelta = timestamp - lastPos.timestamp;
         
+        // Calculate instantaneous speed (pixels per second)
+        const speed = timeDelta > 0 ? (distance / timeDelta) * 1000 : 0;
+        
         // Intelligent sampling: only add point if it meets distance or time criteria
         const shouldAddPoint = 
-            distance >= this.mouseTrail.minDistance || // Significant movement (15px+)
-            timeDelta >= this.mouseTrail.maxTimeInterval || // Force point after max time (500ms)
+            distance >= this.mouseTrail.minDistance || // Significant movement (1px+)
+            timeDelta >= this.mouseTrail.maxTimeInterval || // Force point after max time (100ms)
             this.mouseTrail.trails.length === 0; // Always add first point
         
         if (!shouldAddPoint) return;
@@ -2214,12 +2379,12 @@ class BehavioralLab {
         if (!this.mouseTrail.pendingFrame) {
             this.mouseTrail.pendingFrame = true;
             requestAnimationFrame(() => {
-                this.createTrailPoint(x, y, timestamp);
+                this.createTrailPoint(x, y, timestamp, speed);
                 this.mouseTrail.pendingFrame = false;
             });
         } else {
             // Store the latest position if frame is already pending
-            this.mouseTrail.pendingPosition = { x, y, timestamp };
+            this.mouseTrail.pendingPosition = { x, y, timestamp, speed };
         }
     }
     
@@ -2232,6 +2397,11 @@ class BehavioralLab {
      * - Processes pending positions to handle rapid mouse movements
      * - Uses requestAnimationFrame to maintain smooth 60fps rendering
      * 
+     * SPEED-BASED COLOR CODING (NEW):
+     * - Accepts speed parameter (px/sec) for color determination
+     * - Passes speed to createTrailDot() and createTrailLine()
+     * - Color applied based on configurable thresholds
+     * 
      * COORDINATE SYSTEM:
      * - Receives viewport coordinates (relative to current scroll position)
      * - Delegates to createTrailDot() and createTrailLine() for coordinate conversion
@@ -2243,17 +2413,17 @@ class BehavioralLab {
      * - Prevents memory leaks with aggressive pruning
      * - Performance remains constant regardless of usage duration
      */
-    createTrailPoint(x, y, timestamp) {
+    createTrailPoint(x, y, timestamp, speed = 0) {
         // Update last position for next iteration
         const previousPos = { ...this.mouseTrail.lastPosition };
-        this.mouseTrail.lastPosition = { x, y, timestamp };
+        this.mouseTrail.lastPosition = { x, y, timestamp, speed };
         
-        // Create the trail dot
-        const dotId = this.createTrailDot(x, y, timestamp);
+        // Create the trail dot with speed-based color
+        const dotId = this.createTrailDot(x, y, timestamp, speed);
         
         // Create connecting line if we have a previous position
         if (this.mouseTrail.trails.length > 0 && previousPos.x !== 0 && previousPos.y !== 0) {
-            this.createTrailLine(previousPos.x, previousPos.y, x, y, timestamp);
+            this.createTrailLine(previousPos.x, previousPos.y, x, y, timestamp, speed);
         }
         
         // Clean up old trails to maintain performance
@@ -2265,13 +2435,36 @@ class BehavioralLab {
             this.mouseTrail.pendingPosition = null;
             // Use requestAnimationFrame for the pending position too
             requestAnimationFrame(() => {
-                this.createTrailPoint(pending.x, pending.y, pending.timestamp);
+                this.createTrailPoint(pending.x, pending.y, pending.timestamp, pending.speed || 0);
             });
+        }
+    }
+    
+    /**
+     * Get color based on speed using configurable thresholds
+     * @param {number} speed - Speed in pixels per second
+     * @returns {string} - Color hex code
+     * @private
+     */
+    _getSpeedColor(speed) {
+        if (!this.mouseTrail.speedColoringEnabled) {
+            return this.mouseTrail.trailColor; // Use default purple if speed coloring disabled
+        }
+        
+        const { normal, fast } = this.mouseTrail.speedThresholds;
+        const colors = this.mouseTrail.speedColors;
+        
+        if (speed < normal) {
+            return colors.normal; // Yellow - normal human speed
+        } else if (speed < fast) {
+            return colors.fast; // Orange - fast/suspicious speed
+        } else {
+            return colors.automated; // Red - likely automated
         }
     }
 
     /**
-     * Create a single trail dot element with absolute positioning (fixed to world coordinates)
+     * Create a single trail dot element with absolute positioning and speed-based coloring
      * 
      * SCROLL OFFSET COMPENSATION METHODOLOGY:
      * - Captures current scroll position using window.pageXOffset/pageYOffset
@@ -2279,11 +2472,17 @@ class BehavioralLab {
      * - Uses absolute positioning instead of fixed to anchor dots to page content
      * - Dots remain at their original world position regardless of scroll events
      * 
+     * SPEED-BASED COLOR CODING (NEW):
+     * - Accepts speed parameter (px/sec)
+     * - Determines color using _getSpeedColor() method
+     * - Applies color to backgroundColor and boxShadow
+     * - Stores speed in trailData for analysis
+     * 
      * VISUAL OPTIMIZATION:
      * - Reduced dot frequency via intelligent sampling in addMouseTrail()
-     * - Smaller dot size (6px) for cleaner appearance
+     * - Smaller dot size (1px) for cleaner appearance
      * - Semi-transparent dots (0.9 opacity) blend naturally with content
-     * - Hover tooltips show exact coordinates and timestamps for debugging
+     * - Hover tooltips show exact coordinates, timestamps, and speed for debugging
      * 
      * PERFORMANCE METRICS:
      * - DOM operations: 1 element creation per dot
@@ -2291,7 +2490,7 @@ class BehavioralLab {
      * - Max dots: 500 (configurable via maxTrails)
      * - Auto-cleanup when exceeding max count or after fade duration
      */
-    createTrailDot(x, y, timestamp) {
+    createTrailDot(x, y, timestamp, speed = 0) {
         const trailDot = document.createElement('div');
         trailDot.className = 'mouse-trail-dot';
         const trailId = `trail-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -2306,6 +2505,9 @@ class BehavioralLab {
         const absoluteX = x + scrollX;
         const absoluteY = y + scrollY;
         
+        // Determine color based on speed
+        const color = this._getSpeedColor(speed);
+        
         trailDot.style.position = 'absolute';
         trailDot.style.left = `${absoluteX}px`;
         trailDot.style.top = `${absoluteY}px`;
@@ -2315,9 +2517,9 @@ class BehavioralLab {
         trailDot.style.width = `${this.mouseTrail.dotSize}px`;
         trailDot.style.height = `${this.mouseTrail.dotSize}px`;
         trailDot.style.borderRadius = '50%';
-        trailDot.style.backgroundColor = this.mouseTrail.trailColor;
+        trailDot.style.backgroundColor = color; // Speed-based color
         trailDot.style.opacity = '0.9';
-        trailDot.style.boxShadow = '0 0 3px rgba(138, 43, 226, 0.6)';
+        trailDot.style.boxShadow = `0 0 3px ${color}99`; // Color-matched shadow with transparency
         
         // Use different animation based on persist mode
         if (this.mouseTrail.persist) {
@@ -2339,6 +2541,8 @@ class BehavioralLab {
             scrollX: scrollX, // Store scroll position for debugging
             scrollY: scrollY,
             timestamp: timestamp,
+            speed: speed, // Store speed for analysis
+            color: color, // Store applied color
             createdAt: Date.now()
         };
         
@@ -2393,13 +2597,18 @@ class BehavioralLab {
      * - Only the positioning (left/top) is affected by scroll offset
      * - This ensures lines connect properly to dots regardless of scroll position
      * 
-     * PERFORMANCE METRICS:
+     * CLEANUP METRICS:
      * - DOM operations: 1 element creation per line
-     * - Memory usage: ~200 bytes per line object (reduced from previous dot-only approach)
+     * - Memory usage: ~200 bytes per line object
      * - Rendering cost: Single CSS transform per line (GPU-accelerated)
      * - Cleanup strategy: Auto-removal after fade duration or manual cleanup on max count
+     * 
+     * SPEED-BASED COLOR CODING (NEW):
+     * - Accepts speed parameter (px/sec)
+     * - Determines color using _getSpeedColor() method
+     * - Applies color to backgroundColor for visual feedback
      */
-    createTrailLine(x1, y1, x2, y2, timestamp) {
+    createTrailLine(x1, y1, x2, y2, timestamp, speed = 0) {
         const line = document.createElement('div');
         line.className = 'mouse-trail-line';
         const lineId = `line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -2421,13 +2630,16 @@ class BehavioralLab {
         const absoluteX2 = x2 + scrollX;
         const absoluteY2 = y2 + scrollY;
         
+        // Determine color based on speed
+        const color = this._getSpeedColor(speed);
+        
         // Apply absolute positioning with document coordinates
         line.style.position = 'absolute';
         line.style.left = `${absoluteX1}px`;
         line.style.top = `${absoluteY1}px`;
         line.style.width = `${length}px`;
         line.style.height = `${this.mouseTrail.lineWidth}px`;
-        line.style.backgroundColor = this.mouseTrail.trailColor;
+        line.style.backgroundColor = color; // Speed-based color
         line.style.transformOrigin = '0 50%'; // Rotate around start point (left center)
         line.style.transform = `rotate(${angle}deg)`;
         line.style.pointerEvents = 'none';
@@ -2459,6 +2671,8 @@ class BehavioralLab {
             length: length,
             angle: angle,
             timestamp: timestamp,
+            speed: speed, // Store speed for analysis
+            color: color, // Store applied color
             createdAt: Date.now()
         };
         
@@ -2541,6 +2755,14 @@ class BehavioralLab {
             <div class="tooltip-scroll">
                 <strong>Scroll Offset:</strong> (${trailData.scrollX || 0}, ${trailData.scrollY || 0})
             </div>
+            ${trailData.speed !== undefined ? `
+            <div class="tooltip-speed">
+                <strong>Speed:</strong> ${Math.round(trailData.speed)} px/sec
+            </div>
+            <div class="tooltip-color">
+                <strong>Color:</strong> <span style="display:inline-block;width:12px;height:12px;background:${trailData.color};border:1px solid #fff;margin-left:4px;"></span>
+            </div>
+            ` : ''}
             <div class="tooltip-time">
                 <strong>Time:</strong> ${timeString}
             </div>
@@ -2678,7 +2900,11 @@ class BehavioralLab {
         this.mouseTrail.lastPosition = { x: 0, y: 0, timestamp: 0 };
         
         this.hideTrailTooltip();
-        console.log('🧹 Cleared all mouse trails and lines');
+        
+        // Clear scroll visualization
+        this.clearScrollVisualization();
+        
+        console.log('🧹 Cleared all mouse trails, lines, and scroll visualization');
     }    /**
      * Toggle mouse trail visualization with three states: Off → Normal → Persist
      */
@@ -2857,6 +3083,316 @@ class BehavioralLab {
         if (isEnabled && testActive) {
             this.createTrailDot(window.innerWidth / 2, window.innerHeight / 2, performance.now());
         }
+    }
+    
+    /**
+     * Handle scroll visualization toggle button click
+     */
+    handleScrollVizToggle() {
+        const isEnabled = this.toggleScrollVisualization();
+        
+        const button = document.getElementById('toggle-scroll-viz');
+        if (!button) return;
+        
+        if (isEnabled) {
+            button.style.backgroundColor = '#3498db';
+            button.style.color = 'white';
+            button.style.border = '1px solid #3498db';
+            button.title = 'Scroll visualization enabled - Click to disable';
+        } else {
+            button.style.backgroundColor = '';
+            button.style.color = '';
+            button.style.border = '';
+            button.title = 'Scroll visualization disabled - Click to enable';
+        }
+    }
+    
+    /**
+     * Open settings modal
+     */
+    openSettings() {
+        const modal = document.getElementById('settings-modal');
+        if (!modal) return;
+        
+        // Load current settings into form
+        document.getElementById('mouse-speed-enabled').checked = this.mouseTrail.speedColoringEnabled;
+        document.getElementById('mouse-normal-threshold').value = this.mouseTrail.speedThresholds.normal;
+        document.getElementById('mouse-fast-threshold').value = this.mouseTrail.speedThresholds.fast;
+        
+        document.getElementById('scroll-viz-enabled').checked = this.scrollVisualization.enabled;
+        document.getElementById('scroll-smooth-threshold').value = this.scrollVisualization.speedThresholds.smooth;
+        document.getElementById('scroll-fast-threshold').value = this.scrollVisualization.speedThresholds.fast;
+        
+        modal.style.display = 'flex';
+    }
+    
+    /**
+     * Close settings modal
+     */
+    closeSettings() {
+        const modal = document.getElementById('settings-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Apply settings from the modal
+     */
+    applySettings() {
+        // Mouse speed settings
+        this.mouseTrail.speedColoringEnabled = document.getElementById('mouse-speed-enabled').checked;
+        this.mouseTrail.speedThresholds.normal = parseInt(document.getElementById('mouse-normal-threshold').value);
+        this.mouseTrail.speedThresholds.fast = parseInt(document.getElementById('mouse-fast-threshold').value);
+        
+        // Scroll speed settings
+        const scrollEnabled = document.getElementById('scroll-viz-enabled').checked;
+        this.scrollVisualization.speedThresholds.smooth = parseInt(document.getElementById('scroll-smooth-threshold').value);
+        this.scrollVisualization.speedThresholds.fast = parseInt(document.getElementById('scroll-fast-threshold').value);
+        
+        // Update scroll visualization state
+        if (scrollEnabled !== this.scrollVisualization.enabled) {
+            this.toggleScrollVisualization(scrollEnabled);
+            this.handleScrollVizToggle();
+        }
+        
+        console.log('✅ Settings applied:', {
+            mouseSpeed: {
+                enabled: this.mouseTrail.speedColoringEnabled,
+                normal: this.mouseTrail.speedThresholds.normal,
+                fast: this.mouseTrail.speedThresholds.fast
+            },
+            scrollSpeed: {
+                enabled: this.scrollVisualization.enabled,
+                smooth: this.scrollVisualization.speedThresholds.smooth,
+                fast: this.scrollVisualization.speedThresholds.fast
+            }
+        });
+        
+        this.closeSettings();
+    }
+    
+    /**
+     * Reset settings to defaults
+     */
+    resetSettings() {
+        // Reset mouse speed thresholds
+        this.mouseTrail.speedColoringEnabled = true;
+        this.mouseTrail.speedThresholds.normal = 800;
+        this.mouseTrail.speedThresholds.fast = 2000;
+        
+        // Reset scroll speed thresholds
+        this.scrollVisualization.enabled = true;
+        this.scrollVisualization.speedThresholds.smooth = 500;
+        this.scrollVisualization.speedThresholds.fast = 2000;
+        
+        // Update form values
+        document.getElementById('mouse-speed-enabled').checked = true;
+        document.getElementById('mouse-normal-threshold').value = 800;
+        document.getElementById('mouse-fast-threshold').value = 2000;
+        
+        document.getElementById('scroll-viz-enabled').checked = true;
+        document.getElementById('scroll-smooth-threshold').value = 500;
+        document.getElementById('scroll-fast-threshold').value = 2000;
+        
+        console.log('🔄 Settings reset to defaults');
+    }
+
+    /**
+     * Scroll Visualization System
+     * Creates a persistent vertical bar showing scroll movements and speeds
+     */
+    
+    /**
+     * Initialize the scroll visualization system
+     */
+    initializeScrollVisualization() {
+        if (!this.scrollVisualization.enabled) return;
+        
+        // Create the main container
+        const container = document.createElement('div');
+        container.id = 'scroll-visualization-container';
+        container.className = 'scroll-visualization-container';
+        container.style.cssText = `
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: ${this.scrollVisualization.barWidth}px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 9996;
+            overflow: hidden;
+        `;
+        
+        document.body.appendChild(container);
+        this.scrollVisualization.container = container;
+        
+        console.log('📊 Scroll visualization initialized');
+    }
+    
+    /**
+     * Track and visualize a scroll event
+     * @param {WheelEvent|Event} event - The scroll/wheel event
+     */
+    trackScrollEvent(event) {
+        if (!this.scrollVisualization.enabled || !this.scrollVisualization.container) return;
+        if (!this.testStarted || !this.dataCollectionActive) return;
+        
+        const now = performance.now();
+        const scrollY = window.scrollY;
+        
+        // Calculate scroll speed (pixels per second)
+        const timeDelta = now - this.scrollVisualization.lastScrollTime;
+        const distanceDelta = scrollY - this.scrollVisualization.lastScrollY;
+        const speed = timeDelta > 0 ? Math.abs(distanceDelta / timeDelta) * 1000 : 0;
+        
+        // Update last scroll state
+        this.scrollVisualization.lastScrollTime = now;
+        this.scrollVisualization.lastScrollY = scrollY;
+        
+        // Only visualize significant scrolls (at least 1px)
+        if (Math.abs(distanceDelta) < 1 && this.scrollVisualization.events.length > 0) {
+            return;
+        }
+        
+        // Determine color based on speed
+        const color = this._getScrollSpeedColor(speed);
+        
+        // Store event data
+        const scrollEvent = {
+            timestamp: now,
+            scrollY: scrollY,
+            delta: distanceDelta,
+            speed: speed,
+            color: color,
+            direction: distanceDelta > 0 ? 'down' : 'up'
+        };
+        
+        this.scrollVisualization.events.push(scrollEvent);
+        
+        // Limit stored events
+        if (this.scrollVisualization.events.length > this.scrollVisualization.maxEvents) {
+            this.scrollVisualization.events.shift();
+        }
+        
+        // Create visual segment
+        this.createScrollSegment(scrollEvent);
+    }
+    
+    /**
+     * Create a visual segment for a scroll event
+     * @param {Object} scrollEvent - The scroll event data
+     * @private
+     */
+    createScrollSegment(scrollEvent) {
+        if (!this.scrollVisualization.container) return;
+        
+        const segment = document.createElement('div');
+        segment.className = 'scroll-visualization-segment';
+        
+        // Calculate position (0-100% of viewport height)
+        const scrollPercentage = Math.min(100, (scrollEvent.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight)) * 100);
+        
+        segment.style.cssText = `
+            position: absolute;
+            right: 0;
+            top: ${scrollPercentage}%;
+            width: 100%;
+            height: ${this.scrollVisualization.segmentHeight}px;
+            background: ${scrollEvent.color};
+            opacity: 0.8;
+            transform: translateY(-50%);
+            pointer-events: none;
+            transition: opacity ${this.scrollVisualization.fadeOutDuration}ms ease-out;
+        `;
+        
+        // Add direction indicator
+        const arrow = document.createElement('div');
+        arrow.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(${scrollEvent.direction === 'down' ? '90deg' : '-90deg'});
+            color: white;
+            font-size: 10px;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        `;
+        arrow.textContent = '▶';
+        segment.appendChild(arrow);
+        
+        this.scrollVisualization.container.appendChild(segment);
+        
+        // Fade out and remove segment
+        if (!this.mouseTrail.persist) { // Respect persist setting
+            setTimeout(() => {
+                segment.style.opacity = '0';
+                setTimeout(() => {
+                    if (segment.parentNode) {
+                        segment.remove();
+                    }
+                }, this.scrollVisualization.fadeOutDuration);
+            }, 500);
+        }
+    }
+    
+    /**
+     * Get color based on scroll speed using configurable thresholds
+     * @param {number} speed - Speed in pixels per second
+     * @returns {string} - Color hex code
+     * @private
+     */
+    _getScrollSpeedColor(speed) {
+        if (!this.scrollVisualization.enabled) {
+            return '#FFD700'; // Default yellow
+        }
+        
+        const { smooth, fast } = this.scrollVisualization.speedThresholds;
+        const colors = this.scrollVisualization.speedColors;
+        
+        if (speed < smooth) {
+            return colors.smooth; // Yellow - smooth human scrolling
+        } else if (speed < fast) {
+            return colors.fast; // Orange - fast human scrolling
+        } else {
+            return colors.automated; // Red - likely automated scrolling
+        }
+    }
+    
+    /**
+     * Clear all scroll visualization segments
+     */
+    clearScrollVisualization() {
+        if (this.scrollVisualization.container) {
+            const segments = this.scrollVisualization.container.querySelectorAll('.scroll-visualization-segment');
+            segments.forEach(segment => segment.remove());
+        }
+        this.scrollVisualization.events = [];
+        console.log('🧹 Cleared scroll visualization');
+    }
+    
+    /**
+     * Toggle scroll visualization on/off
+     * @param {boolean|null} enabled - Force enable/disable, or null to toggle
+     * @returns {boolean} - New enabled state
+     */
+    toggleScrollVisualization(enabled = null) {
+        if (enabled === null) {
+            this.scrollVisualization.enabled = !this.scrollVisualization.enabled;
+        } else {
+            this.scrollVisualization.enabled = enabled;
+        }
+        
+        if (this.scrollVisualization.enabled && !this.scrollVisualization.container) {
+            this.initializeScrollVisualization();
+        } else if (!this.scrollVisualization.enabled && this.scrollVisualization.container) {
+            this.scrollVisualization.container.style.display = 'none';
+        } else if (this.scrollVisualization.enabled && this.scrollVisualization.container) {
+            this.scrollVisualization.container.style.display = 'block';
+        }
+        
+        console.log(`📊 Scroll visualization: ${this.scrollVisualization.enabled ? 'enabled' : 'disabled'}`);
+        return this.scrollVisualization.enabled;
     }
 
     /**

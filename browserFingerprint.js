@@ -7,6 +7,8 @@
 import { AIAgentDetector } from './aiAgentDetector.js';
 import { ContextAnalyzer } from './contextAnalyzer.js';
 import { BehavioralStorageManager } from './behavioralStorage.js';
+import { StringSignatureDetector } from './stringSignatureDetector.js';
+import { isNativeFunction } from './utils/functionUtils.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -350,7 +352,7 @@ class SuspiciousIndicatorDetector {
         try {
             if (navigator.permissions && navigator.permissions.query) {
                 const queryString = navigator.permissions.query.toString();
-                if (!this._isNativeFunction(queryString, 'query')) {
+                if (!isNativeFunction(queryString, 'query')) {
                     this._addIndicator({
                         name: 'permissions_api_override',
                         category: 'API Overrides',
@@ -371,44 +373,7 @@ class SuspiciousIndicatorDetector {
         this._checkAdditionalAPIOverrides();
     }
 
-    /**
-     * Check if a function string represents a native browser function
-     * Accounts for cross-browser differences in native code formatting
-     * @private
-     * @param {string} functionString - The function.toString() result
-     * @param {string} functionName - Expected function name (optional, for validation)
-     * @returns {boolean} True if the function appears to be native
-     */
-    _isNativeFunction(functionString, functionName = null) {
-        if (!functionString || typeof functionString !== 'string') {
-            return false;
-        }
 
-        // Normalize whitespace and remove extra newlines for cross-browser compatibility
-        const normalized = functionString.replace(/\s+/g, ' ').trim();
-
-        // Check for various native code patterns across browsers:
-        // Chrome: "function query() { [native code] }"
-        // Firefox: "function query() {\n    [native code]\n}"
-        // Safari: "function query() { [native code] }"
-        const nativePatterns = [
-            /function\s+\w*\(\)\s*\{\s*\[native code\]\s*\}/i,  // Standard pattern
-            /\[native code\]/i,  // Fallback - just check for native code marker
-            /\{\s*\[native code\]\s*\}/i  // Just the native code block
-        ];
-
-        // Additional validation: if function name provided, ensure it matches
-        if (functionName) {
-            const functionNamePattern = new RegExp(`function\\s+${functionName}\\s*\\(`, 'i');
-            if (!functionNamePattern.test(normalized)) {
-                // Function name doesn't match expected - likely overridden
-                return false;
-            }
-        }
-
-        // Check if any native pattern matches
-        return nativePatterns.some(pattern => pattern.test(normalized));
-    }
 
     /**
      * Check additional API overrides (extensible framework)
@@ -604,6 +569,7 @@ class BrowserFingerprintAnalyzer {
         this.timestamp = Date.now();
         this.suspiciousIndicatorDetector = new SuspiciousIndicatorDetector();
         this.aiAgentDetector = new AIAgentDetector();
+        this.stringSignatureDetector = new StringSignatureDetector();
         this.suspiciousIndicators = [];
     }
 
@@ -661,6 +627,13 @@ class BrowserFingerprintAnalyzer {
             console.warn('⚠️ AI Agent detection failed:', aiAgentResults.error);
         }
 
+        // Run String Signature Automation Detection
+        console.log('🔍 Running String Signature Automation Detection...');
+        const stringSignatureResults = this.stringSignatureDetector.runAllDetections();
+        const stringSignatureMetrics = this.stringSignatureDetector.getFormattedResults();
+        this.metrics = { ...this.metrics, ...stringSignatureMetrics };
+        console.log('🔍 String Signature detection complete:', stringSignatureResults);
+
         // Collect Behavioral Indicators from stored data
         console.log('🎯 Collecting behavioral indicators...');
         this.metrics.behavioralIndicators = this._analyzeBehavioralIndicators();
@@ -675,6 +648,19 @@ class BrowserFingerprintAnalyzer {
             this.suspiciousIndicators = [...this.suspiciousIndicators, ...aiIndicators];
         }
         
+        // Add String Signature indicators to suspicious indicators
+        if (stringSignatureResults.totalDetected > 0) {
+            const stringSignatureIndicators = stringSignatureResults.indicators.map(ind => ({
+                category: 'automation_detection',
+                name: ind.id,
+                description: ind.description,
+                severity: ind.severity,
+                confidence: ind.confidence,
+                details: `String signature anomaly detected: ${ind.name}`
+            }));
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...stringSignatureIndicators];
+        }
+        
         this.suspiciousAnalysis = suspiciousResults; // Full analysis including reasoning
 
         this.analysisComplete = true;
@@ -682,6 +668,9 @@ class BrowserFingerprintAnalyzer {
         console.log('🚨 Suspicious indicators analysis:', suspiciousResults);
         if (aiAgentResults.success) {
             console.log('🤖 AI Agent indicators:', this.aiAgentDetector.getSuspiciousIndicators());
+        }
+        if (stringSignatureResults.totalDetected > 0) {
+            console.log('🔍 String Signature indicators:', stringSignatureResults.indicators);
         }
         return this.metrics;
     }
@@ -1334,7 +1323,7 @@ class BrowserFingerprintAnalyzer {
         try {
             if (navigator.permissions && navigator.permissions.query) {
                 const queryString = navigator.permissions.query.toString();
-                const isNative = this._isNativeFunction(queryString, 'query');
+                const isNative = isNativeFunction(queryString, 'query');
                 result.permissionsQuery = {
                     value: isNative ? '[Native Code]' : queryString,
                     description: 'Permissions API query function signature',
@@ -1684,4 +1673,4 @@ class BrowserFingerprintAnalyzer {
 }
 
 // Export for use in other modules
-export { BrowserFingerprintAnalyzer, SuspiciousIndicatorDetector, AIAgentDetector, ContextAnalyzer };
+export { BrowserFingerprintAnalyzer, SuspiciousIndicatorDetector, AIAgentDetector, ContextAnalyzer, StringSignatureDetector };

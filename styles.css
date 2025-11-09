@@ -339,6 +339,22 @@ button#toggle-mouse-trail[style*="background-color: rgb(255, 107, 53)"]:hover {
     100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Comet-specific alert styling */
+.agent-alert.comet-detected {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%) !important;
+    border-color: #ff0000 !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3) !important;
+}
+
+.agent-alert.comet-detected .agent-icon {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.pulse-animation {
+    animation: pulse 2s ease-in-out !important;
+}
+
 .agent-icon {
     font-size: 1.5rem;
     width: 40px;
@@ -1426,3 +1442,137 @@ select, input, textarea, button {
 #scroll-modal .modal-content {
     z-index: 10001;
 }
+
+/* Scroll Visualization Styles */
+.scroll-visualization-container {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 9996;
+    overflow: hidden;
+}
+
+.scroll-visualization-segment {
+    position: absolute;
+    right: 0;
+    width: 100%;
+    height: 20px;
+    opacity: 0.8;
+    pointer-events: none;
+    transition: opacity 3000ms ease-out, transform 200ms ease-out;
+    will-change: opacity, transform;
+}
+
+/* Scroll Viz Toggle Button Styles */
+button#toggle-scroll-viz {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: 1px solid #3498db;
+    transition: all 0.3s ease;
+}
+
+button#toggle-scroll-viz:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2980b9, #21618c);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+/* Settings Button Styles */
+button#settings-btn {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+    border: 1px solid #95a5a6;
+    transition: all 0.3s ease;
+}
+
+button#settings-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7f8c8d, #616e70);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(149, 165, 166, 0.3);
+}
+
+/* Settings Modal Styles */
+#settings-modal {
+    z-index: 10500;
+}
+
+#settings-modal .modal-content {
+    z-index: 10501;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.settings-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #34495e;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.threshold-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.threshold-input label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+.threshold-input input[type="number"] {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100px;
+}
+
+.threshold-info {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-left: 3px solid #3498db;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* Enhanced Mouse Trail Tooltip Styles */
+.mouse-trail-tooltip .tooltip-speed,
+.mouse-trail-tooltip .tooltip-color {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mouse-trail-tooltip .tooltip-speed {
+    color: #FFD700;
+    font-weight: 600;
+}
+

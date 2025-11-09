@@ -295,10 +295,18 @@ class BehavioralStorageManager {
      */
     dispatchIndicatorUpdate(indicatorName, indicator) {
         try {
+            // Get the most recent detail for real-time analysis
+            const lastDetail = indicator.details && indicator.details.length > 0 
+                ? indicator.details[indicator.details.length - 1] 
+                : null;
+            
             const event = new CustomEvent('behavioralIndicatorUpdate', {
                 detail: {
                     indicatorName,
-                    indicator,
+                    indicator: {
+                        ...indicator,
+                        lastDetail: lastDetail
+                    },
                     timestamp: Date.now()
                 }
             });
