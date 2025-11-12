@@ -24,14 +24,6 @@
                 <button id="export-pdf" aria-label="Export comprehensive PDF report" disabled>📄 Export PDF</button>
                 <button id="fingerprint-analysis" aria-label="View browser fingerprint analysis" onclick="window.open('fingerprint-analysis.html', '_blank')" style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">🔍 Fingerprint</button>
             </div>
-            <!-- Visitor ID Display -->
-            <div class="visitor-info">
-                <div class="visitor-id-widget">
-                    <label>👤 Visitor ID:</label>
-                    <span id="visitor-id-display">Initializing...</span>
-                    <span id="visitor-confidence" class="confidence-badge">-</span>
-                </div>
-            </div>
         </div>
     </header>
 
@@ -572,8 +564,73 @@
     <script type="module" src="behavioralDetector.js"></script>
     <script type="module" src="lab.js"></script>
     <script type="module" src="report.js"></script>
-    <script type="module" src="fingerprintpro.js"></script>
     <script type="module" src="fingerprinted.js"></script>
+    
+    <!-- AI Agent Challenge System -->
+    <script type="module" src="aiAgentChallenge.js"></script>
+    <script type="module" src="challengeManager.js"></script>
+    <script type="module" src="challengeDebugger.js"></script>
+    <script type="module">
+        // Initialize Challenge System Integration
+        import { challengeManager } from './challengeManager.js';
+        import { AIAgentDetector } from './agentDetector.js';
+        
+        console.log('🚀 Challenge System Integration initialized');
+        
+        // Reset challenge state on page load (fresh start for each page visit)
+        challengeManager.reset();
+        console.log('✅ Challenge manager reset on page load - ready for new challenges');
+        
+        // Listen for detection completion events from the lab
+        document.addEventListener('agent-detection-complete', (event) => {
+            console.log('📡 [CHALLENGE] Received agent-detection-complete event', event.detail);
+            
+            if (event.detail && event.detail.results) {
+                challengeManager.processAIAgentDetection(event.detail.results);
+            }
+        });
+        
+        // Listen for behavioral detection events from the lab
+        document.addEventListener('behavioral-analysis-update', (event) => {
+            console.log('📡 [CHALLENGE] Received behavioral-analysis-update event');
+            console.log('   → Indicators:', event.detail?.indicators);
+            
+            if (event.detail && event.detail.indicators) {
+                // Log specific click count for debugging
+                const clickIndicator = event.detail.indicators.clicksWithoutMouseMovement;
+                if (clickIndicator) {
+                    console.log(`   → Clicks without movement: ${clickIndicator.count}/${clickIndicator.threshold}`);
+                }
+                
+                challengeManager.processBehavioralDetection(event.detail);
+            }
+        });
+        
+        // Listen for challenge completion (application can act on this)
+        document.addEventListener('challenge-completed', (event) => {
+            console.log('✅ [CHALLENGE] Challenge completed by agent:', event.detail);
+            
+            // You can add custom handling here, e.g.:
+            // - Update UI to show agent info
+            // - Enable/disable certain features
+            // - Send to analytics
+        });
+        
+        // Listen for challenge dismissal
+        document.addEventListener('challenge-dismissed', (event) => {
+            console.log('❌ [CHALLENGE] Challenge dismissed without completion:', event.detail);
+            
+            // You can add custom handling here, e.g.:
+            // - Show warning message
+            // - Restrict page functionality
+            // - Log the dismissal
+        });
+        
+        // Make challengeManager available globally for debugging
+        window.challengeManager = challengeManager;
+        
+        console.log('💡 Tip: Use ChallengeSystemDebugger.help() in console for testing commands');
+    </script>
     
 </body>
 </html>

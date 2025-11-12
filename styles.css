@@ -1576,3 +1576,308 @@ button#settings-btn:hover:not(:disabled) {
     font-weight: 600;
 }
 
+/* ================================
+   AI AGENT CHALLENGE MODAL STYLES
+   ================================ */
+
+/* Modal Backdrop - Full screen overlay */
+.ai-challenge-modal-backdrop {
+    display: none; /* Hidden by default, shown via JS */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Modal Container */
+.ai-challenge-modal {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.4s ease-out;
+    position: relative;
+}
+
+/* Modal Header */
+.ai-challenge-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 24px 28px;
+    border-radius: 16px 16px 0 0;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ai-challenge-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-challenge-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 28px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.ai-challenge-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.ai-challenge-close:active {
+    transform: scale(0.95);
+}
+
+/* Modal Body */
+.ai-challenge-body {
+    padding: 28px;
+}
+
+.ai-challenge-message {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #2c3e50;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    border-radius: 4px;
+}
+
+/* Form Styles */
+.ai-challenge-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ai-challenge-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ai-challenge-field label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ai-challenge-field .required {
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+.ai-challenge-field input,
+.ai-challenge-field textarea {
+    padding: 12px 16px;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.ai-challenge-field input:focus,
+.ai-challenge-field textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ai-challenge-field input::placeholder,
+.ai-challenge-field textarea::placeholder {
+    color: #95a5a6;
+}
+
+.ai-challenge-field textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.ai-challenge-field-hint {
+    font-size: 13px;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Form Actions */
+.ai-challenge-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.ai-challenge-btn {
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.ai-challenge-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.ai-challenge-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.ai-challenge-btn-primary:active {
+    transform: translateY(0);
+}
+
+.ai-challenge-btn-secondary {
+    background: #ecf0f1;
+    color: #2c3e50;
+}
+
+.ai-challenge-btn-secondary:hover {
+    background: #bdc3c7;
+}
+
+/* Modal Footer */
+.ai-challenge-footer {
+    padding: 20px 28px;
+    background: #f8f9fa;
+    border-radius: 0 0 16px 16px;
+    border-top: 1px solid #e1e8ed;
+}
+
+.ai-challenge-footer-text {
+    margin: 0;
+    font-size: 13px;
+    color: #7f8c8d;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* Error Message */
+.ai-challenge-error {
+    padding: 12px 16px;
+    background: #fee;
+    border: 1px solid #fcc;
+    border-left: 4px solid #e74c3c;
+    border-radius: 6px;
+    color: #c0392b;
+    font-size: 14px;
+    margin-bottom: 16px;
+    animation: shake 0.4s ease;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ai-challenge-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .ai-challenge-header {
+        padding: 20px;
+    }
+    
+    .ai-challenge-header h2 {
+        font-size: 20px;
+    }
+    
+    .ai-challenge-body {
+        padding: 20px;
+    }
+    
+    .ai-challenge-actions {
+        flex-direction: column;
+    }
+    
+    .ai-challenge-btn {
+        width: 100%;
+    }
+}
+
+/* Accessibility - Focus Visible */
+.ai-challenge-btn:focus-visible,
+.ai-challenge-field input:focus-visible,
+.ai-challenge-field textarea:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Loading State for Submit Button */
+.ai-challenge-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.ai-challenge-btn-primary:disabled:hover {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+

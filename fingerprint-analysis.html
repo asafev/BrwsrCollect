@@ -10,71 +10,71 @@
         .fingerprint-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 1.5rem;
             background: #f8f9fa;
             min-height: 100vh;
         }
 
         .fingerprint-header {
             text-align: center;
-            margin-bottom: 2rem;
-            padding: 2rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.5rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
         }
 
         .fingerprint-header h1 {
-            margin: 0 0 0.5rem 0;
-            font-size: 2.5rem;
-            font-weight: 700;
+            margin: 0 0 0.25rem 0;
+            font-size: 1.5rem;
+            font-weight: 600;
         }
 
         .fingerprint-header p {
             margin: 0;
-            font-size: 1.1rem;
-            opacity: 0.9;
+            font-size: 0.9rem;
+            opacity: 0.85;
         }
 
         .summary-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .summary-card {
             background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             text-align: center;
             border: 1px solid #e9ecef;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .summary-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .summary-card h3 {
-            margin: 0 0 0.5rem 0;
+            margin: 0 0 0.4rem 0;
             color: #2c3e50;
-            font-size: 1rem;
+            font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .summary-card .value {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
         }
 
         .summary-card .description {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #6c757d;
         }
 
@@ -84,18 +84,18 @@
 
         /* Suspicious Indicators Styles */
         .suspicious-indicators-section {
-            margin: 2rem 0;
+            margin: 1.5rem 0;
             background: white;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             border: 1px solid #e9ecef;
         }
 
         .suspicious-indicators-header {
             background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             text-align: center;
         }
 
@@ -104,20 +104,22 @@
         }
 
         .suspicious-indicators-header h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1.5rem;
+            margin: 0 0 0.3rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .suspicious-indicators-header p {
             margin: 0;
             opacity: 0.9;
+            font-size: 0.85rem;
         }
 
         .indicators-summary {
             display: flex;
             justify-content: center;
-            gap: 2rem;
-            margin-top: 1rem;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
         }
 
         .summary-stat {
@@ -125,29 +127,29 @@
         }
 
         .summary-stat .number {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 700;
             display: block;
         }
 
         .summary-stat .label {
-            font-size: 0.9rem;
-            opacity: 0.8;
+            font-size: 0.8rem;
+            opacity: 0.85;
         }
 
         .indicators-list {
-            padding: 1.5rem;
+            padding: 1rem;
         }
 
         .indicator-item {
             display: flex;
             align-items: flex-start;
             gap: 1rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
             background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #dc3545;
+            border-radius: 6px;
+            border-left: 3px solid #dc3545;
         }
 
         .indicator-item.risk-medium {
@@ -242,18 +244,18 @@
 
         /* Behavioral Indicators Styles */
         .behavioral-indicators-section {
-            margin: 2rem 0;
+            margin: 1.5rem 0;
             background: white;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             border: 1px solid #e9ecef;
         }
 
         .behavioral-indicators-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             text-align: center;
         }
 
@@ -262,28 +264,30 @@
         }
 
         .behavioral-indicators-header h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1.5rem;
+            margin: 0 0 0.3rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .behavioral-indicators-header p {
             margin: 0;
             opacity: 0.9;
+            font-size: 0.85rem;
         }
 
         .behavioral-list {
-            padding: 1.5rem;
+            padding: 1rem;
         }
 
         .behavioral-item {
             display: flex;
             align-items: flex-start;
             gap: 1rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
             background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
         }
 
         .behavioral-item.detected {
@@ -341,26 +345,27 @@
         /* Metrics Table Styles */
         .metrics-table-container {
             background: white;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             border: 1px solid #e9ecef;
-            margin-top: 2rem;
+            margin-top: 1.5rem;
         }
 
         .metrics-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .metrics-table th {
             background: linear-gradient(135deg, #6f42c1, #8b5cf6);
             color: white;
-            padding: 1rem;
+            padding: 0.75rem;
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
         }
 
         .metrics-table th:first-child { width: 60px; }
@@ -372,16 +377,16 @@
 
         .section-header {
             background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-left: 6px solid;
+            border-left: 4px solid;
             font-weight: 700;
             color: #2c3e50;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
 
         .section-header td {
-            padding: 1rem !important;
+            padding: 0.75rem !important;
             text-align: center;
             border-bottom: 2px solid #dee2e6 !important;
         }
@@ -400,7 +405,7 @@
         .section-aiAgentDetection { border-left-color: #ff6b6b; }
 
         .metrics-table td {
-            padding: 0.75rem 1rem;
+            padding: 0.6rem 0.75rem;
             border-bottom: 1px solid #f1f3f4;
             vertical-align: top;
         }
@@ -424,10 +429,10 @@
         .metric-value {
             font-family: 'Monaco', 'Consolas', monospace;
             background: #f8f9fa;
-            padding: 0.4rem 0.6rem;
+            padding: 0.3rem 0.5rem;
             border-radius: 4px;
             border: 1px solid #e9ecef;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #495057;
             word-break: break-all;
             max-width: 140px;
@@ -437,20 +442,20 @@
 
         .metric-description {
             color: #6c757d;
-            font-size: 0.85rem;
-            line-height: 1.4;
+            font-size: 0.8rem;
+            line-height: 1.3;
         }
 
         .metric-code {
             font-family: 'Monaco', 'Consolas', monospace;
             background: #f1f3f4;
-            padding: 0.4rem 0.6rem;
+            padding: 0.3rem 0.5rem;
             border-radius: 4px;
             border: 1px solid #dee2e6;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #495057;
             word-break: break-all;
-            line-height: 1.3;
+            line-height: 1.2;
         }
 
         .risk-badge {
@@ -522,45 +527,47 @@
 
         .back-button {
             position: fixed;
-            top: 2rem;
-            left: 2rem;
-            padding: 1rem 1.5rem;
+            top: 1.5rem;
+            left: 1.5rem;
+            padding: 0.75rem 1.25rem;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+            transition: all 0.2s ease;
             z-index: 1000;
         }
 
         .back-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
         }
 
         .export-controls {
             text-align: center;
-            margin: 2rem 0;
+            margin: 1.5rem 0 1rem 0;
         }
 
         .export-btn {
-            padding: 1rem 2rem;
+            padding: 0.75rem 1.5rem;
             margin: 0 0.5rem;
             background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
 
         .export-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
         }
 
         /* Responsive design */
@@ -766,30 +773,12 @@
             document.getElementById('suspicion-score').textContent = `${Math.round(summary.suspicionScore * 100)}%`;
             
             if (!summary.hasSuspiciousActivity) {
-                // No suspicious indicators to display (filtered out or none found)
-                header.className = 'suspicious-indicators-header no-indicators';
-                title.innerHTML = '✅ No Significant Suspicious Patterns';
-                subtitle.textContent = 'Browser fingerprint appears clean or indicators below significance threshold';
-                
-                let detailMessage = summary.reasoning;
-                if (summary.totalDetectedIndicators > 0 && summary.totalIndicators === 0) {
-                    detailMessage += ` (${summary.totalDetectedIndicators} weak indicator(s) detected but filtered)`;
-                }
-                
-                indicatorsList.innerHTML = `
-                    <div class="no-indicators-message">
-                        <div class="icon">🛡️</div>
-                        <h4>Clean Browser Environment</h4>
-                        <p>${detailMessage}</p>
-                        ${summary.totalDetectedIndicators > 0 ? 
-                            `<p style="font-size: 0.9rem; color: #6c757d; margin-top: 1rem;">
-                                <strong>Technical note:</strong> Some minor anomalies were detected but fall below the significance threshold 
-                                for indicating automation or sandbox environments.
-                            </p>` : ''
-                        }
-                    </div>
-                `;
+                // Hide the entire section when no suspicious indicators
+                section.style.display = 'none';
             } else {
+                // Show section when suspicious indicators found
+                section.style.display = 'block';
+                
                 // Suspicious indicators found and above threshold
                 header.className = 'suspicious-indicators-header';
                 title.innerHTML = '🚨 Suspicious Browser Patterns Detected';
@@ -801,7 +790,7 @@
                 // Add reasoning header if available
                 if (summary.reasoning) {
                     const reasoningDiv = document.createElement('div');
-                    reasoningDiv.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; margin-bottom: 1rem; border-radius: 6px;';
+                    reasoningDiv.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 6px;';
                     reasoningDiv.innerHTML = `
                         <strong>Detection Reasoning:</strong> ${summary.reasoning}
                         ${summary.totalDetectedIndicators > summary.totalIndicators ? 
@@ -883,25 +872,8 @@
             const behavioralList = document.getElementById('behavioral-list');
             
             if (!behavioralData || behavioralData.error) {
-                // No behavioral data or error
-                header.className = 'behavioral-indicators-header no-indicators';
-                title.innerHTML = '🎯 Behavioral Analysis';
-                subtitle.textContent = 'No behavioral data available or error loading data';
-                
-                document.getElementById('behavioral-detected').textContent = '0';
-                document.getElementById('behavioral-confidence').textContent = '0%';
-                document.getElementById('behavioral-risk').textContent = 'None';
-                
-                behavioralList.innerHTML = `
-                    <div class="no-indicators-message">
-                        <div class="icon">📊</div>
-                        <h4>No Behavioral Data</h4>
-                        <p>${behavioralData?.error?.description || 'Behavioral analysis requires an active test session from the main lab page.'}</p>
-                        <p style="font-size: 0.9rem; color: #6c757d; margin-top: 1rem;">
-                            To collect behavioral data, please run a test session from the main AI-Agent Behavioral Lab page.
-                        </p>
-                    </div>
-                `;
+                // Hide section if no behavioral data available
+                section.style.display = 'none';
                 return;
             }
             
@@ -918,6 +890,15 @@
             document.getElementById('behavioral-confidence').textContent = `${Math.round(maxConfidence * 100)}%`;
             document.getElementById('behavioral-risk').textContent = riskLevel;
             
+            // Hide section if no behavioral anomalies detected
+            if (detected === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            // Show section since we have detections
+            section.style.display = 'block';
+            
             // Style header based on risk level
             if (riskLevel === 'HIGH' || riskLevel === 'MEDIUM') {
                 header.className = 'behavioral-indicators-header';
@@ -927,10 +908,6 @@
                 header.className = 'behavioral-indicators-header';
                 title.innerHTML = '⚠️ Behavioral Patterns Detected';
                 subtitle.textContent = 'Some automated behavior patterns identified';
-            } else {
-                header.className = 'behavioral-indicators-header no-indicators';
-                title.innerHTML = '✅ Natural Behavior Patterns';
-                subtitle.textContent = 'User interactions appear consistent with human behavior';
             }
             
             // Clear and populate behavioral list
@@ -942,14 +919,14 @@
                 sessionInfo.className = 'behavioral-session-info';
                 sessionInfo.style.cssText = `
                     background: #e7f3ff;
-                    padding: 1rem;
-                    border-radius: 8px;
-                    margin-bottom: 1rem;
-                    border-left: 4px solid #0066cc;
+                    padding: 0.75rem;
+                    border-radius: 6px;
+                    margin-bottom: 0.75rem;
+                    border-left: 3px solid #0066cc;
                 `;
                 sessionInfo.innerHTML = `
-                    <h4 style="margin: 0 0 0.5rem 0; color: #0066cc;">📊 Session Information</h4>
-                    <p style="margin: 0; color: #495057;">
+                    <h4 style="margin: 0 0 0.35rem 0; color: #0066cc; font-size: 0.95rem;">📊 Session Information</h4>
+                    <p style="margin: 0; color: #495057; font-size: 0.85rem;">
                         Session Duration: ${behavioralData.sessionDuration.value}s | 
                         Total Events: ${behavioralData.totalEvents?.value || 0} | 
                         Analysis Summary: ${behavioralData.summary?.value || 'No summary available'}
@@ -958,7 +935,7 @@
                 behavioralList.appendChild(sessionInfo);
             }
             
-            // Add individual behavioral indicators
+            // Add individual behavioral indicators - ONLY SHOW DETECTED ONES
             const indicatorKeys = [
                 'centralButtonClicks',
                 'clicksWithoutMouseMovement', 
@@ -971,10 +948,13 @@
                 const indicator = behavioralData[key];
                 if (!indicator) return;
                 
-                const item = document.createElement('div');
-                item.className = `behavioral-item ${indicator.value ? 'detected' : ''}`;
+                // ONLY SHOW IF DETECTED (value === true)
+                if (!indicator.value) return;
                 
-                const icon = indicator.value ? '🚨' : '✅';
+                const item = document.createElement('div');
+                item.className = `behavioral-item detected`;
+                
+                const icon = '🚨';
                 const confidenceClass = indicator.confidence > 0.7 ? 'high' : '';
                 
                 item.innerHTML = `
@@ -988,15 +968,15 @@
                             <span class="behavioral-confidence ${confidenceClass}">
                                 Confidence: ${Math.round(indicator.confidence * 100)}%
                             </span>
-                            ${indicator.value ? '<span class="behavioral-detail" style="background: #f8d7da; color: #721c24;">DETECTED</span>' : ''}
+                            <span class="behavioral-detail" style="background: #f8d7da; color: #721c24; font-weight: 600;">DETECTED</span>
                         </div>
                         ${indicator.details && indicator.details.length > 0 ? `
                             <details style="margin-top: 0.5rem;">
-                                <summary style="cursor: pointer; color: #667eea;">Recent Examples (${indicator.details.length})</summary>
-                                <div style="margin-top: 0.5rem; font-size: 0.8rem;">
-                                    ${indicator.details.map(detail => `
+                                <summary style="cursor: pointer; color: #667eea; font-size: 0.85rem;">Recent Examples (${indicator.details.length})</summary>
+                                <div style="margin-top: 0.5rem; font-size: 0.75rem;">
+                                    ${indicator.details.slice(0, 3).map(detail => `
                                         <div style="background: #f8f9fa; padding: 0.25rem 0.5rem; margin: 0.25rem 0; border-radius: 4px;">
-                                            ${JSON.stringify(detail, null, 2).substring(0, 200)}...
+                                            ${JSON.stringify(detail, null, 2).substring(0, 150)}...
                                         </div>
                                     `).join('')}
                                 </div>
@@ -1007,18 +987,6 @@
                 
                 behavioralList.appendChild(item);
             });
-            
-            if (behavioralList.children.length === 0 || 
-                (behavioralList.children.length === 1 && behavioralList.querySelector('.behavioral-session-info'))) {
-                const noIndicators = document.createElement('div');
-                noIndicators.className = 'no-indicators-message';
-                noIndicators.innerHTML = `
-                    <div class="icon">🎯</div>
-                    <h4>No Behavioral Indicators Detected</h4>
-                    <p>All interaction patterns appear normal and consistent with human behavior.</p>
-                `;
-                behavioralList.appendChild(noIndicators);
-            }
         }
         
         // Helper function to format behavioral indicator names

@@ -4,7 +4,6 @@
  */
 
 import { fingerprint } from './fingerprinted.js';
-import { fingerprintPro } from './fingerprintpro.js';
 import { initCdpSignals } from './detectors/cdpSignals.js';
 import { AIAgentDetector } from './agentDetector.js';
 import { BehavioralStorageManager } from './behavioralStorage.js';
@@ -206,17 +205,6 @@ class BehavioralLab {
         
         // Initialize scroll visualization (synchronous)
         this.initializeScrollVisualization();
-        
-        // Initialize FingerprintJS Pro (async - can happen in background)
-        fingerprintPro.initialize().then(() => {
-            console.log('✅ FingerprintJS Pro initialized');
-            // Update UI to reflect new fingerprint status
-            this.updateVisitorIdDisplay();
-        }).catch(err => {
-            console.warn('⚠️ FingerprintJS Pro initialization failed:', err);
-            // Update UI to show fallback status
-            this.updateVisitorIdDisplay();
-        });
         
         // Collect browser fingerprint (async - can happen in background)
         fingerprint.collect().then(fp => {
@@ -599,6 +587,18 @@ class BehavioralLab {
                 }
             }
             
+            // Dispatch behavioral analysis event for challenge manager
+            const behavioralEvent = new CustomEvent('behavioral-analysis-update', {
+                detail: {
+                    indicators: indicators,
+                    summary: summary,
+                    timestamp: Date.now(),
+                    updateData: updateData
+                },
+                bubbles: true
+            });
+            document.dispatchEvent(behavioralEvent);
+            
             // Log update if it's from a specific event
             if (updateData) {
                 console.log(`🎯 Behavioral indicator updated: ${updateData.indicatorName}`, updateData.indicator);
@@ -761,6 +761,17 @@ class BehavioralLab {
             
             // Update UI with results
             this.updateAgentDetectionUI('complete', results);
+            
+            // Dispatch event for challenge manager to process
+            const detectionEvent = new CustomEvent('agent-detection-complete', {
+                detail: {
+                    results: results,
+                    timestamp: Date.now(),
+                    summary: this.aiAgentDetector.getSummary()
+                },
+                bubbles: true
+            });
+            document.dispatchEvent(detectionEvent);
             
             console.log('✅ Agent detection complete:', results);
         } catch (error) {
@@ -1644,43 +1655,8 @@ class BehavioralLab {
             stopButton.style.display = 'none';
         }
         
-        // Update visitor ID display
-        this.updateVisitorIdDisplay();
-        
         // Update mouse trail button state
         this.updateMouseTrailButtonState();
-    }
-
-    /**
-     * Update visitor ID display widget
-     */
-    updateVisitorIdDisplay() {
-        const visitorIdElement = document.getElementById('visitor-id-display');
-        const confidenceElement = document.getElementById('visitor-confidence');
-        
-        if (!visitorIdElement || !confidenceElement) return;
-        
-        // Safely get display info - handles uninitialized state
-        const displayInfo = fingerprintPro.getDisplayInfo();
-        
-        if (displayInfo.status === 'Active') {
-            visitorIdElement.textContent = displayInfo.visitorId;
-            visitorIdElement.className = 'visitor-id-active';
-            confidenceElement.textContent = displayInfo.confidence;
-            confidenceElement.className = 'confidence-badge confidence-active';
-        } else if (displayInfo.status === 'Fallback') {
-            visitorIdElement.textContent = displayInfo.visitorId;
-            visitorIdElement.className = 'visitor-id-active';
-            visitorIdElement.title = 'Using synthetic fingerprint (external service blocked)';
-            confidenceElement.textContent = `${displayInfo.confidence} (Fallback)`;
-            confidenceElement.className = 'confidence-badge confidence-fallback';
-        } else {
-            // Status is 'Not Initialized' or other pending state
-            visitorIdElement.textContent = displayInfo.visitorId || 'Initializing...';
-            visitorIdElement.className = 'visitor-id-pending';
-            confidenceElement.textContent = displayInfo.confidence || 'Pending';
-            confidenceElement.className = 'confidence-badge confidence-pending';
-        }
     }
 
     /**
@@ -3684,6 +3660,12 @@ class BehavioralLab {
      */
     reset() {
         console.log('🔄 Resetting lab');
+        
+        // Reset challenge manager state
+        if (window.challengeManager) {
+            window.challengeManager.reset();
+            console.log('✅ Challenge manager reset');
+        }
         
         // Reset all state
         this.testStarted = false;

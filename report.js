@@ -1466,81 +1466,45 @@ export class ReportGenerator {
      * Export complete data as comprehensive JSON
      */
     exportJSON() {
-        // Import FingerprintJS Pro for visitor data
-        import('./fingerprintpro.js').then(({ fingerprintPro }) => {
-            const exportData = {
-                // Test metadata
-                meta: {
-                    ...this.rawData.meta,
-                    exportedAt: new Date().toISOString(),
-                    version: '2.0',
-                    format: 'AI-Agent Behavioral Lab Report'
-                },
-                
-                // Visitor identification (FingerprintJS Pro)
-                visitor: {
-                    id: fingerprintPro.getVisitorId(),
-                    confidence: fingerprintPro.getConfidence(),
-                    proData: fingerprintPro.getProData()
-                },
-                
-                // Browser fingerprint (local + Pro combined)
-                fingerprint: this.rawData.fingerprint,
-                
-                // Raw telemetry events
-                events: this.rawData.events,
-                
-                // Enhanced scroll metrics if available
-                scrollMetrics: this.rawData.scrollMetrics || null,
-                
-                // CDP detection metrics
-                cdpMetrics: this.rawData.cdpMetrics || null,
-                
-                // Selector usage patterns
-                selectorUsage: this.rawData.selectorUsage,
-                
-                // Derived behavioral metrics
-                derived: this.derivedMetrics,
-                
-                // Summary metrics for quick analysis
-                summary: this.generateSummaryMetrics(),
-                
-                // Quality indicators
-                quality: this.generateQualityIndicators()
-            };
+        const exportData = {
+            // Test metadata
+            meta: {
+                ...this.rawData.meta,
+                exportedAt: new Date().toISOString(),
+                version: '2.0',
+                format: 'AI-Agent Behavioral Lab Report'
+            },
+            
+            // Browser fingerprint
+            fingerprint: this.rawData.fingerprint,
+            
+            // Raw telemetry events
+            events: this.rawData.events,
+            
+            // Enhanced scroll metrics if available
+            scrollMetrics: this.rawData.scrollMetrics || null,
+            
+            // CDP detection metrics
+            cdpMetrics: this.rawData.cdpMetrics || null,
+            
+            // Selector usage patterns
+            selectorUsage: this.rawData.selectorUsage,
+            
+            // Derived behavioral metrics
+            derived: this.derivedMetrics,
+            
+            // Summary metrics for quick analysis
+            summary: this.generateSummaryMetrics(),
+            
+            // Quality indicators
+            quality: this.generateQualityIndicators()
+        };
 
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-                type: 'application/json' 
-            });
-            
-            this.downloadFile(blob, `behavioral-lab-report-${fingerprintPro.getVisitorId() || 'unknown'}-${Date.now()}.json`);
-        }).catch(error => {
-            console.warn('Pro data unavailable for export:', error);
-            
-            // Fallback export without Pro data
-            const exportData = {
-                meta: {
-                    ...this.rawData.meta,
-                    exportedAt: new Date().toISOString(),
-                    version: '2.0',
-                    format: 'AI-Agent Behavioral Lab Report'
-                },
-                visitor: { id: 'unavailable', confidence: null, proData: null },
-                fingerprint: this.rawData.fingerprint,
-                events: this.rawData.events,
-                scrollMetrics: this.rawData.scrollMetrics || null,
-                selectorUsage: this.rawData.selectorUsage,
-                derived: this.derivedMetrics,
-                summary: this.generateSummaryMetrics(),
-                quality: this.generateQualityIndicators()
-            };
-
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-                type: 'application/json' 
-            });
-            
-            this.downloadFile(blob, `behavioral-lab-report-${Date.now()}.json`);
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+            type: 'application/json' 
         });
+        
+        this.downloadFile(blob, `behavioral-lab-report-${Date.now()}.json`);
     }
 
     /**
