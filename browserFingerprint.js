@@ -10,6 +10,11 @@ import { BehavioralStorageManager } from './behavioralStorage.js';
 import { StringSignatureDetector } from './stringSignatureDetector.js';
 import { isNativeFunction } from './utils/functionUtils.js';
 
+// New modular detectors for extended fingerprinting
+import { NetworkCapabilitiesDetector } from './detectors/networkCapabilities.js';
+import { BatteryStorageDetector } from './detectors/batteryStorage.js';
+import { ActiveMeasurementsDetector } from './detectors/activeMeasurements.js';
+
 /**
  * Suspicious Indicator Detection System
  * Detects patterns that suggest sandbox environments or AI agents
@@ -563,7 +568,7 @@ class SuspiciousIndicatorDetector {
 }
 
 class BrowserFingerprintAnalyzer {
-    constructor() {
+    constructor(options = {}) {
         this.metrics = {};
         this.analysisComplete = false;
         this.timestamp = Date.now();
@@ -571,6 +576,19 @@ class BrowserFingerprintAnalyzer {
         this.aiAgentDetector = new AIAgentDetector();
         this.stringSignatureDetector = new StringSignatureDetector();
         this.suspiciousIndicators = [];
+        
+        // New modular detectors
+        this.networkCapabilitiesDetector = new NetworkCapabilitiesDetector();
+        this.batteryStorageDetector = new BatteryStorageDetector();
+        this.activeMeasurementsDetector = new ActiveMeasurementsDetector(options.activeMeasurements || {});
+        
+        // Configuration options
+        this.options = {
+            // Enable/disable active measurements (may take time and make network requests)
+            enableActiveMeasurements: options.enableActiveMeasurements ?? false,
+            // Custom URLs for active measurements
+            activeMeasurements: options.activeMeasurements || {}
+        };
     }
 
     /**
@@ -613,6 +631,48 @@ class BrowserFingerprintAnalyzer {
             // API Override Detection
             apiOverrides: this._analyzeAPIOverrides()
         };
+
+        // Run Network Capabilities detection (passive, from Connection API)
+        console.log('📡 Analyzing network capabilities...');
+        try {
+            const networkMetrics = this.networkCapabilitiesDetector.analyze();
+            this.metrics.networkCapabilities = networkMetrics;
+            console.log('📡 Network capabilities analysis complete:', networkMetrics);
+        } catch (error) {
+            console.warn('⚠️ Network capabilities detection failed:', error.message);
+            this.metrics.networkCapabilities = { error: { value: error.message, description: 'Network detection error' } };
+        }
+
+        // Run Battery and Storage detection (async APIs)
+        console.log('🔋 Analyzing battery and storage...');
+        try {
+            const batteryStorageMetrics = await this.batteryStorageDetector.analyze();
+            this.metrics.batteryStorage = batteryStorageMetrics;
+            console.log('🔋 Battery and storage analysis complete:', batteryStorageMetrics);
+        } catch (error) {
+            console.warn('⚠️ Battery/storage detection failed:', error.message);
+            this.metrics.batteryStorage = { error: { value: error.message, description: 'Battery/storage detection error' } };
+        }
+
+        // Run Active Network Measurements (optional, makes network requests)
+        if (this.options.enableActiveMeasurements) {
+            console.log('⚡ Running active network measurements...');
+            try {
+                const activeMeasurements = await this.activeMeasurementsDetector.analyze(this.options.activeMeasurements);
+                this.metrics.activeMeasurements = activeMeasurements;
+                
+                // Compare with Connection API if available
+                if (this.metrics.networkCapabilities && navigator.connection) {
+                    const comparison = this.activeMeasurementsDetector.compareWithConnectionAPI(navigator.connection);
+                    this.metrics.networkComparison = comparison;
+                }
+                
+                console.log('⚡ Active network measurements complete:', activeMeasurements);
+            } catch (error) {
+                console.warn('⚠️ Active measurements failed:', error.message);
+                this.metrics.activeMeasurements = { error: { value: error.message, description: 'Active measurement error' } };
+            }
+        }
 
         // Run AI Agent Detection
         console.log('🤖 Running AI Agent detection...');
@@ -661,6 +721,9 @@ class BrowserFingerprintAnalyzer {
             this.suspiciousIndicators = [...this.suspiciousIndicators, ...stringSignatureIndicators];
         }
         
+        // Add network/battery/storage indicators
+        this._collectModularDetectorIndicators();
+        
         this.suspiciousAnalysis = suspiciousResults; // Full analysis including reasoning
 
         this.analysisComplete = true;
@@ -673,6 +736,39 @@ class BrowserFingerprintAnalyzer {
             console.log('🔍 String Signature indicators:', stringSignatureResults.indicators);
         }
         return this.metrics;
+    }
+
+    /**
+     * Collect suspicious indicators from modular detectors
+     * @private
+     */
+    _collectModularDetectorIndicators() {
+        // Network capabilities indicators
+        try {
+            const networkIndicators = this.networkCapabilitiesDetector.getSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...networkIndicators];
+        } catch (e) {
+            // Ignore if not available
+        }
+
+        // Battery/storage indicators
+        try {
+            const batteryStorageIndicators = this.batteryStorageDetector.getSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...batteryStorageIndicators];
+        } catch (e) {
+            // Ignore if not available
+        }
+
+        // Active measurements indicators (if enabled and available)
+        if (this.options.enableActiveMeasurements) {
+            try {
+                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                const activeMeasurementIndicators = this.activeMeasurementsDetector.getSuspiciousIndicators(connection);
+                this.suspiciousIndicators = [...this.suspiciousIndicators, ...activeMeasurementIndicators];
+            } catch (e) {
+                // Ignore if not available
+            }
+        }
     }
 
     /**
@@ -709,8 +805,12 @@ class BrowserFingerprintAnalyzer {
             },
             maxTouchPoints: {
                 value: nav.maxTouchPoints,
-                description: 'Maximum touch contact points',
+                description: 'Maximum touch contact points', // j19
                 risk: nav.maxTouchPoints === 0 ? 'MEDIUM' : 'LOW'
+            },
+            msMaxTouchPoints: {
+                value: nav.msMaxTouchPoints || 'Not available',
+                description: 'Microsoft-specific max touch points' // j20
             },
             hardwareConcurrency: {
                 value: nav.hardwareConcurrency,
@@ -774,11 +874,48 @@ class BrowserFingerprintAnalyzer {
             },
             doNotTrack: {
                 value: nav.doNotTrack,
-                description: 'Do Not Track preference'
+                description: 'Do Not Track preference' // j21
             },
             msDoNotTrack: {
                 value: nav.msDoNotTrack || 'Not available',
-                description: 'Microsoft Do Not Track'
+                description: 'Microsoft Do Not Track' // j22
+            },
+            // j247, j248 - Plugins string representation
+            pluginsString1: {
+                value: nav.plugins && nav.plugins.length > 0 ? nav.plugins[0].name : 'Not available',
+                description: 'First plugin name string' // j247
+            },
+            pluginsString2: {
+                value: nav.plugins && nav.plugins.length > 1 ? nav.plugins[1].name : 'Not available',
+                description: 'Second plugin name string' // j248
+            },
+            // j257, j258, j259 - Vendor-specific getUserMedia
+            hasWebkitGetUserMedia: {
+                value: !!nav.webkitGetUserMedia,
+                description: 'Webkit getUserMedia availability' // j257
+            },
+            hasMozGetUserMedia: {
+                value: !!nav.mozGetUserMedia,
+                description: 'Mozilla getUserMedia availability' // j258
+            },
+            hasMsGetUserMedia: {
+                value: !!nav.msGetUserMedia,
+                description: 'Microsoft getUserMedia availability' // j259
+            },
+            // j266 - vibrate API
+            hasVibrate: {
+                value: !!nav.vibrate,
+                description: 'Vibrate API availability' // j266
+            },
+            // j267 - getBattery API
+            hasGetBattery: {
+                value: !!nav.getBattery,
+                description: 'Battery Status API availability' // j267
+            },
+            // j276 - connection API
+            hasConnection: {
+                value: !!nav.connection,
+                description: 'Network Information API availability' // j276
             }
         };
     }
@@ -876,6 +1013,53 @@ class BrowserFingerprintAnalyzer {
             self: {
                 value: typeof window.self !== 'undefined',
                 description: 'Window self reference availability'
+            },
+            historyLength: {
+                value: window.history.length,
+                description: 'Number of entries in session history', // j16
+                risk: window.history.length === 1 ? 'MEDIUM' : 'LOW'
+            },
+            // j241, j242, j243 - Firefox-specific properties
+            mozPaintCount: {
+                value: window.mozPaintCount || 'Not available',
+                description: 'Firefox paint count' // j241
+            },
+            mozInnerScreenX: {
+                value: window.mozInnerScreenX || 'Not available',
+                description: 'Firefox inner screen X position' // j242
+            },
+            hasSidebar: {
+                value: typeof window.sidebar !== 'undefined',
+                description: 'Firefox sidebar API availability' // j243
+            },
+            // j262 - scrollTo availability
+            hasScrollTo: {
+                value: typeof window.scrollTo === 'function',
+                description: 'scrollTo function availability' // j262
+            },
+            // j268, j269 - Chrome app properties
+            hasChromeApp: {
+                value: !!(window.chrome && window.chrome.app),
+                description: 'Chrome app API availability' // j268
+            },
+            hasChromeCsi: {
+                value: !!(window.chrome && window.chrome.csi),
+                description: 'Chrome CSI API availability' // j269
+            },
+            // j270 - installTrigger (Firefox)
+            hasInstallTrigger: {
+                value: typeof window.InstallTrigger !== 'undefined',
+                description: 'Firefox InstallTrigger availability' // j270
+            },
+            // j271 - external property
+            hasExternal: {
+                value: typeof window.external !== 'undefined',
+                description: 'Window external object availability' // j271
+            },
+            // j272 - callPhantom (phantom detection)
+            hasCallPhantom: {
+                value: typeof window.callPhantom !== 'undefined',
+                description: 'PhantomJS callPhantom availability' // j272
             }
         };
     }
@@ -1070,6 +1254,53 @@ class BrowserFingerprintAnalyzer {
             mapIterator: {
                 value: typeof Map.prototype[Symbol.iterator] === 'function',
                 description: 'Map iterator support'
+            },
+            // j249 - XMLHttpRequest toString
+            xhrString: {
+                value: typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest.toString().substring(0, 50) : 'Not available',
+                description: 'XMLHttpRequest toString representation' // j249
+            },
+            // j277 - Int8Array sanity test (length of 5)
+            int8ArrayLen5: {
+                value: (() => {
+                    try {
+                        const arr = new Int8Array(5);
+                        return arr.length;
+                    } catch (e) {
+                        return 'Error';
+                    }
+                })(),
+                description: 'Int8Array length 5 sanity check' // j277
+            },
+            // j278, j279 - Uint8ClampedArray
+            hasUint8ClampedArray: {
+                value: typeof Uint8ClampedArray !== 'undefined',
+                description: 'Uint8ClampedArray availability' // j278
+            },
+            // j280 - SharedArrayBuffer
+            hasSharedArrayBuffer: {
+                value: typeof SharedArrayBuffer !== 'undefined',
+                description: 'SharedArrayBuffer availability' // j280
+            },
+            // j281 - Atomics API
+            hasAtomics: {
+                value: typeof Atomics !== 'undefined',
+                description: 'Atomics API availability' // j281
+            },
+            // j282 - DataView
+            hasDataView: {
+                value: typeof DataView !== 'undefined',
+                description: 'DataView availability' // j282
+            },
+            // j283 - eval function
+            hasEval: {
+                value: typeof eval === 'function',
+                description: 'eval function availability' // j283
+            },
+            // j284 - JSON.stringify
+            hasJsonStringify: {
+                value: typeof JSON.stringify === 'function',
+                description: 'JSON.stringify availability' // j284
             }
         };
     }
@@ -1208,6 +1439,78 @@ class BrowserFingerprintAnalyzer {
             pluginArray: {
                 value: typeof window.PluginArray !== 'undefined',
                 description: 'PluginArray availability'
+            },
+            // j250 - requestAnimationFrame
+            hasRequestAnimationFrame: {
+                value: typeof window.requestAnimationFrame === 'function',
+                description: 'requestAnimationFrame availability' // j250
+            },
+            // j251, j252, j253, j254 - Vendor-prefixed requestAnimationFrame
+            hasWebkitRequestAnimationFrame: {
+                value: typeof window.webkitRequestAnimationFrame === 'function',
+                description: 'Webkit requestAnimationFrame availability' // j251
+            },
+            hasMozRequestAnimationFrame: {
+                value: typeof window.mozRequestAnimationFrame === 'function',
+                description: 'Mozilla requestAnimationFrame availability' // j252
+            },
+            hasORequestAnimationFrame: {
+                value: typeof window.oRequestAnimationFrame === 'function',
+                description: 'Opera requestAnimationFrame availability' // j253
+            },
+            hasMsRequestAnimationFrame: {
+                value: typeof window.msRequestAnimationFrame === 'function',
+                description: 'Microsoft requestAnimationFrame availability' // j254
+            },
+            // j255 - postMessage
+            hasPostMessage: {
+                value: typeof window.postMessage === 'function',
+                description: 'postMessage availability' // j255
+            },
+            // j256 - MessageChannel
+            hasMessageChannel: {
+                value: typeof window.MessageChannel !== 'undefined',
+                description: 'MessageChannel availability' // j256
+            },
+            // j260 - AudioContext
+            hasAudioContext: {
+                value: typeof window.AudioContext !== 'undefined' || typeof window.webkitAudioContext !== 'undefined',
+                description: 'AudioContext availability' // j260
+            },
+            // j261 - SpeechSynthesis
+            hasSpeechSynthesis: {
+                value: typeof window.speechSynthesis !== 'undefined',
+                description: 'SpeechSynthesis availability' // j261
+            },
+            // j263 - createImageBitmap
+            hasCreateImageBitmap: {
+                value: typeof window.createImageBitmap === 'function',
+                description: 'createImageBitmap availability' // j263
+            },
+            // j264 - fetch
+            hasFetch: {
+                value: typeof window.fetch === 'function',
+                description: 'fetch API availability' // j264
+            },
+            // j265 - crypto.getRandomValues
+            hasCryptoGetRandomValues: {
+                value: !!(window.crypto && window.crypto.getRandomValues),
+                description: 'crypto.getRandomValues availability' // j265
+            },
+            // j273 - Notification
+            hasNotification: {
+                value: typeof window.Notification !== 'undefined',
+                description: 'Notification API availability' // j273
+            },
+            // j274 - BroadcastChannel
+            hasBroadcastChannel: {
+                value: typeof window.BroadcastChannel !== 'undefined',
+                description: 'BroadcastChannel API availability' // j274
+            },
+            // j275 - OffscreenCanvas
+            hasOffscreenCanvas: {
+                value: typeof window.OffscreenCanvas !== 'undefined',
+                description: 'OffscreenCanvas availability' // j275
             }
         };
     }
@@ -1266,6 +1569,31 @@ class BrowserFingerprintAnalyzer {
             isConnected: {
                 value: typeof doc.isConnected !== 'undefined',
                 description: 'Document isConnected property availability'
+            },
+            // j244 - lookupNamespaceURI
+            hasLookupNamespaceURI: {
+                value: typeof doc.lookupNamespaceURI === 'function',
+                description: 'lookupNamespaceURI function availability' // j244
+            },
+            // j285 - createDocumentFragment
+            hasCreateDocumentFragment: {
+                value: typeof doc.createDocumentFragment === 'function',
+                description: 'createDocumentFragment availability' // j285
+            },
+            // j286 - querySelectorAll
+            hasQuerySelectorAll: {
+                value: typeof doc.querySelectorAll === 'function',
+                description: 'querySelectorAll availability' // j286
+            },
+            // j287 - createTreeWalker
+            hasCreateTreeWalker: {
+                value: typeof doc.createTreeWalker === 'function',
+                description: 'createTreeWalker availability' // j287
+            },
+            // j288 - createRange
+            hasCreateRange: {
+                value: typeof doc.createRange === 'function',
+                description: 'createRange availability' // j288
             }
         };
     }
@@ -1673,4 +2001,14 @@ class BrowserFingerprintAnalyzer {
 }
 
 // Export for use in other modules
-export { BrowserFingerprintAnalyzer, SuspiciousIndicatorDetector, AIAgentDetector, ContextAnalyzer, StringSignatureDetector };
+export { 
+    BrowserFingerprintAnalyzer, 
+    SuspiciousIndicatorDetector, 
+    AIAgentDetector, 
+    ContextAnalyzer, 
+    StringSignatureDetector,
+    // New modular detectors
+    NetworkCapabilitiesDetector,
+    BatteryStorageDetector,
+    ActiveMeasurementsDetector
+};

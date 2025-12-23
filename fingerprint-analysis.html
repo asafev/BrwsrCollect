@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Browser Fingerprint Analysis</title>
+    
+    <!-- Bot Protection - MUST LOAD FIRST! -->
+    <!-- <script src="isHuman/bp.js"></script> -->
+    
     <link rel="stylesheet" href="styles.css">
     <style>
         /* Fingerprint Page Specific Styles */
@@ -719,15 +723,148 @@
     <script type="module">
         import { BrowserFingerprintAnalyzer } from './browserFingerprint.js';
         import { BehavioralStorageManager } from './behavioralStorage.js';
+        import { StandaloneBehavioralTracker } from './behavioralTracker.js';
 
         let fingerprintData = null;
+        
+        // Helper function to get telemetry metric descriptions
+        function getTelemetryDescription(key) {
+            const descriptions = {
+                totalMouseMoves: 'Total number of mouse movement events tracked',
+                totalClicks: 'Total number of click events recorded',
+                totalScrolls: 'Total number of scroll events recorded',
+                totalMouseDistance: 'Total distance traveled by mouse cursor in pixels',
+                averageMouseVelocity: 'Average mouse movement velocity (pixels/ms)',
+                maxMouseVelocity: 'Maximum mouse movement velocity (pixels/ms)',
+                mouseMovementCount: 'Number of discrete mouse movements tracked',
+                averageClickInterval: 'Average time between clicks in milliseconds',
+                clickRate: 'Number of clicks per second',
+                totalScrollDistance: 'Total scroll distance in pixels',
+                averageScrollDistance: 'Average distance per scroll event in pixels',
+                averageScrollInterval: 'Average time between scroll events in milliseconds',
+                scrollRate: 'Number of scroll events per second',
+                collectionDurationMs: 'Total behavioral data collection duration in milliseconds',
+                collectionDurationSec: 'Total behavioral data collection duration in seconds',
+                eventsPerSecond: 'Total interaction events (mouse + click + scroll) per second',
+                mouseToClickRatio: 'Ratio of mouse movements to clicks',
+                hasMouseActivity: 'Whether any mouse movement was detected',
+                hasClickActivity: 'Whether any click events were detected',
+                hasScrollActivity: 'Whether any scroll events were detected'
+            };
+            return descriptions[key] || 'Behavioral telemetry metric';
+        }
 
-        // Initialize fingerprint analysis
+        // Initialize fingerprint analysis WITH behavioral tracking
         async function initializeAnalysis() {
+            const loadingState = document.getElementById('loading-state');
+            
             try {
-                const analyzer = new BrowserFingerprintAnalyzer();
+                // Phase 1: Collect behavioral data for 7 seconds
+                loadingState.innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <h3>Collecting Behavioral Data...</h3>
+                    <p style="font-size: 16px; margin: 15px 0; color: #667eea;">
+                        <strong>🖱️ Please interact with the page!</strong><br>
+                        Move your mouse, click anywhere, scroll if possible
+                    </p>
+                    <div style="width: 100%; max-width: 400px; height: 8px; background: #e0e0e0; border-radius: 4px; margin: 20px auto; overflow: hidden;">
+                        <div id="behavioral-progress" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.1s linear;"></div>
+                    </div>
+                    <p id="behavioral-countdown" style="font-size: 18px; font-weight: bold; color: #333;">Time remaining: 7s</p>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 500px; margin: 20px auto;">
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div id="stat-mouse" style="font-size: 24px; font-weight: bold; color: #667eea;">0</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Mouse Moves</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div id="stat-clicks" style="font-size: 24px; font-weight: bold; color: #667eea;">0</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Clicks</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div id="stat-scrolls" style="font-size: 24px; font-weight: bold; color: #667eea;">0</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Scrolls</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Create standalone behavioral tracker
+                const behavioralTracker = new StandaloneBehavioralTracker({ 
+                    duration: 4000 // 4 seconds
+                });
+                
+                // Update UI with countdown and progress
+                const startTime = Date.now();
+                const countdownInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, 7 - Math.floor(elapsed / 1000));
+                    const percentage = Math.min((elapsed / 4000) * 100, 100);
+                    
+                    const countdownEl = document.getElementById('behavioral-countdown');
+                    const progressEl = document.getElementById('behavioral-progress');
+                    
+                    if (countdownEl) {
+                        countdownEl.textContent = `Time remaining: ${remaining}s - Keep interacting!`;
+                    }
+                    if (progressEl) {
+                        progressEl.style.width = `${percentage}%`;
+                    }
+                    
+                    // Update real-time stats
+                    const stats = behavioralTracker.getStats();
+                    const mouseEl = document.getElementById('stat-mouse');
+                    const clicksEl = document.getElementById('stat-clicks');
+                    const scrollsEl = document.getElementById('stat-scrolls');
+                    
+                    if (mouseEl) mouseEl.textContent = stats.mouseTrailLength || 0;
+                    if (clicksEl) clicksEl.textContent = stats.clickHistoryLength || 0;
+                    if (scrollsEl) scrollsEl.textContent = stats.scrollHistoryLength || 0;
+                    
+                    if (remaining === 0) {
+                        clearInterval(countdownInterval);
+                    }
+                }, 100);
+                
+                // Collect behavioral data (waits 7 seconds)
+                console.log('🎯 Starting behavioral data collection...');
+                const behavioralData = await behavioralTracker.collectBehavioralData();
+                clearInterval(countdownInterval);
+                
+                console.log('✅ Behavioral data collected:', behavioralData);
+                
+                // Phase 2: Analyze fingerprint
+                loadingState.innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <h3>Analyzing Browser Fingerprint...</h3>
+                    <p>Processing ${Object.keys(behavioralData.indicators).length} behavioral indicators...</p>
+                `;
+                
+                const analyzer = new BrowserFingerprintAnalyzer({
+                    enableActiveMeasurements: true,
+                    activeMeasurements: {
+                        downloadUrl: './network-test-3mb.bin',
+                        expectedDownloadBytes: 3 * 1024 * 1024, // 3MB
+                        pingCount: 3
+                    }
+                });
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
+                
+                // INJECT behavioral data into fingerprint results
+                fingerprintData.metrics.behavioralIndicators = behavioralData.indicators;
+                fingerprintData.behavioralSummary = behavioralData.summary;
+                fingerprintData.behavioralMetadata = behavioralData.metadata;
+                
+                // NEW: Add raw behavioral telemetry as separate metrics category
+                fingerprintData.metrics.behavioralTelemetry = {};
+                for (const [key, value] of Object.entries(behavioralData.telemetry)) {
+                    fingerprintData.metrics.behavioralTelemetry[key] = {
+                        value: value,
+                        description: getTelemetryDescription(key),
+                        risk: 'N/A' // Telemetry is raw data, not risk indicators
+                    };
+                }
+                
+                console.log('✅ Complete fingerprint data with behavioral metrics:', fingerprintData);
                 
                 // Hide loading state and show content
                 document.getElementById('loading-state').style.display = 'none';
@@ -1150,6 +1287,7 @@
                 'closed': 'window.closed',
                 'opener': 'window.opener !== null',
                 'self': 'typeof window.self !== "undefined"',
+                'historyLength': 'window.history.length',
 
                 // Automation
                 'webdriverFlag': 'window.navigator.webdriver',

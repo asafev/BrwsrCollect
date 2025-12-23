@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Fingerprint - JSON Data</title>
+    
+    <!-- Bot Protection - MUST LOAD FIRST! -->
+    <!-- <script src="isHuman/bp.js"></script> -->
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        #status {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        #status h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        #status .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        #status .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        #status .instructions {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        #status .instructions strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        #status.collecting {
+            border-left: 6px solid #ff9800;
+        }
+        
+        #status.analyzing {
+            border-left: 6px solid #2196f3;
+        }
+        
+        #status.ready {
+            border-left: 6px solid #4caf50;
+        }
+        
+        #status.error {
+            border-left: 6px solid #f44336;
+        }
+        
+        #json-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        #json-output.visible {
+            display: block;
+        }
+        
+        /* JSON Syntax Highlighting */
+        #json-output .key { color: #9cdcfe; }
+        #json-output .string { color: #ce9178; }
+        #json-output .number { color: #b5cea8; }
+        #json-output .boolean { color: #569cd6; }
+        #json-output .null { color: #569cd6; }
+        
+        .export-button {
+            display: inline-block;
+            margin: 15px 10px 0 0;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .export-button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .export-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .collecting-emoji {
+            display: inline-block;
+            animation: pulse 1.5s ease-in-out infinite;
+            font-size: 32px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="status" class="collecting">
+            <div class="collecting-emoji">🖱️</div>
+            <h2>Collecting Behavioral Data...</h2>
+            <div class="instructions">
+                <strong>Please interact with this page!</strong>
+                Move your mouse, click anywhere, scroll if possible
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            <p id="countdown">Time remaining: 7s</p>
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="value" id="stat-mouse">0</div>
+                    <div class="label">Mouse Moves</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="stat-clicks">0</div>
+                    <div class="label">Clicks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="stat-scrolls">0</div>
+                    <div class="label">Scrolls</div>
+                </div>
+            </div>
+        </div>
+
+        <pre id="json-output"></pre>
+    </div>
+
+    <script type="module">
+        import { BrowserFingerprintAnalyzer } from './browserFingerprint.js';
+        import { StandaloneBehavioralTracker } from './behavioralTracker.js';
+
+        let fingerprintData = null;
+        
+        // Helper function to get telemetry metric descriptions
+        function getTelemetryDescription(key) {
+            const descriptions = {
+                totalMouseMoves: 'Total number of mouse movement events tracked',
+                totalClicks: 'Total number of click events recorded',
+                totalScrolls: 'Total number of scroll events recorded',
+                totalMouseDistance: 'Total distance traveled by mouse cursor in pixels',
+                averageMouseVelocity: 'Average mouse movement velocity (pixels/ms)',
+                maxMouseVelocity: 'Maximum mouse movement velocity (pixels/ms)',
+                mouseMovementCount: 'Number of discrete mouse movements tracked',
+                averageClickInterval: 'Average time between clicks in milliseconds',
+                clickRate: 'Number of clicks per second',
+                totalScrollDistance: 'Total scroll distance in pixels',
+                averageScrollDistance: 'Average distance per scroll event in pixels',
+                averageScrollInterval: 'Average time between scroll events in milliseconds',
+                scrollRate: 'Number of scroll events per second',
+                collectionDurationMs: 'Total behavioral data collection duration in milliseconds',
+                collectionDurationSec: 'Total behavioral data collection duration in seconds',
+                eventsPerSecond: 'Total interaction events (mouse + click + scroll) per second',
+                mouseToClickRatio: 'Ratio of mouse movements to clicks',
+                hasMouseActivity: 'Whether any mouse movement was detected',
+                hasClickActivity: 'Whether any click events were detected',
+                hasScrollActivity: 'Whether any scroll events were detected'
+            };
+            return descriptions[key] || 'Behavioral telemetry metric';
+        }
+
+        async function generateJSON() {
+            const statusEl = document.getElementById('status');
+            const outputEl = document.getElementById('json-output');
+            const countdownEl = document.getElementById('countdown');
+            const progressEl = document.getElementById('progress');
+            const statsEl = document.getElementById('stats');
+            
+            try {
+                // Show stats during collection
+                statsEl.style.display = 'grid';
+                
+                // Create behavioral tracker
+                const behavioralTracker = new StandaloneBehavioralTracker({ 
+                    duration: 4000 // 4 seconds
+                });
+                
+                // Update UI every 100ms
+                const startTime = Date.now();
+                const updateInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, 7 - Math.floor(elapsed / 1000));
+                    const percentage = Math.min((elapsed / 4000) * 100, 100);
+                    
+                    if (countdownEl) {
+                        countdownEl.textContent = `Time remaining: ${remaining}s - Keep interacting!`;
+                    }
+                    if (progressEl) {
+                        progressEl.style.width = `${percentage}%`;
+                    }
+                    
+                    // Update stats
+                    const stats = behavioralTracker.getStats();
+                    document.getElementById('stat-mouse').textContent = stats.mouseTrailLength || 0;
+                    document.getElementById('stat-clicks').textContent = stats.clickHistoryLength || 0;
+                    document.getElementById('stat-scrolls').textContent = stats.scrollHistoryLength || 0;
+                    
+                    if (remaining === 0) {
+                        clearInterval(updateInterval);
+                    }
+                }, 100);
+                
+                // Collect behavioral data (waits 7 seconds)
+                console.log('🎯 Starting behavioral data collection...');
+                const behavioralData = await behavioralTracker.collectBehavioralData();
+                clearInterval(updateInterval);
+                
+                console.log('✅ Behavioral data collected:', behavioralData);
+                
+                // Update UI for fingerprint analysis phase
+                statusEl.className = 'analyzing';
+                statusEl.innerHTML = `
+                    <div class="collecting-emoji">🔍</div>
+                    <h2>Analyzing Browser Fingerprint...</h2>
+                    <p>Processing ${Object.keys(behavioralData.indicators).length} behavioral indicators</p>
+                `;
+                
+                // Run fingerprint analysis
+                console.log('🔍 Running fingerprint analysis...');
+                const analyzer = new BrowserFingerprintAnalyzer({
+                    enableActiveMeasurements: true,
+                    activeMeasurements: {
+                        downloadUrl: './network-test-3mb.bin',
+                        expectedDownloadBytes: 3 * 1024 * 1024, // 3MB
+                        pingCount: 3
+                    }
+                });
+                await analyzer.analyzeFingerprint();
+                fingerprintData = analyzer.getAnalysisResults();
+                
+                // INJECT behavioral data into fingerprint results
+                fingerprintData.metrics.behavioralIndicators = behavioralData.indicators;
+                fingerprintData.behavioralSummary = behavioralData.summary;
+                fingerprintData.behavioralMetadata = behavioralData.metadata;
+                
+                // NEW: Add raw behavioral telemetry as separate metrics category
+                fingerprintData.metrics.behavioralTelemetry = {};
+                for (const [key, value] of Object.entries(behavioralData.telemetry)) {
+                    fingerprintData.metrics.behavioralTelemetry[key] = {
+                        value: value,
+                        description: getTelemetryDescription(key),
+                        risk: 'N/A' // Telemetry is raw data, not risk indicators
+                    };
+                }
+                
+                console.log('✅ Complete fingerprint data with behavioral metrics:', fingerprintData);
+                
+                // Output ONLY metrics as JSON (optimized for DataFrame import)
+                const metricsOnly = {
+                    timestamp: fingerprintData.timestamp,
+                    metrics: fingerprintData.metrics,
+                    behavioralSummary: fingerprintData.behavioralSummary,
+                    summary: fingerprintData.summary
+                };
+                
+                const jsonString = JSON.stringify(metricsOnly, null, 2);
+                outputEl.textContent = jsonString;
+                outputEl.classList.add('visible');
+                
+                // Calculate statistics
+                const totalMetrics = Object.values(fingerprintData.metrics)
+                    .reduce((sum, category) => sum + Object.keys(category).length, 0);
+                const behavioralCount = Object.keys(behavioralData.indicators).length;
+                const telemetryCount = Object.keys(behavioralData.telemetry).length;
+                const detectionCount = behavioralData.summary ? 
+                    (behavioralData.summary.centralButtonClicks || 0) +
+                    (behavioralData.summary.clicksWithoutMouseMovement || 0) +
+                    (behavioralData.summary.nonHumanScrolling || 0) +
+                    (behavioralData.summary.artificialTiming || 0) +
+                    (behavioralData.summary.missingMouseTrails || 0) : 0;
+                
+                // Update UI to ready state
+                statusEl.className = 'ready';
+                statusEl.innerHTML = `
+                    <h2>✅ Fingerprint Data Ready</h2>
+                    <p style="margin: 10px 0; color: #666;">
+                        JSON data is ready for scraping and DataFrame import
+                    </p>
+                    <div class="stats" style="display: grid;">
+                        <div class="stat-card">
+                            <div class="value">${totalMetrics}</div>
+                            <div class="label">Total Metrics</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${behavioralCount}</div>
+                            <div class="label">Behavioral Indicators</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${telemetryCount}</div>
+                            <div class="label">Telemetry Stats</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${detectionCount}</div>
+                            <div class="label">Bot Patterns</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${behavioralData.telemetry.totalMouseMoves || 0}</div>
+                            <div class="label">Mouse Moves</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${behavioralData.telemetry.totalClicks || 0}</div>
+                            <div class="label">Total Clicks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${behavioralData.telemetry.totalScrolls || 0}</div>
+                            <div class="label">Total Scrolls</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${(jsonString.length / 1024).toFixed(1)} KB</div>
+                            <div class="label">Data Size</div>
+                        </div>
+                    </div>
+                    <button class="export-button" onclick="copyToClipboard()">📋 Copy JSON</button>
+                    <button class="export-button" onclick="downloadJSON()">💾 Download JSON</button>
+                    <a href="fingerprint-analysis.html" class="export-button">👁️ View Analysis</a>
+                `;
+                
+                // Set document content type hint for easier scraping
+                console.log('✅ Page ready for scraping');
+                
+            } catch (error) {
+                console.error('❌ Error generating fingerprint data:', error);
+                statusEl.className = 'error';
+                statusEl.innerHTML = `
+                    <h2>❌ Error</h2>
+                    <p style="color: #f44336;">${error.message}</p>
+                `;
+                outputEl.textContent = JSON.stringify({ 
+                    error: error.message,
+                    stack: error.stack 
+                }, null, 2);
+                outputEl.classList.add('visible');
+            }
+        }
+
+        // Copy JSON to clipboard
+        window.copyToClipboard = function() {
+            const outputEl = document.getElementById('json-output');
+            navigator.clipboard.writeText(outputEl.textContent)
+                .then(() => alert('✅ JSON copied to clipboard!'))
+                .catch(err => alert('❌ Failed to copy: ' + err));
+        };
+
+        // Download JSON file
+        window.downloadJSON = function() {
+            const outputEl = document.getElementById('json-output');
+            const blob = new Blob([outputEl.textContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fingerprint-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        // Start generation on page load
+        document.addEventListener('DOMContentLoaded', generateJSON);
+    </script>
+</body>
+</html>
