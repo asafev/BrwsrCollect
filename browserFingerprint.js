@@ -14,6 +14,8 @@ import { isNativeFunction } from './utils/functionUtils.js';
 import { NetworkCapabilitiesDetector } from './detectors/networkCapabilities.js';
 import { BatteryStorageDetector } from './detectors/batteryStorage.js';
 import { ActiveMeasurementsDetector } from './detectors/activeMeasurements.js';
+import { AudioFingerprintDetector } from './detectors/audioFingerprint.js';
+import { WebRTCLeakDetector } from './detectors/webRTCLeak.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -581,6 +583,8 @@ class BrowserFingerprintAnalyzer {
         this.networkCapabilitiesDetector = new NetworkCapabilitiesDetector();
         this.batteryStorageDetector = new BatteryStorageDetector();
         this.activeMeasurementsDetector = new ActiveMeasurementsDetector(options.activeMeasurements || {});
+        this.audioFingerprintDetector = new AudioFingerprintDetector(options.audioFingerprint || {});
+        this.webRTCLeakDetector = new WebRTCLeakDetector(options.webRTC || {});
         
         // Configuration options
         this.options = {
@@ -652,6 +656,39 @@ class BrowserFingerprintAnalyzer {
         } catch (error) {
             console.warn('⚠️ Battery/storage detection failed:', error.message);
             this.metrics.batteryStorage = { error: { value: error.message, description: 'Battery/storage detection error' } };
+        }
+
+        // Run Audio Fingerprint detection (async, uses OfflineAudioContext)
+        console.log('🔊 Analyzing audio fingerprint...');
+        try {
+            const audioFingerprintMetrics = await this.audioFingerprintDetector.analyze();
+            this.metrics.audioFingerprint = audioFingerprintMetrics;
+            console.log('🔊 Audio fingerprint analysis complete:', audioFingerprintMetrics);
+        } catch (error) {
+            console.warn('⚠️ Audio fingerprint detection failed:', error.message);
+            this.metrics.audioFingerprint = { error: { value: error.message, description: 'Audio fingerprint detection error' } };
+        }
+
+        // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC)
+        console.log('📡 Analyzing WebRTC leaks...');
+        try {
+            const webRTCLeakMetrics = await this.webRTCLeakDetector.analyze();
+            this.metrics.webRTCLeak = webRTCLeakMetrics;
+            console.log('📡 WebRTC leak analysis complete:', webRTCLeakMetrics);
+        } catch (error) {
+            console.warn('⚠️ WebRTC leak detection failed:', error.message);
+            this.metrics.webRTCLeak = { error: { value: error.message, description: 'WebRTC leak detection error' } };
+        }
+
+        // Run Media Devices enumeration (async - enumerates available media devices)
+        console.log('🎤 Analyzing media devices...');
+        try {
+            const mediaDevicesMetrics = await this._analyzeMediaDevices();
+            this.metrics.mediaDevices = mediaDevicesMetrics;
+            console.log('🎤 Media devices analysis complete:', mediaDevicesMetrics);
+        } catch (error) {
+            console.warn('⚠️ Media devices detection failed:', error.message);
+            this.metrics.mediaDevices = { error: { value: error.message, description: 'Media devices detection error' } };
         }
 
         // Run Active Network Measurements (optional, makes network requests)
@@ -769,6 +806,79 @@ class BrowserFingerprintAnalyzer {
                 // Ignore if not available
             }
         }
+
+        // Audio fingerprint indicators
+        try {
+            const audioIndicators = this.audioFingerprintDetector.getSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...audioIndicators];
+        } catch (e) {
+            // Ignore if not available
+        }
+
+        // WebRTC leak indicators
+        try {
+            const webRTCIndicators = this.webRTCLeakDetector.getSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...webRTCIndicators];
+        } catch (e) {
+            // Ignore if not available
+        }
+
+        // Media devices indicators
+        try {
+            const mediaDevicesIndicators = this._getMediaDevicesSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...mediaDevicesIndicators];
+        } catch (e) {
+            // Ignore if not available
+        }
+    }
+
+    /**
+     * Get suspicious indicators from media devices analysis
+     * @private
+     */
+    _getMediaDevicesSuspiciousIndicators() {
+        const indicators = [];
+        const mediaDevices = this.metrics.mediaDevices;
+
+        if (!mediaDevices) return indicators;
+
+        // Check for no devices at all
+        if (mediaDevices.totalDevices?.value === 0) {
+            indicators.push({
+                category: 'media_devices',
+                name: 'no_media_devices',
+                description: 'No media devices detected - common in headless browsers and VMs',
+                severity: 'HIGH',
+                confidence: 0.85,
+                details: 'Real user environments typically have at least audio output devices'
+            });
+        }
+
+        // Check for no audio input devices
+        if (mediaDevices.audioInputCount?.value === 0 && mediaDevices.audioOutputCount?.value === 0) {
+            indicators.push({
+                category: 'media_devices',
+                name: 'no_audio_devices',
+                description: 'No audio devices (input or output) detected',
+                severity: 'MEDIUM',
+                confidence: 0.7,
+                details: 'Most real systems have at least speakers or headphones'
+            });
+        }
+
+        // Check if API is available but returns error
+        if (mediaDevices.error) {
+            indicators.push({
+                category: 'media_devices',
+                name: 'enumerate_devices_error',
+                description: 'Error enumerating media devices',
+                severity: 'MEDIUM',
+                confidence: 0.6,
+                details: `Error: ${mediaDevices.error.value}`
+            });
+        }
+
+        return indicators;
     }
 
     /**
@@ -1511,8 +1621,164 @@ class BrowserFingerprintAnalyzer {
             hasOffscreenCanvas: {
                 value: typeof window.OffscreenCanvas !== 'undefined',
                 description: 'OffscreenCanvas availability' // j275
+            },
+            // Media Devices API
+            hasMediaDevices: {
+                value: !!(nav.mediaDevices),
+                description: 'MediaDevices API availability'
+            },
+            hasEnumerateDevices: {
+                value: !!(nav.mediaDevices && nav.mediaDevices.enumerateDevices),
+                description: 'enumerateDevices API availability'
             }
         };
+    }
+
+    /**
+     * Analyze Media Devices (async - enumerates available devices)
+     * @private
+     */
+    async _analyzeMediaDevices() {
+        const result = {
+            available: {
+                value: !!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices),
+                description: 'MediaDevices.enumerateDevices API availability'
+            }
+        };
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            result.error = {
+                value: 'API not available',
+                description: 'MediaDevices API is not supported in this browser'
+            };
+            return result;
+        }
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            
+            // Count devices by kind
+            const deviceCounts = {
+                audioinput: 0,
+                audiooutput: 0,
+                videoinput: 0
+            };
+            
+            const deviceDetails = [];
+            
+            devices.forEach(device => {
+                if (deviceCounts.hasOwnProperty(device.kind)) {
+                    deviceCounts[device.kind]++;
+                }
+                
+                // Collect device info (labels may be empty without permissions)
+                deviceDetails.push({
+                    kind: device.kind,
+                    label: device.label || '[Permission required]',
+                    deviceId: device.deviceId ? device.deviceId.substring(0, 16) + '...' : 'N/A',
+                    groupId: device.groupId ? device.groupId.substring(0, 16) + '...' : 'N/A'
+                });
+            });
+
+            result.totalDevices = {
+                value: devices.length,
+                description: 'Total number of media devices detected'
+            };
+
+            result.audioInputCount = {
+                value: deviceCounts.audioinput,
+                description: 'Number of audio input devices (microphones)',
+                risk: deviceCounts.audioinput === 0 ? 'MEDIUM' : 'LOW'
+            };
+
+            result.audioOutputCount = {
+                value: deviceCounts.audiooutput,
+                description: 'Number of audio output devices (speakers/headphones)',
+                risk: deviceCounts.audiooutput === 0 ? 'MEDIUM' : 'LOW'
+            };
+
+            result.videoInputCount = {
+                value: deviceCounts.videoinput,
+                description: 'Number of video input devices (cameras)',
+                risk: deviceCounts.videoinput === 0 ? 'LOW' : 'LOW'
+            };
+
+            // Check for suspicious patterns
+            const hasNoDevices = devices.length === 0;
+            const hasNoAudioDevices = deviceCounts.audioinput === 0 && deviceCounts.audiooutput === 0;
+            
+            result.suspiciousPattern = {
+                value: hasNoDevices || hasNoAudioDevices,
+                description: 'Suspicious media device pattern detected (may indicate headless/VM)',
+                risk: hasNoDevices ? 'HIGH' : (hasNoAudioDevices ? 'MEDIUM' : 'LOW'),
+                details: hasNoDevices 
+                    ? 'No media devices detected - common in headless browsers'
+                    : (hasNoAudioDevices ? 'No audio devices detected - unusual for real user environments' : 'Normal device configuration')
+            };
+
+            // Check if labels are available (indicates permissions granted)
+            const hasLabels = devices.some(d => d.label && d.label.length > 0);
+            result.labelsAvailable = {
+                value: hasLabels,
+                description: 'Device labels available (indicates media permissions granted)'
+            };
+
+            // Store device details as JSON string for proper display
+            result.deviceDetails = {
+                value: JSON.stringify(deviceDetails, null, 2),
+                description: 'Detailed list of enumerated media devices (JSON)'
+            };
+
+            // Also store individual device entries for easier reading
+            deviceDetails.forEach((device, index) => {
+                result[`device_${index}`] = {
+                    value: `${device.kind}: ${device.label} (ID: ${device.deviceId})`,
+                    description: `Media device #${index + 1}`
+                };
+            });
+
+            // Device fingerprint hash (unique identifier based on device configuration)
+            // Use the JSON string for consistent hashing
+            const deviceString = JSON.stringify(devices.map(d => ({
+                kind: d.kind,
+                deviceId: d.deviceId,
+                groupId: d.groupId
+            })).sort((a, b) => a.deviceId.localeCompare(b.deviceId)));
+            
+            const deviceHash = this._generateDeviceHash(deviceString);
+            result.deviceHash = {
+                value: deviceHash,
+                description: 'Hash of media device configuration (fingerprinting value)'
+            };
+
+        } catch (error) {
+            result.error = {
+                value: error.message,
+                description: 'Error enumerating media devices',
+                risk: 'MEDIUM'
+            };
+        }
+
+        return result;
+    }
+
+    /**
+     * Generate a hash from media devices string for fingerprinting
+     * @private
+     */
+    _generateDeviceHash(deviceString) {
+        try {
+            // Simple hash function
+            let hash = 0;
+            for (let i = 0; i < deviceString.length; i++) {
+                const char = deviceString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return hash.toString(16);
+        } catch (e) {
+            return 'error';
+        }
     }
 
     /**
@@ -2010,5 +2276,7 @@ export {
     // New modular detectors
     NetworkCapabilitiesDetector,
     BatteryStorageDetector,
-    ActiveMeasurementsDetector
+    ActiveMeasurementsDetector,
+    AudioFingerprintDetector,
+    WebRTCLeakDetector
 };

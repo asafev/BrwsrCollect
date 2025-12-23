@@ -407,6 +407,7 @@
         .section-document { border-left-color: #6c757d; }
         .section-security { border-left-color: #e83e8c; }
         .section-aiAgentDetection { border-left-color: #ff6b6b; }
+        .section-webRTCLeak { border-left-color: #17becf; }
 
         .metrics-table td {
             padding: 0.6rem 0.75rem;
@@ -1236,7 +1237,8 @@
                 apiOverrides: '🔍',
                 aiAgentDetection: '🕵️',
                 stringSignatureAutomation: '🔬',
-                behavioralIndicators: '🎯'
+                behavioralIndicators: '🎯',
+                webRTCLeak: '📡'
             };
             return icons[categoryName] || '📊';
         }
@@ -1419,7 +1421,31 @@
                 'function_bind_signature': '(Error.toString()).replace(/\\s/g, "") === ((Function.prototype.bind.toString()).replace(/bind/g, "Error")).replace(/\\s/g, "")',
                 'function_toString_signature': '(Error.toString()).replace(/\\s/g, "") === ((Function.prototype.toString.toString()).replace(/toString/g, "Error")).replace(/\\s/g, "")',
                 'function_bind_availability': 'typeof Function.prototype.bind === "function"',
-                'phantomjs_stack_trace': '(new Error()).stack.match(/phantomjs/gi) !== null'
+                'phantomjs_stack_trace': '(new Error()).stack.match(/phantomjs/gi) !== null',
+
+                // WebRTC Leak Detection
+                'hasRTCPeerConnection': 'typeof RTCPeerConnection !== "undefined"',
+                'hasRTCDataChannel': 'pc.createDataChannel("test")',
+                'hasHostCandidates': 'ICE candidate type: host',
+                'hasSrflxCandidates': 'ICE candidate type: srflx',
+                'hasRelayCandidates': 'ICE candidate type: relay',
+                'hasPrflxCandidates': 'ICE candidate type: prflx',
+                'localAddressCount': 'Parsed ICE candidates address count',
+                'publicAddressCount': 'srflx candidate addresses count',
+                'candidateCount': 'Total ICE candidates collected',
+                'localAddresses': 'ICE host candidate addresses',
+                'publicAddresses': 'ICE srflx candidate addresses',
+                'sdpHash': 'fnv1a32(pc.localDescription.sdp)',
+                'sdpLength': 'pc.localDescription.sdp.length',
+                'mediaDevicesApiSupported': '!!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices)',
+                'audioInputCount': 'devices.filter(d => d.kind === "audioinput").length',
+                'videoInputCount': 'devices.filter(d => d.kind === "videoinput").length',
+                'audioOutputCount': 'devices.filter(d => d.kind === "audiooutput").length',
+                'microphonePermission': 'navigator.permissions.query({name: "microphone"})',
+                'cameraPermission': 'navigator.permissions.query({name: "camera"})',
+                'collectionDurationMs': 'WebRTC collection timing',
+                'errorCount': 'Non-fatal errors during WebRTC collection',
+                'errorMessages': 'Error messages from WebRTC collection'
             };
 
             return codeMap[metricName] || `${category}.${metricName}`;
@@ -1441,7 +1467,8 @@
                 apiOverrides: '🔍 API Overrides',
                 aiAgentDetection: '🕵️ AI Agent Detection',
                 stringSignatureAutomation: '🔬 String Signature Automation Detection',
-                behavioralIndicators: '🎯 Behavioral Indicators'
+                behavioralIndicators: '🎯 Behavioral Indicators',
+                webRTCLeak: '📡 WebRTC Leak Test'
             };
             return categoryNames[name] || name;
         }

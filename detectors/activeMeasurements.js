@@ -330,9 +330,18 @@ class ActiveMeasurementsDetector {
      */
     async _syntheticDownloadMeasurement() {
         // Create a large Blob to measure read speed
-        const testSize = 100 * 1024; // 100KB
+        // Use a reasonable size that won't hit crypto limits
+        const testSize = 256 * 1024; // 256KB - good balance for measurement
         const testData = new Uint8Array(testSize);
-        crypto.getRandomValues(testData);
+        
+        // crypto.getRandomValues has a 65536 byte limit per call
+        // Fill in chunks to avoid the exception
+        const maxChunk = 65536;
+        for (let offset = 0; offset < testSize; offset += maxChunk) {
+            const chunkSize = Math.min(maxChunk, testSize - offset);
+            const chunk = new Uint8Array(testData.buffer, offset, chunkSize);
+            crypto.getRandomValues(chunk);
+        }
         
         const blob = new Blob([testData], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
@@ -352,7 +361,8 @@ class ActiveMeasurementsDetector {
         return {
             mbps: +mbps.toFixed(2),
             bytes,
-            dtMs: Math.round(dtMs)
+            dtMs: Math.round(dtMs),
+            isSynthetic: true
         };
     }
 
@@ -429,7 +439,15 @@ class ActiveMeasurementsDetector {
      */
     async _actualUploadMeasurement(url, bytesToSend) {
         const payload = new Uint8Array(bytesToSend);
-        crypto.getRandomValues(payload);
+        
+        // crypto.getRandomValues has a 65536 byte limit per call
+        // Fill in chunks to avoid the exception
+        const maxChunk = 65536;
+        for (let offset = 0; offset < bytesToSend; offset += maxChunk) {
+            const chunkSize = Math.min(maxChunk, bytesToSend - offset);
+            const chunk = new Uint8Array(payload.buffer, offset, chunkSize);
+            crypto.getRandomValues(chunk);
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
@@ -467,8 +485,14 @@ class ActiveMeasurementsDetector {
         
         const t0 = performance.now();
         
-        // Fill with random data (simulates data preparation)
-        crypto.getRandomValues(payload);
+        // crypto.getRandomValues has a 65536 byte limit per call
+        // Fill in chunks to avoid the exception
+        const maxChunk = 65536;
+        for (let offset = 0; offset < bytesToSend; offset += maxChunk) {
+            const chunkSize = Math.min(maxChunk, bytesToSend - offset);
+            const chunk = new Uint8Array(payload.buffer, offset, chunkSize);
+            crypto.getRandomValues(chunk);
+        }
         
         // Create a blob and read it back (simulates data handling)
         const blob = new Blob([payload], { type: 'application/octet-stream' });
