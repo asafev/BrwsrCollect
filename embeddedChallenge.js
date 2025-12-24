@@ -1249,14 +1249,25 @@ Updated: ${elapsed}ms elapsed
             
             const timeToClick = Date.now() - BehaviorAnalyzer.startTime;
             const mouseBehavior = BehaviorAnalyzer.analyzeMouseBehavior();
+            
+            // === SIMPLIFIED VALIDATION: Just check minimum mouse movements ===
+            const minMouseMovements = 3; // Require at least 3 mouse movements
+            const mouseMovementCount = BehaviorAnalyzer.mouseMovements.length;
+            const hasEnoughMouseMovement = mouseMovementCount >= minMouseMovements;
+            
+            // Very relaxed timing - just not instant (50ms minimum)
+            const notInstant = timeToClick > 50;
 
             // === SAVE COMPLETE TELEMETRY FOR INVESTIGATION ===
             const telemetryData = {
                 timestamp: new Date().toISOString(),
                 verification: {
                     timeToClick,
-                    timingValid: timeToClick > 300 && timeToClick < 30000,
-                    notInstant: timeToClick > 100
+                    timingValid: true, // Relaxed - not used for validation
+                    notInstant: notInstant,
+                    mouseMovementCount,
+                    minMouseMovements,
+                    hasEnoughMouseMovement
                 },
                 mouseAnalysis: mouseBehavior,
                 rawMouseData: BehaviorAnalyzer.mouseMovements.map(m => ({
@@ -1287,18 +1298,20 @@ Updated: ${elapsed}ms elapsed
                 checkboxHovered: BehaviorAnalyzer.checkboxHovered
             };
 
-            // Validation criteria
-            const timingValid = timeToClick > 300 && timeToClick < 30000;
-            const mouseValid = mouseBehavior.passed;
-            const notInstant = timeToClick > 100;
+            // === SIMPLIFIED VALIDATION CRITERIA ===
+            // Only check: has at least 3 mouse movements AND not instant click
+            const passed = hasEnoughMouseMovement && notInstant;
             
             telemetryData.finalDecision = {
-                passed: timingValid && mouseValid && notInstant,
-                timingValid,
-                mouseValid,
+                passed,
+                hasEnoughMouseMovement,
+                mouseMovementCount,
+                minMouseMovements,
                 notInstant,
-                finalScore: mouseBehavior.score,
-                requiredScore: CONFIG.minScore
+                timeToClick,
+                // Keep original analysis for telemetry/investigation only
+                originalScore: mouseBehavior.score,
+                originalPassed: mouseBehavior.passed
             };
             
             // Log final decision
@@ -1325,6 +1338,9 @@ Updated: ${elapsed}ms elapsed
 
             console.log('📊 Verification Analysis:', {
                 timeToClick: timeToClick + 'ms',
+                mouseMovementCount,
+                hasEnoughMouseMovement,
+                passed,
                 mouseBehavior,
                 telemetryData
             });
@@ -1332,57 +1348,70 @@ Updated: ${elapsed}ms elapsed
             // === SEND TELEMETRY TO EXTERNAL ENDPOINT ===
             // This does NOT affect the challenge flow
             TelemetryBeacon.sendOnVerification({
-                passed: telemetryData.finalDecision.passed,
-                score: mouseBehavior.score,
-                reason: mouseBehavior.reason,
-                timeToClick,
-                timingValid,
-                mouseValid,
+                passed: passed,
+                mouseMovementCount,
+                hasEnoughMouseMovement,
                 notInstant,
+                timeToClick,
+                // Include original analysis for investigation
+                originalScore: mouseBehavior.score,
+                originalReason: mouseBehavior.reason,
                 eventFlags: EventLogger.getFlags()
             });
 
-            if (timingValid && mouseValid && notInstant) {
+            if (passed) {
                 // Success!
                 EventLogger.logEvent('verification:passed', {
                     isTrusted: null,
                     target: 'challenge',
-                    extra: { score: mouseBehavior.score }
+                    extra: { 
+                        mouseMovementCount,
+                        timeToClick
+                    }
                 });
                 
                 const token = BehaviorAnalyzer.generateToken(mouseBehavior);
                 sessionStorage.setItem(CONFIG.tokenKey, token);
                 
-                console.log('✅ Challenge passed - score:', mouseBehavior.score);
+                console.log('✅ Challenge passed - mouse movements:', mouseMovementCount);
                 console.log('🔍 Investigate with: window.EmbeddedChallenge.getTelemetry()');
                 this.showSuccess(() => {
                     this.showContent();
                 });
             } else {
                 // Failed
+                const failReason = !hasEnoughMouseMovement 
+                    ? `Insufficient mouse movement (${mouseMovementCount}/${minMouseMovements})`
+                    : 'Click was too instant';
+                    
                 EventLogger.logEvent('verification:failed', {
                     isTrusted: null,
                     target: 'challenge',
                     extra: { 
-                        score: mouseBehavior.score,
-                        reason: mouseBehavior.reason,
-                        timingValid,
-                        mouseValid,
-                        notInstant
+                        mouseMovementCount,
+                        hasEnoughMouseMovement,
+                        notInstant,
+                        failReason
                     }
                 });
                 
                 console.warn('❌ Challenge failed:', {
-                    timingValid,
-                    mouseValid,
+                    mouseMovementCount,
+                    hasEnoughMouseMovement,
                     notInstant,
-                    score: mouseBehavior.score
+                    failReason
                 });
                 console.log('🔍 Investigate FP with: window.EmbeddedChallenge.getTelemetry()');
                 this.showBlocked({
-                    reason: mouseBehavior.reason,
-                    score: mouseBehavior.score,
-                    details: mouseBehavior.details
+                    reason: failReason,
+                    score: mouseMovementCount,
+                    details: {
+                        mouseMovementCount,
+                        minMouseMovements,
+                        hasEnoughMouseMovement,
+                        notInstant,
+                        timeToClick
+                    }
                 });
             }
         },
