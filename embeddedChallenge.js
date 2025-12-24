@@ -10,403 +10,7 @@
         tokenExpiry: 3600000, // 1 hour
         minScore: 70,
         telemetryKey: 'botChallenge_telemetry',
-        enableLiveTelemetry: true, // Show real-time stats during challenge
-        
-        // Telemetry beacon configuration - sends to external endpoint
-        telemetryBeacon: {
-            enabled: true,
-            endpoint: 'https://cwaap.rdwrertin.com/1.log',
-            delayMs: 7000,  // Send telemetry 7 seconds after page load
-            paramName: 'telemetry'
-        }
-    };
-
-    // Event Timeline Logger - tracks ALL events for telemetry
-    const EventLogger = {
-        eventTimeline: [],
-        startTime: Date.now(),
-        
-        // Event flags for quick status checks
-        sawMouseEnter: false,
-        sawPointerDown: false,
-        sawPointerUp: false,
-        sawFocus: false,
-        sawBlur: false,
-        sawChange: false,
-        sawClick: false,
-        sawMouseMove: false,
-        sawHover: false,
-        sawTrustedChange: false,
-        sawUntrustedChange: false,
-        
-        init() {
-            this.eventTimeline = [];
-            this.startTime = Date.now();
-            this.resetFlags();
-            console.log('📝 EventLogger initialized');
-        },
-        
-        resetFlags() {
-            this.sawMouseEnter = false;
-            this.sawPointerDown = false;
-            this.sawPointerUp = false;
-            this.sawFocus = false;
-            this.sawBlur = false;
-            this.sawChange = false;
-            this.sawClick = false;
-            this.sawMouseMove = false;
-            this.sawHover = false;
-            this.sawTrustedChange = false;
-            this.sawUntrustedChange = false;
-        },
-        
-        logEvent(eventType, details = {}) {
-            const event = {
-                id: this.eventTimeline.length + 1,
-                type: eventType,
-                timestamp: Date.now(),
-                elapsed: Date.now() - this.startTime,
-                isTrusted: details.isTrusted ?? null,
-                target: details.target || null,
-                position: details.position || null,
-                extra: details.extra || null
-            };
-            
-            this.eventTimeline.push(event);
-            console.log(`📝 Event[${event.id}]: ${eventType}`, event);
-            
-            return event;
-        },
-        
-        getFlags() {
-            return {
-                sawMouseEnter: this.sawMouseEnter,
-                sawPointerDown: this.sawPointerDown,
-                sawPointerUp: this.sawPointerUp,
-                sawFocus: this.sawFocus,
-                sawBlur: this.sawBlur,
-                sawChange: this.sawChange,
-                sawClick: this.sawClick,
-                sawMouseMove: this.sawMouseMove,
-                sawHover: this.sawHover,
-                sawTrustedChange: this.sawTrustedChange,
-                sawUntrustedChange: this.sawUntrustedChange
-            };
-        },
-        
-        getTimeline() {
-            return this.eventTimeline.map(e => ({
-                id: e.id,
-                type: e.type,
-                elapsed: e.elapsed,
-                isTrusted: e.isTrusted,
-                target: e.target
-            }));
-        },
-        
-        getSummary() {
-            const trustedEvents = this.eventTimeline.filter(e => e.isTrusted === true);
-            const untrustedEvents = this.eventTimeline.filter(e => e.isTrusted === false);
-            
-            return {
-                totalEvents: this.eventTimeline.length,
-                trustedCount: trustedEvents.length,
-                untrustedCount: untrustedEvents.length,
-                eventTypes: [...new Set(this.eventTimeline.map(e => e.type))],
-                flags: this.getFlags(),
-                elapsedMs: Date.now() - this.startTime
-            };
-        }
-    };
-
-    /**
-     * Telemetry Beacon
-     * Sends behavioral telemetry to configured endpoint for analysis
-     * Does NOT modify any challenge flow - purely for investigation
-     */
-    const TelemetryBeacon = {
-        timeoutId: null,
-        sent: false,
-        pageLoadTime: Date.now(),
-
-        /**
-         * Initialize the beacon timer
-         */
-        init() {
-            if (!CONFIG.telemetryBeacon.enabled) {
-                console.log('📡 Telemetry beacon disabled');
-                return;
-            }
-
-            this.pageLoadTime = Date.now();
-            this.sent = false;
-
-            // Schedule telemetry transmission
-            this.timeoutId = setTimeout(() => {
-                this.sendTelemetry('scheduled');
-            }, CONFIG.telemetryBeacon.delayMs);
-
-            console.log(`📡 Telemetry beacon scheduled in ${CONFIG.telemetryBeacon.delayMs / 1000}s`);
-        },
-
-        /**
-         * Build telemetry payload with current behavioral data
-         */
-        buildPayload(triggerReason = 'unknown') {
-            const now = Date.now();
-            const elapsed = now - this.pageLoadTime;
-
-            // Get current mouse analysis if available
-            let mouseAnalysis = null;
-            try {
-                if (BehaviorAnalyzer.mouseMovements.length >= 5) {
-                    mouseAnalysis = BehaviorAnalyzer.analyzeMouseBehavior();
-                }
-            } catch (e) {
-                console.warn('⚠️ Could not get mouse analysis:', e.message);
-            }
-
-            const payload = {
-                // Metadata
-                meta: {
-                    version: '2.1-telemetry',
-                    timestamp: new Date().toISOString(),
-                    pageLoadTime: this.pageLoadTime,
-                    beaconTime: now,
-                    elapsedSinceLoad: elapsed,
-                    url: window.location.href,
-                    referrer: document.referrer || null,
-                    triggerReason: triggerReason
-                },
-
-                // Event chain data from EventLogger
-                eventChain: {
-                    timeline: EventLogger.getTimeline(),
-                    summary: EventLogger.getSummary(),
-                    flags: EventLogger.getFlags()
-                },
-
-                // Current validation state (if mouse analysis available)
-                validation: mouseAnalysis ? {
-                    wouldPass: mouseAnalysis.passed,
-                    score: mouseAnalysis.score,
-                    reason: mouseAnalysis.reason
-                } : {
-                    wouldPass: null,
-                    score: null,
-                    reason: 'Insufficient mouse data'
-                },
-
-                // Mouse behavior metrics
-                mouseMetrics: {
-                    totalMoves: BehaviorAnalyzer.mouseMovements.length,
-                    checkboxHovered: BehaviorAnalyzer.checkboxHovered,
-                    pageInteractions: BehaviorAnalyzer.pageInteractions,
-                    // Sample of mouse trail (first 10, last 10 for size efficiency)
-                    trailSample: this.sampleMouseTrail(BehaviorAnalyzer.mouseMovements)
-                },
-
-                // Full mouse analysis details (if available)
-                mouseAnalysis: mouseAnalysis ? {
-                    score: mouseAnalysis.score,
-                    passed: mouseAnalysis.passed,
-                    reason: mouseAnalysis.reason,
-                    details: mouseAnalysis.details
-                } : null,
-
-                // Browser fingerprint signals
-                signals: {
-                    userAgent: navigator.userAgent,
-                    platform: navigator.platform,
-                    language: navigator.language,
-                    screenRes: `${screen.width}x${screen.height}`,
-                    viewport: `${window.innerWidth}x${window.innerHeight}`,
-                    devicePixelRatio: window.devicePixelRatio,
-                    cookieEnabled: navigator.cookieEnabled,
-                    doNotTrack: navigator.doNotTrack,
-                    hardwareConcurrency: navigator.hardwareConcurrency || null,
-                    maxTouchPoints: navigator.maxTouchPoints || 0,
-                    colorDepth: screen.colorDepth,
-                    timezoneOffset: new Date().getTimezoneOffset(),
-                    deviceMemory: navigator.deviceMemory || null,
-                    webdriver: navigator.webdriver === true
-                },
-
-                // Bot detection signals
-                botSignals: BehaviorAnalyzer.detectBotSignals()
-            };
-
-            return payload;
-        },
-
-        /**
-         * Sample mouse trail for efficient transmission
-         * Returns first N and last N points to capture entry and interaction patterns
-         */
-        sampleMouseTrail(movements, sampleSize = 10) {
-            if (!movements || movements.length === 0) {
-                return { first: [], last: [], totalPoints: 0 };
-            }
-            
-            if (movements.length <= sampleSize * 2) {
-                return {
-                    all: movements.map(m => ({ x: m.x, y: m.y, t: m.t })),
-                    totalPoints: movements.length
-                };
-            }
-
-            const first = movements.slice(0, sampleSize);
-            const last = movements.slice(-sampleSize);
-            
-            return {
-                first: first.map(m => ({ x: m.x, y: m.y, t: m.t })),
-                last: last.map(m => ({ x: m.x, y: m.y, t: m.t })),
-                totalPoints: movements.length
-            };
-        },
-
-        /**
-         * Encode payload to Base64
-         */
-        encodePayload(payload) {
-            try {
-                const jsonStr = JSON.stringify(payload);
-                // Use btoa for Base64 encoding, handle Unicode properly
-                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-                return base64;
-            } catch (e) {
-                console.error('❌ Failed to encode telemetry:', e.message);
-                return null;
-            }
-        },
-
-        /**
-         * Send telemetry to configured endpoint
-         */
-        sendTelemetry(triggerReason = 'manual') {
-            if (this.sent) {
-                console.log('📡 Telemetry already sent');
-                return;
-            }
-
-            if (!CONFIG.telemetryBeacon.enabled) {
-                return;
-            }
-
-            try {
-                const payload = this.buildPayload(triggerReason);
-                const encoded = this.encodePayload(payload);
-
-                if (!encoded) {
-                    console.error('❌ Failed to encode telemetry payload');
-                    return;
-                }
-
-                const endpoint = CONFIG.telemetryBeacon.endpoint;
-                const paramName = CONFIG.telemetryBeacon.paramName;
-                const url = `${endpoint}?${paramName}=${encodeURIComponent(encoded)}`;
-
-                // Send via XHR (more reliable than fetch for beacons)
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, true);
-                
-                // Set headers for cross-origin
-                xhr.withCredentials = false;
-                
-                xhr.onload = () => {
-                    console.log(`📡 Telemetry beacon sent successfully (${xhr.status})`);
-                };
-                
-                xhr.onerror = () => {
-                    // Silent fail - don't disrupt user experience
-                    console.log('📡 Telemetry beacon failed (network error)');
-                };
-
-                xhr.send();
-                this.sent = true;
-
-                console.log('📡 Telemetry beacon transmitted', {
-                    endpoint,
-                    triggerReason,
-                    payloadSize: encoded.length,
-                    eventCount: payload.eventChain.summary.totalEvents,
-                    mousePoints: payload.mouseMetrics.totalMoves
-                });
-
-            } catch (e) {
-                console.error('❌ Telemetry beacon error:', e.message);
-            }
-        },
-
-        /**
-         * Cancel scheduled beacon
-         */
-        cancel() {
-            if (this.timeoutId) {
-                clearTimeout(this.timeoutId);
-                this.timeoutId = null;
-                console.log('📡 Telemetry beacon cancelled');
-            }
-        },
-
-        /**
-         * Force immediate send (e.g., on challenge completion)
-         */
-        sendNow(triggerReason = 'immediate') {
-            if (!this.sent) {
-                this.cancel();
-                this.sendTelemetry(triggerReason);
-            }
-        },
-        
-        /**
-         * Send telemetry on verification (pass or fail)
-         * Does not affect the sent flag, allows multiple sends on different events
-         */
-        sendOnVerification(verificationResult) {
-            if (!CONFIG.telemetryBeacon.enabled) {
-                return;
-            }
-
-            try {
-                const payload = this.buildPayload('verification');
-                payload.verificationResult = verificationResult;
-                
-                const encoded = this.encodePayload(payload);
-
-                if (!encoded) {
-                    console.error('❌ Failed to encode verification telemetry');
-                    return;
-                }
-
-                const endpoint = CONFIG.telemetryBeacon.endpoint;
-                const paramName = CONFIG.telemetryBeacon.paramName;
-                const url = `${endpoint}?${paramName}=${encodeURIComponent(encoded)}`;
-
-                // Send via XHR
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, true);
-                xhr.withCredentials = false;
-                
-                xhr.onload = () => {
-                    console.log(`📡 Verification telemetry sent (${xhr.status})`);
-                };
-                
-                xhr.onerror = () => {
-                    console.log('📡 Verification telemetry failed (network error)');
-                };
-
-                xhr.send();
-
-                console.log('📡 Verification telemetry transmitted', {
-                    passed: verificationResult.passed,
-                    score: verificationResult.score
-                });
-
-            } catch (e) {
-                console.error('❌ Verification telemetry error:', e.message);
-            }
-        }
+        enableLiveTelemetry: true // Show real-time stats during challenge
     };
 
     // Behavioral Analysis Engine
@@ -489,7 +93,7 @@
             
             // === THRESHOLDS (tunable) ===
             const MIN_POINTS = 10;
-            const MIN_POINTS_LOW = 15;  // fewer than this gets penalty
+            const MIN_POINTS_LOW = 8;  // fewer than this gets penalty
             const MIN_DURATION_MS = 120;
             
             const TELEPORT_DISTANCE_PX = 80;
@@ -662,9 +266,9 @@
             let score = 100;
             let penalties = [];
             
-            // === TELEPORT FORGIVENESS LOGIC ===
-            // Check if we have strong human patterns that should forgive teleports
-            // Teleports can legitimately occur when cursor leaves/enters window, lag spikes, etc.
+            // === TELEPORT DETECTION (informational only, no penalty) ===
+            // Teleports are tracked for debugging but not penalized
+            // They can legitimately occur when cursor leaves/enters window, lag spikes, etc.
             const hasStrongHumanPatterns = (
                 nPoints >= TELEPORT_FORGIVENESS_MIN_POINTS &&       // Enough data points
                 speedCV >= TELEPORT_FORGIVENESS_MIN_SPEED_CV &&     // Human-like speed variation
@@ -673,26 +277,7 @@
                 pauseCount > 0  // Has human hesitation/pauses
             );
             
-            // PENALTY: Teleports - but with forgiveness for human patterns
-            if (teleportCount > 0) {
-                if (hasStrongHumanPatterns && teleportCount <= TELEPORT_FORGIVENESS_MAX_COUNT) {
-                    // Forgive teleports when human behavior is clearly present
-                    // Apply a much smaller penalty (just a warning)
-                    const penalty = 5 * teleportCount; // Reduced from 60 to 5
-                    score -= penalty;
-                    penalties.push({ 
-                        type: 'teleports_forgiven', 
-                        amount: penalty, 
-                        count: teleportCount,
-                        reason: 'Human patterns detected - teleport forgiven'
-                    });
-                } else {
-                    // No forgiveness - apply full penalty
-                    const penalty = Math.min(60 * teleportCount, 100);
-                    score -= penalty;
-                    penalties.push({ type: 'teleports', amount: penalty, count: teleportCount });
-                }
-            }
+            // NOTE: Teleports are no longer penalized - kept for informational purposes only
             
             // PENALTY: Too few points
             if (nPoints < MIN_POINTS_LOW) {
@@ -763,10 +348,7 @@
             // === DETERMINE REASON ===
             let reason = 'Natural behavior detected';
             if (score < CONFIG.minScore) {
-                // Check for unforgiven teleports first (the serious penalty)
-                if (penalties.find(p => p.type === 'teleports')) {
-                    reason = `Bot-like: Teleport detected (${teleportCount} jumps, max ${Math.round(maxTeleportStepPx)}px)`;
-                } else if (penalties.find(p => p.type === 'uniformTiming')) {
+                if (penalties.find(p => p.type === 'uniformTiming')) {
                     reason = `Bot-like: Uniform timing pattern (dtStd: ${dtStd.toFixed(2)}ms)`;
                 } else if (penalties.find(p => p.type === 'uniformSpeed')) {
                     reason = `Bot-like: Constant speed pattern (CV: ${speedCV.toFixed(3)})`;
@@ -927,22 +509,12 @@
 
         showChallenge() {
             BehaviorAnalyzer.init();
-            
-            // Initialize EventLogger for enhanced telemetry
-            EventLogger.init();
-            
-            // Initialize TelemetryBeacon (will send after configured delay)
-            TelemetryBeacon.init();
-            
             this.overlayEl.style.display = 'flex';
             this.contentEl.style.display = 'none';
 
             // Setup checkbox interaction
             this.checkboxEl = document.getElementById('bot-checkbox');
             const checkboxContainer = this.checkboxEl.parentElement.parentElement;
-            
-            // Enhanced event logging for telemetry investigation
-            this.setupEnhancedEventListeners(this.checkboxEl, checkboxContainer);
             
             checkboxContainer.addEventListener('mouseenter', () => {
                 BehaviorAnalyzer.checkboxHovered = true;
@@ -961,178 +533,6 @@
                     this.updateLiveTelemetry(analysis);
                 };
             }
-        },
-        
-        /**
-         * Setup enhanced event listeners for detailed telemetry
-         * This does NOT affect the challenge flow - purely for logging
-         */
-        setupEnhancedEventListeners(checkboxEl, containerEl) {
-            // Mouse enter on container
-            containerEl.addEventListener('mouseenter', (e) => {
-                EventLogger.sawMouseEnter = true;
-                EventLogger.sawHover = true;
-                EventLogger.logEvent('mouseenter', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container'
-                });
-            });
-
-            // Mouse leave
-            containerEl.addEventListener('mouseleave', (e) => {
-                EventLogger.logEvent('mouseleave', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container'
-                });
-            });
-
-            // Pointer down (more reliable than mousedown)
-            containerEl.addEventListener('pointerdown', (e) => {
-                EventLogger.sawPointerDown = true;
-                EventLogger.logEvent('pointerdown', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container',
-                    position: { x: e.clientX, y: e.clientY },
-                    extra: { 
-                        pointerType: e.pointerType,
-                        pressure: e.pressure,
-                        button: e.button
-                    }
-                });
-            });
-
-            // Pointer up
-            containerEl.addEventListener('pointerup', (e) => {
-                EventLogger.sawPointerUp = true;
-                EventLogger.logEvent('pointerup', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container',
-                    position: { x: e.clientX, y: e.clientY },
-                    extra: { 
-                        pointerType: e.pointerType,
-                        button: e.button
-                    }
-                });
-            });
-
-            // Focus on checkbox
-            checkboxEl.addEventListener('focus', (e) => {
-                EventLogger.sawFocus = true;
-                EventLogger.logEvent('focus', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox'
-                });
-            });
-
-            // Blur from checkbox
-            checkboxEl.addEventListener('blur', (e) => {
-                EventLogger.sawBlur = true;
-                EventLogger.logEvent('blur', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox'
-                });
-            });
-
-            // Click on container (before change)
-            containerEl.addEventListener('click', (e) => {
-                EventLogger.sawClick = true;
-                EventLogger.logEvent('click', {
-                    isTrusted: e.isTrusted,
-                    target: e.target.tagName.toLowerCase(),
-                    position: { x: e.clientX, y: e.clientY }
-                });
-            });
-
-            // Mouse over (hover dwell)
-            containerEl.addEventListener('mouseover', (e) => {
-                EventLogger.logEvent('mouseover', {
-                    isTrusted: e.isTrusted,
-                    target: e.target.tagName.toLowerCase()
-                });
-            });
-
-            // Mouse down
-            containerEl.addEventListener('mousedown', (e) => {
-                EventLogger.logEvent('mousedown', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container',
-                    position: { x: e.clientX, y: e.clientY },
-                    extra: { button: e.button }
-                });
-            });
-
-            // Mouse up
-            containerEl.addEventListener('mouseup', (e) => {
-                EventLogger.logEvent('mouseup', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container',
-                    position: { x: e.clientX, y: e.clientY },
-                    extra: { button: e.button }
-                });
-            });
-
-            // Additional pointer events
-            containerEl.addEventListener('pointerenter', (e) => {
-                EventLogger.logEvent('pointerenter', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container',
-                    extra: { pointerType: e.pointerType }
-                });
-            });
-
-            containerEl.addEventListener('pointerleave', (e) => {
-                EventLogger.logEvent('pointerleave', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox-container'
-                });
-            });
-
-            // CRITICAL: Enhanced change event logging
-            checkboxEl.addEventListener('change', (e) => {
-                EventLogger.sawChange = true;
-                
-                if (e.isTrusted) {
-                    EventLogger.sawTrustedChange = true;
-                } else {
-                    EventLogger.sawUntrustedChange = true;
-                }
-                
-                EventLogger.logEvent('change', {
-                    isTrusted: e.isTrusted,
-                    target: 'checkbox',
-                    extra: { 
-                        checked: e.target.checked,
-                        trustedChange: e.isTrusted
-                    }
-                });
-                
-                // Log warning if untrusted change
-                if (!e.isTrusted) {
-                    EventLogger.logEvent('change:UNTRUSTED_WARNING', {
-                        isTrusted: false,
-                        target: 'checkbox',
-                        extra: { 
-                            message: 'Change event was not user-initiated!',
-                            checked: e.target.checked
-                        }
-                    });
-                    console.warn('⚠️ UNTRUSTED CHANGE EVENT DETECTED!');
-                }
-            });
-
-            // Track document-level mouse movements for EventLogger
-            document.addEventListener('mousemove', (e) => {
-                if (!EventLogger.sawMouseMove) {
-                    EventLogger.sawMouseMove = true;
-                    EventLogger.logEvent('mousemove:first', {
-                        isTrusted: e.isTrusted,
-                        target: 'document',
-                        position: { x: e.clientX, y: e.clientY }
-                    });
-                }
-            }, { passive: true, once: true });
-
-            console.log('📡 Enhanced event listeners attached for telemetry');
         },
 
         setupLiveTelemetryDisplay() {
@@ -1240,34 +640,16 @@ Updated: ${elapsed}ms elapsed
         handleVerification() {
             BehaviorAnalyzer.stopLiveTelemetry();
             
-            // Log verification attempt
-            EventLogger.logEvent('verification:started', {
-                isTrusted: null,
-                target: 'challenge',
-                extra: { timestamp: Date.now() }
-            });
-            
             const timeToClick = Date.now() - BehaviorAnalyzer.startTime;
             const mouseBehavior = BehaviorAnalyzer.analyzeMouseBehavior();
-            
-            // === SIMPLIFIED VALIDATION: Just check minimum mouse movements ===
-            const minMouseMovements = 3; // Require at least 3 mouse movements
-            const mouseMovementCount = BehaviorAnalyzer.mouseMovements.length;
-            const hasEnoughMouseMovement = mouseMovementCount >= minMouseMovements;
-            
-            // Very relaxed timing - just not instant (50ms minimum)
-            const notInstant = timeToClick > 50;
 
             // === SAVE COMPLETE TELEMETRY FOR INVESTIGATION ===
             const telemetryData = {
                 timestamp: new Date().toISOString(),
                 verification: {
                     timeToClick,
-                    timingValid: true, // Relaxed - not used for validation
-                    notInstant: notInstant,
-                    mouseMovementCount,
-                    minMouseMovements,
-                    hasEnoughMouseMovement
+                    timingValid: timeToClick > 300 && timeToClick < 30000,
+                    notInstant: timeToClick > 100
                 },
                 mouseAnalysis: mouseBehavior,
                 rawMouseData: BehaviorAnalyzer.mouseMovements.map(m => ({
@@ -1276,12 +658,6 @@ Updated: ${elapsed}ms elapsed
                     t: m.t,
                     dt: m.t - BehaviorAnalyzer.startTime
                 })),
-                // Include EventLogger data
-                eventChain: {
-                    timeline: EventLogger.getTimeline(),
-                    summary: EventLogger.getSummary(),
-                    flags: EventLogger.getFlags()
-                },
                 browserInfo: {
                     userAgent: navigator.userAgent,
                     platform: navigator.platform,
@@ -1298,28 +674,19 @@ Updated: ${elapsed}ms elapsed
                 checkboxHovered: BehaviorAnalyzer.checkboxHovered
             };
 
-            // === SIMPLIFIED VALIDATION CRITERIA ===
-            // Only check: has at least 3 mouse movements AND not instant click
-            const passed = hasEnoughMouseMovement && notInstant;
+            // Validation criteria
+            const timingValid = timeToClick > 300 && timeToClick < 30000;
+            const mouseValid = mouseBehavior.passed;
+            const notInstant = timeToClick > 100;
             
             telemetryData.finalDecision = {
-                passed,
-                hasEnoughMouseMovement,
-                mouseMovementCount,
-                minMouseMovements,
+                passed: timingValid && mouseValid && notInstant,
+                timingValid,
+                mouseValid,
                 notInstant,
-                timeToClick,
-                // Keep original analysis for telemetry/investigation only
-                originalScore: mouseBehavior.score,
-                originalPassed: mouseBehavior.passed
+                finalScore: mouseBehavior.score,
+                requiredScore: CONFIG.minScore
             };
-            
-            // Log final decision
-            EventLogger.logEvent('verification:decision', {
-                isTrusted: null,
-                target: 'challenge',
-                extra: telemetryData.finalDecision
-            });
 
             // Save to sessionStorage for investigation
             try {
@@ -1338,80 +705,33 @@ Updated: ${elapsed}ms elapsed
 
             console.log('📊 Verification Analysis:', {
                 timeToClick: timeToClick + 'ms',
-                mouseMovementCount,
-                hasEnoughMouseMovement,
-                passed,
                 mouseBehavior,
                 telemetryData
             });
-            
-            // === SEND TELEMETRY TO EXTERNAL ENDPOINT ===
-            // This does NOT affect the challenge flow
-            TelemetryBeacon.sendOnVerification({
-                passed: passed,
-                mouseMovementCount,
-                hasEnoughMouseMovement,
-                notInstant,
-                timeToClick,
-                // Include original analysis for investigation
-                originalScore: mouseBehavior.score,
-                originalReason: mouseBehavior.reason,
-                eventFlags: EventLogger.getFlags()
-            });
 
-            if (passed) {
+            if (timingValid && mouseValid && notInstant) {
                 // Success!
-                EventLogger.logEvent('verification:passed', {
-                    isTrusted: null,
-                    target: 'challenge',
-                    extra: { 
-                        mouseMovementCount,
-                        timeToClick
-                    }
-                });
-                
                 const token = BehaviorAnalyzer.generateToken(mouseBehavior);
                 sessionStorage.setItem(CONFIG.tokenKey, token);
                 
-                console.log('✅ Challenge passed - mouse movements:', mouseMovementCount);
+                console.log('✅ Challenge passed - score:', mouseBehavior.score);
                 console.log('🔍 Investigate with: window.EmbeddedChallenge.getTelemetry()');
                 this.showSuccess(() => {
                     this.showContent();
                 });
             } else {
                 // Failed
-                const failReason = !hasEnoughMouseMovement 
-                    ? `Insufficient mouse movement (${mouseMovementCount}/${minMouseMovements})`
-                    : 'Click was too instant';
-                    
-                EventLogger.logEvent('verification:failed', {
-                    isTrusted: null,
-                    target: 'challenge',
-                    extra: { 
-                        mouseMovementCount,
-                        hasEnoughMouseMovement,
-                        notInstant,
-                        failReason
-                    }
-                });
-                
                 console.warn('❌ Challenge failed:', {
-                    mouseMovementCount,
-                    hasEnoughMouseMovement,
+                    timingValid,
+                    mouseValid,
                     notInstant,
-                    failReason
+                    score: mouseBehavior.score
                 });
                 console.log('🔍 Investigate FP with: window.EmbeddedChallenge.getTelemetry()');
                 this.showBlocked({
-                    reason: failReason,
-                    score: mouseMovementCount,
-                    details: {
-                        mouseMovementCount,
-                        minMouseMovements,
-                        hasEnoughMouseMovement,
-                        notInstant,
-                        timeToClick
-                    }
+                    reason: mouseBehavior.reason,
+                    score: mouseBehavior.score,
+                    details: mouseBehavior.details
                 });
             }
         },
@@ -1665,90 +985,8 @@ Updated: ${elapsed}ms elapsed
         clearTelemetry: () => {
             sessionStorage.removeItem(CONFIG.telemetryKey);
             console.log('🗑️ Telemetry data cleared');
-        },
-        
-        // Event Timeline API
-        getEventTimeline: () => {
-            return EventLogger.getTimeline();
-        },
-        
-        getEventFlags: () => {
-            return EventLogger.getFlags();
-        },
-        
-        getEventSummary: () => {
-            return EventLogger.getSummary();
-        },
-        
-        // Telemetry Beacon API
-        beacon: {
-            /**
-             * Configure the telemetry beacon endpoint and settings
-             * @param {Object} options - Configuration options
-             * @param {string} options.endpoint - The URL to send telemetry to
-             * @param {number} options.delayMs - Delay in ms before sending (default: 7000)
-             * @param {boolean} options.enabled - Enable/disable beacon
-             */
-            configure: (options = {}) => {
-                if (options.endpoint !== undefined) {
-                    CONFIG.telemetryBeacon.endpoint = options.endpoint;
-                }
-                if (options.delayMs !== undefined) {
-                    CONFIG.telemetryBeacon.delayMs = options.delayMs;
-                }
-                if (options.enabled !== undefined) {
-                    CONFIG.telemetryBeacon.enabled = options.enabled;
-                }
-                if (options.paramName !== undefined) {
-                    CONFIG.telemetryBeacon.paramName = options.paramName;
-                }
-                console.log('📡 Beacon configured:', CONFIG.telemetryBeacon);
-            },
-
-            /**
-             * Get current beacon configuration
-             */
-            getConfig: () => {
-                return { ...CONFIG.telemetryBeacon };
-            },
-
-            /**
-             * Send telemetry immediately (useful for testing)
-             */
-            sendNow: () => {
-                TelemetryBeacon.sendNow('manual');
-            },
-
-            /**
-             * Cancel scheduled beacon
-             */
-            cancel: () => {
-                TelemetryBeacon.cancel();
-            },
-
-            /**
-             * Check if beacon has been sent
-             */
-            isSent: () => {
-                return TelemetryBeacon.sent;
-            },
-
-            /**
-             * Get the payload that would be sent (for debugging)
-             */
-            getPayload: () => {
-                return TelemetryBeacon.buildPayload('debug');
-            },
-
-            /**
-             * Get the encoded payload (for debugging)
-             */
-            getEncodedPayload: () => {
-                const payload = TelemetryBeacon.buildPayload('debug');
-                return TelemetryBeacon.encodePayload(payload);
-            }
         }
     };
 
-    console.log('🛡️ Embedded Challenge loaded (with enhanced telemetry v2.1)');
+    console.log('🛡️ Embedded Challenge loaded');
 })();
