@@ -11,3 +11,4 @@ export { ActiveMeasurementsDetector, ACTIVE_MEASUREMENTS_CONFIG } from './active
 export { initCdpSignals } from './cdpSignals.js';
 export { AudioFingerprintDetector, AUDIO_CONFIG } from './audioFingerprint.js';
 export { WebRTCLeakDetector, WEBRTC_CONFIG } from './webRTCLeak.js';
+export { WebGLFingerprintDetector } from './webGLfingerprint.js';

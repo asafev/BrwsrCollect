@@ -408,6 +408,7 @@
         .section-security { border-left-color: #e83e8c; }
         .section-aiAgentDetection { border-left-color: #ff6b6b; }
         .section-webRTCLeak { border-left-color: #17becf; }
+        .section-webgl { border-left-color: #9c27b0; }
 
         .metrics-table td {
             padding: 0.6rem 0.75rem;
@@ -1188,8 +1189,26 @@
             const valueCell = document.createElement('td');
             const valueDiv = document.createElement('div');
             valueDiv.className = 'metric-value';
-            valueDiv.textContent = formatValue(data.value);
-            valueDiv.title = String(data.value); // Full value on hover
+            
+            // Special handling for WebGL image data URL
+            if (name === 'imageDataUrl' && category === 'webgl' && typeof data.value === 'string' && data.value.startsWith('data:image')) {
+                // Create image element instead of text
+                const img = document.createElement('img');
+                img.src = data.value;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.border = '1px solid #dee2e6';
+                img.style.borderRadius = '4px';
+                img.title = 'WebGL Rendered Scene';
+                valueDiv.style.maxWidth = 'none';
+                valueDiv.style.overflow = 'visible';
+                valueDiv.innerHTML = '';
+                valueDiv.appendChild(img);
+            } else {
+                valueDiv.textContent = formatValue(data.value);
+                valueDiv.title = String(data.value); // Full value on hover
+            }
+            
             valueCell.appendChild(valueDiv);
 
             // Description
@@ -1238,7 +1257,8 @@
                 aiAgentDetection: '🕵️',
                 stringSignatureAutomation: '🔬',
                 behavioralIndicators: '🎯',
-                webRTCLeak: '📡'
+                webRTCLeak: '📡',
+                webgl: '🎨'
             };
             return icons[categoryName] || '📊';
         }
@@ -1468,7 +1488,8 @@
                 aiAgentDetection: '🕵️ AI Agent Detection',
                 stringSignatureAutomation: '🔬 String Signature Automation Detection',
                 behavioralIndicators: '🎯 Behavioral Indicators',
-                webRTCLeak: '📡 WebRTC Leak Test'
+                webRTCLeak: '📡 WebRTC Leak Test',
+                webgl: '🎨 WebGL Fingerprint'
             };
             return categoryNames[name] || name;
         }

@@ -16,6 +16,7 @@ import { BatteryStorageDetector } from './detectors/batteryStorage.js';
 import { ActiveMeasurementsDetector } from './detectors/activeMeasurements.js';
 import { AudioFingerprintDetector } from './detectors/audioFingerprint.js';
 import { WebRTCLeakDetector } from './detectors/webRTCLeak.js';
+import { WebGLFingerprintDetector } from './detectors/webGLfingerprint.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -585,6 +586,7 @@ class BrowserFingerprintAnalyzer {
         this.activeMeasurementsDetector = new ActiveMeasurementsDetector(options.activeMeasurements || {});
         this.audioFingerprintDetector = new AudioFingerprintDetector(options.audioFingerprint || {});
         this.webRTCLeakDetector = new WebRTCLeakDetector(options.webRTC || {});
+        this.webGLFingerprintDetector = new WebGLFingerprintDetector(options.webgl || {});
         
         // Configuration options
         this.options = {
@@ -678,6 +680,17 @@ class BrowserFingerprintAnalyzer {
         } catch (error) {
             console.warn('⚠️ WebRTC leak detection failed:', error.message);
             this.metrics.webRTCLeak = { error: { value: error.message, description: 'WebRTC leak detection error' } };
+        }
+
+        // Run WebGL Fingerprint detection (sync - collects WebGL parameters and image hash)
+        console.log('🎨 Analyzing WebGL fingerprint...');
+        try {
+            const webGLMetrics = await this.webGLFingerprintDetector.analyze();
+            this.metrics.webgl = webGLMetrics;
+            console.log('🎨 WebGL fingerprint analysis complete:', webGLMetrics);
+        } catch (error) {
+            console.warn('⚠️ WebGL fingerprint detection failed:', error.message);
+            this.metrics.webgl = { error: { value: error.message, description: 'WebGL fingerprint detection error' } };
         }
 
         // Run Media Devices enumeration (async - enumerates available media devices)
@@ -819,6 +832,14 @@ class BrowserFingerprintAnalyzer {
         try {
             const webRTCIndicators = this.webRTCLeakDetector.getSuspiciousIndicators();
             this.suspiciousIndicators = [...this.suspiciousIndicators, ...webRTCIndicators];
+        } catch (e) {
+            // Ignore if not available
+        }
+
+        // WebGL fingerprint indicators
+        try {
+            const webGLIndicators = this.webGLFingerprintDetector.getSuspiciousIndicators();
+            this.suspiciousIndicators = [...this.suspiciousIndicators, ...webGLIndicators];
         } catch (e) {
             // Ignore if not available
         }
@@ -2278,5 +2299,6 @@ export {
     BatteryStorageDetector,
     ActiveMeasurementsDetector,
     AudioFingerprintDetector,
-    WebRTCLeakDetector
+    WebRTCLeakDetector,
+    WebGLFingerprintDetector
 };
