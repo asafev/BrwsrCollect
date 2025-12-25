@@ -12,3 +12,8 @@ export { initCdpSignals } from './cdpSignals.js';
 export { AudioFingerprintDetector, AUDIO_CONFIG } from './audioFingerprint.js';
 export { WebRTCLeakDetector, WEBRTC_CONFIG } from './webRTCLeak.js';
 export { WebGLFingerprintDetector } from './webGLfingerprint.js';
+export { SpeechSynthesisDetector } from './speechSynthesis.js';
+export { LanguageDetector } from './languageDetector.js';
+export { CssComputedStyleDetector } from './cssComputedStyle.js';
+export { WorkerSignalsDetector } from './workerSignals.js';
+export { FontsDetector } from './fonts.js';

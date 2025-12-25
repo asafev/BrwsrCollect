@@ -17,6 +17,11 @@ import { ActiveMeasurementsDetector } from './detectors/activeMeasurements.js';
 import { AudioFingerprintDetector } from './detectors/audioFingerprint.js';
 import { WebRTCLeakDetector } from './detectors/webRTCLeak.js';
 import { WebGLFingerprintDetector } from './detectors/webGLfingerprint.js';
+import { SpeechSynthesisDetector } from './detectors/speechSynthesis.js';
+import { LanguageDetector } from './detectors/languageDetector.js';
+import { CssComputedStyleDetector } from './detectors/cssComputedStyle.js';
+import { WorkerSignalsDetector } from './detectors/workerSignals.js';
+import { FontsDetector } from './detectors/fonts.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -587,6 +592,11 @@ class BrowserFingerprintAnalyzer {
         this.audioFingerprintDetector = new AudioFingerprintDetector(options.audioFingerprint || {});
         this.webRTCLeakDetector = new WebRTCLeakDetector(options.webRTC || {});
         this.webGLFingerprintDetector = new WebGLFingerprintDetector(options.webgl || {});
+        this.speechSynthesisDetector = new SpeechSynthesisDetector(options.speechSynthesis || {});
+        this.languageDetector = new LanguageDetector();
+        this.cssComputedStyleDetector = new CssComputedStyleDetector();
+        this.workerSignalsDetector = new WorkerSignalsDetector(options.workerSignals || {});
+        this.fontsDetector = new FontsDetector(options.fonts || {});
         
         // Configuration options
         this.options = {
@@ -671,6 +681,40 @@ class BrowserFingerprintAnalyzer {
             this.metrics.audioFingerprint = { error: { value: error.message, description: 'Audio fingerprint detection error' } };
         }
 
+
+        // Run Speech Synthesis detection (async - waits for voices when available)
+        console.log('dY") Analyzing speech synthesis...');
+        try {
+            const speechMetrics = await this.speechSynthesisDetector.analyze();
+            this.metrics.speechSynthesis = speechMetrics;
+            console.log('dY") Speech synthesis analysis complete:', speechMetrics);
+        } catch (error) {
+            console.warn('?s??,? Speech synthesis detection failed:', error.message);
+            this.metrics.speechSynthesis = { error: { value: error.message, description: 'Speech synthesis detection error' } };
+        }
+
+        // Run Language detection (sync)
+        console.log('dY") Analyzing language signals...');
+        try {
+            const languageMetrics = this.languageDetector.analyze();
+            this.metrics.language = languageMetrics;
+            console.log('dY") Language analysis complete:', languageMetrics);
+        } catch (error) {
+            console.warn('?s??,? Language detection failed:', error.message);
+            this.metrics.language = { error: { value: error.message, description: 'Language detection error' } };
+        }
+
+        // Run CSS Computed Style detection (sync)
+        console.log('dY") Analyzing computed styles...');
+        try {
+            const cssMetrics = this.cssComputedStyleDetector.analyze();
+            this.metrics.cssComputedStyle = cssMetrics;
+            console.log('dY") Computed style analysis complete:', cssMetrics);
+        } catch (error) {
+            console.warn('?s??,? Computed style detection failed:', error.message);
+            this.metrics.cssComputedStyle = { error: { value: error.message, description: 'Computed style detection error' } };
+        }
+
         // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC)
         console.log('📡 Analyzing WebRTC leaks...');
         try {
@@ -680,6 +724,29 @@ class BrowserFingerprintAnalyzer {
         } catch (error) {
             console.warn('⚠️ WebRTC leak detection failed:', error.message);
             this.metrics.webRTCLeak = { error: { value: error.message, description: 'WebRTC leak detection error' } };
+        }
+
+
+        // Run Worker signals detection (async)
+        console.log('🔄 Analyzing worker signals...');
+        try {
+            const workerMetrics = await this.workerSignalsDetector.analyze();
+            this.metrics.workerSignals = workerMetrics;
+            console.log('🔄 Worker signals analysis complete:', workerMetrics);
+        } catch (error) {
+            console.warn('⚠️ Worker signals detection failed:', error.message);
+            this.metrics.workerSignals = { error: { value: error.message, description: 'Worker signals detection error' } };
+        }
+
+        // Run Fonts detection (async - tests installed fonts via FontFace.load)
+        console.log('🔤 Analyzing fonts...');
+        try {
+            const fontsMetrics = await this.fontsDetector.analyze();
+            this.metrics.fonts = fontsMetrics;
+            console.log('🔤 Fonts analysis complete:', fontsMetrics);
+        } catch (error) {
+            console.warn('⚠️ Fonts detection failed:', error.message);
+            this.metrics.fonts = { error: { value: error.message, description: 'Fonts detection error' } };
         }
 
         // Run WebGL Fingerprint detection (sync - collects WebGL parameters and image hash)
@@ -2300,5 +2367,9 @@ export {
     ActiveMeasurementsDetector,
     AudioFingerprintDetector,
     WebRTCLeakDetector,
-    WebGLFingerprintDetector
+    WebGLFingerprintDetector,
+    SpeechSynthesisDetector,
+    LanguageDetector,
+    CssComputedStyleDetector,
+    WorkerSignalsDetector
 };
