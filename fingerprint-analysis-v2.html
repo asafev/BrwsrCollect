@@ -179,7 +179,7 @@
                 }
                 
                 // ----------------------------------------
-                // Phase 2: Fingerprint Analysis
+                // Phase 2: Fingerprint Analysis with Real-Time Progress
                 // ----------------------------------------
                 if (createLoadingState) {
                     const analysisLoading = createLoadingState({
@@ -193,19 +193,45 @@
                     appContainer.innerHTML = '<div style="padding: 40px; text-align: center;"><h2>🔍 Analyzing Browser Fingerprint...</h2></div>';
                 }
                 
-                // Simulate progress during analysis
-                let analysisProgress = 0;
-                const analysisInterval = setInterval(() => {
-                    analysisProgress = Math.min(analysisProgress + 5, 95);
-                    if (updateLoadingProgress) {
-                        updateLoadingProgress(analysisProgress, 'Collecting browser characteristics...');
-                    }
-                }, 200);
-                
                 // Run fingerprint analysis
                 if (!BrowserFingerprintAnalyzer) {
                     throw new Error('BrowserFingerprintAnalyzer module failed to load');
                 }
+                
+                // Progress callback for real-time UI updates
+                const handleProgress = (progress) => {
+                    if (updateLoadingProgress) {
+                        updateLoadingProgress(progress.percentage, progress.message);
+                    }
+                    // Also update subtitle with completed phases info
+                    if (updateLoadingContent && progress.completedPhases) {
+                        const phaseNames = {
+                            core: '📊 Core Properties',
+                            network: '📡 Network',
+                            battery: '🔋 Battery/Storage',
+                            audio: '🔊 Audio',
+                            speech: '🗣️ Speech',
+                            language: '🌐 Language',
+                            css: '🎨 CSS Styles',
+                            webrtc: '📡 WebRTC',
+                            workers: '🔄 Workers',
+                            fonts: '🔤 Fonts',
+                            webgl: '🎨 WebGL',
+                            media: '🎤 Media Devices',
+                            activeMeasurements: '⚡ Network Speed',
+                            aiAgent: '🤖 AI Detection',
+                            stringSignature: '🔍 Automation Signatures',
+                            behavioral: '🎯 Behavioral',
+                            suspicious: '🚨 Risk Analysis'
+                        };
+                        const completedNames = progress.completedPhases
+                            .map(p => phaseNames[p] || p)
+                            .slice(-3) // Show last 3 completed
+                            .join(' → ');
+                        const subtitle = completedNames ? `✅ ${completedNames}` : progress.message;
+                        updateLoadingContent('Analyzing Browser Fingerprint...', subtitle);
+                    }
+                };
                 
                 const analyzer = new BrowserFingerprintAnalyzer({
                     enableActiveMeasurements: true,
@@ -213,13 +239,13 @@
                         downloadUrl: './network-test-3mb.bin',
                         expectedDownloadBytes: 3 * 1024 * 1024,
                         pingCount: 3
-                    }
+                    },
+                    networkTimeout: 5000, // 5 second timeout for network tests
+                    onProgress: handleProgress
                 });
                 
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
-                
-                clearInterval(analysisInterval);
                 
                 // ----------------------------------------
                 // Phase 3: Inject Behavioral Data

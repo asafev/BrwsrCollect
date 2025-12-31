@@ -699,7 +699,7 @@
                 console.log('✅ Behavioral data collected:', behavioralData);
                 
                 // ----------------------------------------
-                // Phase 2: Fingerprint Analysis
+                // Phase 2: Fingerprint Analysis with Real-Time Progress
                 // ----------------------------------------
                 const analysisLoading = createLoadingState({
                     title: 'Analyzing Browser Fingerprint...',
@@ -709,12 +709,10 @@
                 appContainer.innerHTML = '';
                 appContainer.appendChild(analysisLoading);
                 
-                // Simulate progress during analysis
-                let analysisProgress = 0;
-                const analysisInterval = setInterval(() => {
-                    analysisProgress = Math.min(analysisProgress + 5, 95);
-                    updateLoadingProgress(analysisProgress, 'Collecting browser characteristics...');
-                }, 200);
+                // Progress callback for real-time UI updates
+                const handleProgress = (progress) => {
+                    updateLoadingProgress(progress.percentage, progress.message);
+                };
                 
                 // Run fingerprint analysis
                 const analyzer = new BrowserFingerprintAnalyzer({
@@ -723,20 +721,21 @@
                         downloadUrl: './network-test-3mb.bin',
                         expectedDownloadBytes: 3 * 1024 * 1024,
                         pingCount: 3
-                    }
+                    },
+                    networkTimeout: 5000, // 5 second timeout for network tests
+                    onProgress: handleProgress
                 });
                 
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
                 
-                clearInterval(analysisInterval);
-                
                 // ----------------------------------------
                 // Phase 3: Inject Behavioral Data
                 // ----------------------------------------
-                fingerprintData.metrics.behavioralIndicators = behavioralData.indicators;
-                fingerprintData.behavioralSummary = behavioralData.summary;
-                fingerprintData.behavioralMetadata = behavioralData.metadata;
+                fingerprintData.metrics = fingerprintData.metrics || {};
+                fingerprintData.metrics.behavioralIndicators = behavioralData.indicators || {};
+                fingerprintData.behavioralSummary = behavioralData.summary || {};
+                fingerprintData.behavioralMetadata = behavioralData.metadata || {};
                 
                 // Add raw behavioral telemetry as separate metrics category
                 fingerprintData.metrics.behavioralTelemetry = {};
@@ -791,7 +790,14 @@
         // ============================================================
         // START APPLICATION
         // ============================================================
-        document.addEventListener('DOMContentLoaded', initializeAnalysis);
+        // Note: Since we use top-level await for imports, DOMContentLoaded may have 
+        // already fired by the time the module finishes loading. Check and run immediately.
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeAnalysis);
+        } else {
+            // DOM is already ready, run immediately
+            initializeAnalysis();
+        }
     </script>
 </body>
 </html>

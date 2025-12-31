@@ -349,13 +349,17 @@
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
                 
-                // Update UI for fingerprint analysis phase
+                // Update UI for fingerprint analysis phase with progress tracking
                 if (statusEl) {
                     statusEl.className = 'analyzing';
                     statusEl.innerHTML = `
                         <div class="collecting-emoji">🔍</div>
-                        <h2>Analyzing Browser Fingerprint...</h2>
-                        <p>Processing ${Object.keys(behavioralData.indicators || {}).length} behavioral indicators</p>
+                        <h2 id="analysis-title">Analyzing Browser Fingerprint...</h2>
+                        <p id="analysis-status">Starting analysis...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="analysis-progress" style="width: 0%;"></div>
+                        </div>
+                        <p id="analysis-detail" style="font-size: 12px; color: #888; margin-top: 10px;">Initializing detectors...</p>
                     `;
                 }
                 
@@ -364,6 +368,31 @@
                     throw new Error('BrowserFingerprintAnalyzer module failed to load');
                 }
                 
+                // Progress callback for real-time UI updates
+                const handleProgress = (progress) => {
+                    const progressBar = document.getElementById('analysis-progress');
+                    const statusText = document.getElementById('analysis-status');
+                    const detailText = document.getElementById('analysis-detail');
+                    
+                    if (progressBar) {
+                        progressBar.style.width = `${progress.percentage}%`;
+                    }
+                    if (statusText) {
+                        statusText.textContent = progress.message || 'Analyzing...';
+                    }
+                    if (detailText && progress.completedPhases) {
+                        const phaseEmojis = {
+                            core: '📊', network: '📡', battery: '🔋', audio: '🔊',
+                            speech: '🗣️', language: '🌐', css: '🎨', webrtc: '📡',
+                            workers: '🔄', fonts: '🔤', webgl: '🎨', media: '🎤',
+                            activeMeasurements: '⚡', aiAgent: '🤖', stringSignature: '🔍',
+                            behavioral: '🎯', suspicious: '🚨'
+                        };
+                        const completed = progress.completedPhases.map(p => phaseEmojis[p] || '✓').join(' ');
+                        detailText.textContent = `Completed: ${completed} (${progress.completedPhases.length}/${progress.totalPhases})`;
+                    }
+                };
+                
                 console.log('🔍 Running fingerprint analysis...');
                 const analyzer = new BrowserFingerprintAnalyzer({
                     enableActiveMeasurements: true,
@@ -371,7 +400,9 @@
                         downloadUrl: './network-test-3mb.bin',
                         expectedDownloadBytes: 3 * 1024 * 1024, // 3MB
                         pingCount: 3
-                    }
+                    },
+                    networkTimeout: 5000, // 5 second timeout for network tests
+                    onProgress: handleProgress
                 });
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();

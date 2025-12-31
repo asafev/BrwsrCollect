@@ -649,6 +649,10 @@ class BrowserFingerprintAnalyzer {
         this.timestamp = Date.now();
         this.errors = []; // Track errors during analysis
         
+        // Progress callback for UI updates
+        this.onProgress = options.onProgress || null;
+        this.completedPhases = [];
+        
         // Initialize detectors with safe instantiation
         this.suspiciousIndicatorDetector = this._safeCreateDetector(() => new SuspiciousIndicatorDetector(), 'SuspiciousIndicatorDetector');
         this.aiAgentDetector = this._safeCreateDetector(() => new AIAgentDetector(), 'AIAgentDetector');
@@ -673,8 +677,47 @@ class BrowserFingerprintAnalyzer {
             // Enable/disable active measurements (may take time and make network requests)
             enableActiveMeasurements: options.enableActiveMeasurements ?? false,
             // Custom URLs for active measurements
-            activeMeasurements: options.activeMeasurements || {}
+            activeMeasurements: options.activeMeasurements || {},
+            // Timeout for network measurements (default 5 seconds)
+            networkTimeout: options.networkTimeout ?? 5000
         };
+    }
+
+    /**
+     * Report progress to callback if available
+     * @private
+     */
+    _reportProgress(phase, status, details = {}) {
+        if (status === 'complete' || status === 'skipped' || status === 'error') {
+            this.completedPhases.push(phase);
+        }
+        if (this.onProgress) {
+            try {
+                this.onProgress({
+                    phase,
+                    status, // 'starting', 'complete', 'error', 'skipped'
+                    completedPhases: [...this.completedPhases],
+                    totalPhases: 16, // Total number of analysis phases
+                    percentage: Math.round((this.completedPhases.length / 16) * 100),
+                    ...details
+                });
+            } catch (e) {
+                console.warn('Progress callback error:', e.message);
+            }
+        }
+    }
+
+    /**
+     * Wrap an async operation with a timeout
+     * @private
+     */
+    _withTimeout(promise, timeoutMs, operationName) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
+            )
+        ]);
     }
 
     /**
@@ -698,8 +741,10 @@ class BrowserFingerprintAnalyzer {
      */
     async analyzeFingerprint() {
         console.log('🔍 Starting comprehensive browser fingerprint analysis...');
+        this._reportProgress('initialization', 'starting', { message: 'Starting fingerprint analysis...' });
         
         // Initialize metrics with safe analysis calls
+        this._reportProgress('core', 'starting', { message: 'Analyzing core browser properties...' });
         this.metrics = {
             // Core Navigator Properties
             navigator: safeAnalysis(() => this._analyzeNavigator(), 'Navigator'),
@@ -734,8 +779,10 @@ class BrowserFingerprintAnalyzer {
             // API Override Detection
             apiOverrides: safeAnalysis(() => this._analyzeAPIOverrides(), 'API Overrides')
         };
+        this._reportProgress('core', 'complete', { message: 'Core browser properties analyzed' });
 
         // Run Network Capabilities detection (passive, from Connection API)
+        this._reportProgress('network', 'starting', { message: 'Analyzing network capabilities...' });
         console.log('📡 Analyzing network capabilities...');
         if (this.networkCapabilitiesDetector) {
             try {
@@ -749,8 +796,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.networkCapabilities = { error: { value: 'Detector not available', description: 'Network capabilities detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('network', 'complete', { message: 'Network capabilities analyzed' });
 
         // Run Battery and Storage detection (async APIs)
+        this._reportProgress('battery', 'starting', { message: 'Analyzing battery and storage...' });
         console.log('🔋 Analyzing battery and storage...');
         if (this.batteryStorageDetector) {
             try {
@@ -764,8 +813,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.batteryStorage = { error: { value: 'Detector not available', description: 'Battery/storage detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('battery', 'complete', { message: 'Battery and storage analyzed' });
 
         // Run Audio Fingerprint detection (async, uses OfflineAudioContext)
+        this._reportProgress('audio', 'starting', { message: 'Analyzing audio fingerprint...' });
         console.log('🔊 Analyzing audio fingerprint...');
         if (this.audioFingerprintDetector) {
             try {
@@ -779,9 +830,11 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.audioFingerprint = { error: { value: 'Detector not available', description: 'Audio fingerprint detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('audio', 'complete', { message: 'Audio fingerprint analyzed' });
 
 
         // Run Speech Synthesis detection (async - waits for voices when available)
+        this._reportProgress('speech', 'starting', { message: 'Analyzing speech synthesis...' });
         console.log('🗣️ Analyzing speech synthesis...');
         if (this.speechSynthesisDetector) {
             try {
@@ -795,8 +848,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.speechSynthesis = { error: { value: 'Detector not available', description: 'Speech synthesis detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('speech', 'complete', { message: 'Speech synthesis analyzed' });
 
         // Run Language detection (sync)
+        this._reportProgress('language', 'starting', { message: 'Analyzing language signals...' });
         console.log('🌐 Analyzing language signals...');
         if (this.languageDetector) {
             try {
@@ -810,8 +865,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.language = { error: { value: 'Detector not available', description: 'Language detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('language', 'complete', { message: 'Language signals analyzed' });
 
         // Run CSS Computed Style detection (sync)
+        this._reportProgress('css', 'starting', { message: 'Analyzing computed styles...' });
         console.log('🎨 Analyzing computed styles...');
         if (this.cssComputedStyleDetector) {
             try {
@@ -825,8 +882,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.cssComputedStyle = { error: { value: 'Detector not available', description: 'CSS computed style detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('css', 'complete', { message: 'Computed styles analyzed' });
 
         // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC)
+        this._reportProgress('webrtc', 'starting', { message: 'Analyzing WebRTC leaks...' });
         console.log('📡 Analyzing WebRTC leaks...');
         if (this.webRTCLeakDetector) {
             try {
@@ -840,8 +899,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.webRTCLeak = { error: { value: 'Detector not available', description: 'WebRTC leak detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('webrtc', 'complete', { message: 'WebRTC leaks analyzed' });
 
         // Run Worker signals detection (async)
+        this._reportProgress('workers', 'starting', { message: 'Analyzing worker signals...' });
         console.log('🔄 Analyzing worker signals...');
         if (this.workerSignalsDetector) {
             try {
@@ -855,8 +916,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.workerSignals = { error: { value: 'Detector not available', description: 'Worker signals detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('workers', 'complete', { message: 'Worker signals analyzed' });
 
         // Run Fonts detection (async - tests installed fonts via FontFace.load)
+        this._reportProgress('fonts', 'starting', { message: 'Analyzing fonts...' });
         console.log('🔤 Analyzing fonts...');
         if (this.fontsDetector) {
             try {
@@ -870,8 +933,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.fonts = { error: { value: 'Detector not available', description: 'Fonts detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('fonts', 'complete', { message: 'Fonts analyzed' });
 
         // Run WebGL Fingerprint detection (sync - collects WebGL parameters and image hash)
+        this._reportProgress('webgl', 'starting', { message: 'Analyzing WebGL fingerprint...' });
         console.log('🎨 Analyzing WebGL fingerprint...');
         if (this.webGLFingerprintDetector) {
             try {
@@ -885,8 +950,10 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.webgl = { error: { value: 'Detector not available', description: 'WebGL fingerprint detector failed to initialize', risk: 'N/A' } };
         }
+        this._reportProgress('webgl', 'complete', { message: 'WebGL fingerprint analyzed' });
 
         // Run Media Devices enumeration (async - enumerates available media devices)
+        this._reportProgress('media', 'starting', { message: 'Analyzing media devices...' });
         console.log('🎤 Analyzing media devices...');
         try {
             const mediaDevicesMetrics = await this._analyzeMediaDevices();
@@ -896,12 +963,19 @@ class BrowserFingerprintAnalyzer {
             console.warn('⚠️ Media devices detection failed:', error.message);
             this.metrics.mediaDevices = { error: { value: error.message, description: 'Media devices detection error', risk: 'N/A' } };
         }
+        this._reportProgress('media', 'complete', { message: 'Media devices analyzed' });
 
-        // Run Active Network Measurements (optional, makes network requests)
+        // Run Active Network Measurements (optional, makes network requests) - WITH TIMEOUT
         if (this.options.enableActiveMeasurements && this.activeMeasurementsDetector) {
+            this._reportProgress('activeMeasurements', 'starting', { message: 'Running network speed test (may take a few seconds)...' });
             console.log('⚡ Running active network measurements...');
             try {
-                const activeMeasurements = await this.activeMeasurementsDetector.analyze(this.options.activeMeasurements);
+                // Use timeout to prevent indefinite blocking
+                const activeMeasurements = await this._withTimeout(
+                    this.activeMeasurementsDetector.analyze(this.options.activeMeasurements),
+                    this.options.networkTimeout,
+                    'Network speed test'
+                );
                 this.metrics.activeMeasurements = activeMeasurements;
                 
                 // Compare with Connection API if available
@@ -911,13 +985,21 @@ class BrowserFingerprintAnalyzer {
                 }
                 
                 console.log('⚡ Active network measurements complete:', activeMeasurements);
+                this._reportProgress('activeMeasurements', 'complete', { message: 'Network speed test complete' });
             } catch (error) {
                 console.warn('⚠️ Active measurements failed:', error.message);
-                this.metrics.activeMeasurements = { error: { value: error.message, description: 'Active measurement error' } };
+                this.metrics.activeMeasurements = { 
+                    error: { value: error.message, description: 'Active measurement error (timed out or failed)', risk: 'N/A' },
+                    skipped: { value: true, description: 'Network test was skipped due to timeout or error', risk: 'N/A' }
+                };
+                this._reportProgress('activeMeasurements', 'error', { message: 'Network test skipped (timeout/error)', error: error.message });
             }
+        } else {
+            this._reportProgress('activeMeasurements', 'skipped', { message: 'Network speed test disabled' });
         }
 
         // Run AI Agent Detection
+        this._reportProgress('aiAgent', 'starting', { message: 'Running AI agent detection...' });
         console.log('🤖 Running AI Agent detection...');
         let aiAgentResults = { success: false, error: 'Detector not available' };
         if (this.aiAgentDetector) {
@@ -936,8 +1018,10 @@ class BrowserFingerprintAnalyzer {
                 aiAgentResults = { success: false, error: error.message };
             }
         }
+        this._reportProgress('aiAgent', 'complete', { message: 'AI agent detection complete' });
 
         // Run String Signature Automation Detection
+        this._reportProgress('stringSignature', 'starting', { message: 'Running automation signature detection...' });
         console.log('🔍 Running String Signature Automation Detection...');
         let stringSignatureResults = { totalDetected: 0, indicators: [] };
         if (this.stringSignatureDetector) {
@@ -950,12 +1034,16 @@ class BrowserFingerprintAnalyzer {
                 console.warn('⚠️ String Signature detection failed:', error.message);
             }
         }
+        this._reportProgress('stringSignature', 'complete', { message: 'Automation signature detection complete' });
 
         // Collect Behavioral Indicators from stored data
+        this._reportProgress('behavioral', 'starting', { message: 'Analyzing behavioral indicators...' });
         console.log('🎯 Collecting behavioral indicators...');
         this.metrics.behavioralIndicators = safeAnalysis(() => this._analyzeBehavioralIndicators(), 'Behavioral Indicators');
+        this._reportProgress('behavioral', 'complete', { message: 'Behavioral indicators analyzed' });
 
         // Analyze suspicious indicators (includes both original and AI agent indicators)
+        this._reportProgress('suspicious', 'starting', { message: 'Finalizing analysis...' });
         let suspiciousResults = { indicators: [], shouldShow: false, reasoning: 'Analysis not available' };
         if (this.suspiciousIndicatorDetector) {
             try {
@@ -1002,6 +1090,7 @@ class BrowserFingerprintAnalyzer {
         }
         
         this.suspiciousAnalysis = suspiciousResults; // Full analysis including reasoning
+        this._reportProgress('suspicious', 'complete', { message: 'Analysis complete!' });
 
         this.analysisComplete = true;
         console.log('✅ Browser fingerprint analysis complete:', this.metrics);
