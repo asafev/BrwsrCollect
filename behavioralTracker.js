@@ -9,7 +9,7 @@ import { BehavioralIndicatorsDetector } from './behavioralDetector.js';
 
 export class StandaloneBehavioralTracker {
     constructor(options = {}) {
-        this.duration = options.duration || 4000; // 4 seconds default
+        this.duration = options.duration || 1000; // 4 seconds default
         this.storagePrefix = options.storagePrefix || 'fp_behavioral_'; // Different from lab's prefix
         this.enabled = false;
         this.startTime = 0;

@@ -197,7 +197,7 @@
             <div class="progress-bar">
                 <div class="progress-fill" id="progress"></div>
             </div>
-            <p id="countdown">Time remaining: 7s</p>
+            <p id="countdown">Time remaining: 1s</p>
             <div class="stats" id="stats" style="display: none;">
                 <div class="stat-card">
                     <div class="value" id="stat-mouse">0</div>
@@ -263,15 +263,15 @@
                 
                 // Create behavioral tracker
                 const behavioralTracker = new StandaloneBehavioralTracker({ 
-                    duration: 4000 // 4 seconds
+                    duration: 1000 // 4 seconds
                 });
                 
                 // Update UI every 100ms
                 const startTime = Date.now();
                 const updateInterval = setInterval(() => {
                     const elapsed = Date.now() - startTime;
-                    const remaining = Math.max(0, 7 - Math.floor(elapsed / 1000));
-                    const percentage = Math.min((elapsed / 4000) * 100, 100);
+                    const remaining = Math.max(0, 1 - Math.floor(elapsed / 1000));
+                    const percentage = Math.min((elapsed / 1000) * 100, 100);
                     
                     if (countdownEl) {
                         countdownEl.textContent = `Time remaining: ${remaining}s - Keep interacting!`;

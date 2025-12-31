@@ -665,12 +665,12 @@
                 
                 // Create standalone behavioral tracker
                 const behavioralTracker = new StandaloneBehavioralTracker({ 
-                    duration: 4000 // 4 seconds
+                    duration: 1000 // 4 seconds
                 });
                 
                 // Update UI with countdown and progress
                 const startTime = Date.now();
-                const totalDuration = 4000;
+                const totalDuration = 1000;
                 
                 const countdownInterval = setInterval(() => {
                     const elapsed = Date.now() - startTime;
