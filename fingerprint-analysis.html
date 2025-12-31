@@ -3,12 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browser Fingerprint Analysis</title>
+    <title>Browser Fingerprint Analysis | Enterprise Security Dashboard</title>
     
     <!-- Bot Protection - MUST LOAD FIRST! -->
     <!-- <script src="isHuman/bp.js"></script> -->
     
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Modern fonts for enterprise look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- NEW: Modular Fingerprint Analysis Styles -->
+    <link rel="stylesheet" href="fingerprint-ui/styles/fingerprint-analysis.css">
+    
+    <!-- Legacy styles (kept for any custom overrides) -->
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    
     <style>
         /* Fingerprint Page Specific Styles */
         .fingerprint-container {
@@ -598,200 +613,55 @@
         }
     </style>
 </head>
-<body>
-    <button class="back-button" onclick="window.history.back()">
-        ← Back to Lab
+<body class="fp-page">
+    <!-- Back Navigation -->
+    <button class="fp-back-btn" onclick="window.history.back()" aria-label="Go back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Back to Lab</span>
     </button>
 
-    <div class="fingerprint-container">
-        <div class="fingerprint-header">
-            <h1>🔍 Browser Fingerprint Analysis</h1>
-            <p>Comprehensive browser characteristics and automation detection metrics</p>
-        </div>
-
-        <div id="loading-state" class="loading-state">
-            <div class="loading-spinner"></div>
-            <h3>Analyzing Browser Fingerprint...</h3>
-            <p>Collecting and processing browser characteristics</p>
-        </div>
-
-        <div id="fingerprint-content" style="display: none;">
-            <!-- Summary Cards -->
-            <div class="summary-cards">
-                <div class="summary-card">
-                    <h3>Total Metrics</h3>
-                    <div class="value" id="total-metrics">0</div>
-                    <div class="description">Browser characteristics analyzed</div>
-                </div>
-                <div class="summary-card">
-                    <h3>Risk Level</h3>
-                    <div class="value" id="risk-level">-</div>
-                    <div class="description">Overall automation risk assessment</div>
-                </div>
-                <div class="summary-card">
-                    <h3>High Risk Indicators</h3>
-                    <div class="value risk-high" id="high-risk-count">0</div>
-                    <div class="description">Critical automation indicators</div>
-                </div>
-                <div class="summary-card">
-                    <h3>Automation Likelihood</h3>
-                    <div class="value" id="automation-likelihood">-</div>
-                    <div class="description">Probability of automated browsing</div>
-                </div>
-            </div>
-
-            <!-- Suspicious Indicators Section -->
-            <div class="suspicious-indicators-section" id="suspicious-indicators-section">
-                <div class="suspicious-indicators-header" id="suspicious-header">
-                    <h3 id="suspicious-title">🚨 Suspicious Browser Patterns Detected</h3>
-                    <p id="suspicious-subtitle">Patterns that may indicate sandbox environments or automation tools</p>
-                    <div class="indicators-summary" id="indicators-summary">
-                        <div class="summary-stat">
-                            <span class="number" id="total-suspicious">0</span>
-                            <span class="label">Total Indicators</span>
-                        </div>
-                        <div class="summary-stat">
-                            <span class="number" id="high-risk-suspicious">0</span>
-                            <span class="label">High Risk</span>
-                        </div>
-                        <div class="summary-stat">
-                            <span class="number" id="suspicion-score">0%</span>
-                            <span class="label">Suspicion Score</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="indicators-list" id="indicators-list">
-                    <!-- Indicators will be populated here -->
-                </div>
-            </div>
-
-            <!-- Behavioral Indicators Section -->
-            <div class="behavioral-indicators-section" id="behavioral-indicators-section">
-                <div class="behavioral-indicators-header" id="behavioral-header">
-                    <h3 id="behavioral-title">🎯 Behavioral Analysis</h3>
-                    <p id="behavioral-subtitle">Analysis of user interaction patterns and behavioral indicators</p>
-                    <div class="indicators-summary" id="behavioral-summary">
-                        <div class="summary-stat">
-                            <span class="number" id="behavioral-detected">0</span>
-                            <span class="label">Detected Patterns</span>
-                        </div>
-                        <div class="summary-stat">
-                            <span class="number" id="behavioral-confidence">0%</span>
-                            <span class="label">Max Confidence</span>
-                        </div>
-                        <div class="summary-stat">
-                            <span class="number" id="behavioral-risk">None</span>
-                            <span class="label">Risk Level</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="behavioral-list" id="behavioral-list">
-                    <!-- Behavioral indicators will be populated here -->
-                </div>
-            </div>
-
-            <!-- Export Controls -->
-            <div class="export-controls">
-                <button class="export-btn" onclick="exportFingerprintData('json')">
-                    📄 Export JSON
-                </button>
-                <button class="export-btn" onclick="exportFingerprintData('csv')">
-                    📊 Export CSV
-                </button>
-            </div>
-
-            <!-- Metrics Table -->
-            <div class="metrics-table-container">
-                <table class="metrics-table" id="metrics-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Metric Name</th>
-                            <th>Value</th>
-                            <th>Description</th>
-                            <th>JavaScript Code</th>
-                            <th>Risk</th>
-                        </tr>
-                    </thead>
-                    <tbody id="metrics-table-body">
-                        <!-- Metrics will be populated here -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Metrics Grid (Hidden) -->
-            <div class="metrics-grid" id="metrics-grid" style="display: none;">
-                <!-- Old grid layout hidden -->
-            </div>
-        </div>
+    <!-- Main Container - Uses new modular UI -->
+    <div class="fp-container" id="fp-app">
+        <!-- Content will be dynamically rendered by the modular UI system -->
     </div>
 
+    <!-- Main Application Script (Using New Modular UI) -->
     <script type="module">
+        // Import dependencies
         import { BrowserFingerprintAnalyzer } from './browserFingerprint.js';
-        import { BehavioralStorageManager } from './behavioralStorage.js';
         import { StandaloneBehavioralTracker } from './behavioralTracker.js';
-
-        let fingerprintData = null;
         
-        // Helper function to get telemetry metric descriptions
-        function getTelemetryDescription(key) {
-            const descriptions = {
-                totalMouseMoves: 'Total number of mouse movement events tracked',
-                totalClicks: 'Total number of click events recorded',
-                totalScrolls: 'Total number of scroll events recorded',
-                totalMouseDistance: 'Total distance traveled by mouse cursor in pixels',
-                averageMouseVelocity: 'Average mouse movement velocity (pixels/ms)',
-                maxMouseVelocity: 'Maximum mouse movement velocity (pixels/ms)',
-                mouseMovementCount: 'Number of discrete mouse movements tracked',
-                averageClickInterval: 'Average time between clicks in milliseconds',
-                clickRate: 'Number of clicks per second',
-                totalScrollDistance: 'Total scroll distance in pixels',
-                averageScrollDistance: 'Average distance per scroll event in pixels',
-                averageScrollInterval: 'Average time between scroll events in milliseconds',
-                scrollRate: 'Number of scroll events per second',
-                collectionDurationMs: 'Total behavioral data collection duration in milliseconds',
-                collectionDurationSec: 'Total behavioral data collection duration in seconds',
-                eventsPerSecond: 'Total interaction events (mouse + click + scroll) per second',
-                mouseToClickRatio: 'Ratio of mouse movements to clicks',
-                hasMouseActivity: 'Whether any mouse movement was detected',
-                hasClickActivity: 'Whether any click events were detected',
-                hasScrollActivity: 'Whether any scroll events were detected'
-            };
-            return descriptions[key] || 'Behavioral telemetry metric';
-        }
-
-        // Initialize fingerprint analysis WITH behavioral tracking
+        // Import UI modules
+        import { FingerprintUIRenderer, getTelemetryDescription } from './fingerprint-ui/FingerprintRenderer.js';
+        import { 
+            createBehavioralLoadingState, 
+            createLoadingState,
+            updateLoadingProgress, 
+            updateBehavioralStats,
+            createErrorState 
+        } from './fingerprint-ui/components/Loading.js';
+        
+        // ============================================================
+        // GLOBAL STATE
+        // ============================================================
+        let fingerprintData = null;
+        let uiRenderer = null;
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
         async function initializeAnalysis() {
-            const loadingState = document.getElementById('loading-state');
+            const appContainer = document.getElementById('fp-app');
             
             try {
-                // Phase 1: Collect behavioral data for 7 seconds
-                loadingState.innerHTML = `
-                    <div class="loading-spinner"></div>
-                    <h3>Collecting Behavioral Data...</h3>
-                    <p style="font-size: 16px; margin: 15px 0; color: #667eea;">
-                        <strong>🖱️ Please interact with the page!</strong><br>
-                        Move your mouse, click anywhere, scroll if possible
-                    </p>
-                    <div style="width: 100%; max-width: 400px; height: 8px; background: #e0e0e0; border-radius: 4px; margin: 20px auto; overflow: hidden;">
-                        <div id="behavioral-progress" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.1s linear;"></div>
-                    </div>
-                    <p id="behavioral-countdown" style="font-size: 18px; font-weight: bold; color: #333;">Time remaining: 7s</p>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 500px; margin: 20px auto;">
-                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div id="stat-mouse" style="font-size: 24px; font-weight: bold; color: #667eea;">0</div>
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Mouse Moves</div>
-                        </div>
-                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div id="stat-clicks" style="font-size: 24px; font-weight: bold; color: #667eea;">0</div>
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Clicks</div>
-                        </div>
-                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div id="stat-scrolls" style="font-size: 24px; font-weight: bold; color: #667eea;">0</div>
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Scrolls</div>
-                        </div>
-                    </div>
-                `;
+                // ----------------------------------------
+                // Phase 1: Behavioral Data Collection
+                // ----------------------------------------
+                const behavioralLoading = createBehavioralLoadingState();
+                appContainer.innerHTML = '';
+                appContainer.appendChild(behavioralLoading);
                 
                 // Create standalone behavioral tracker
                 const behavioralTracker = new StandaloneBehavioralTracker({ 
@@ -800,772 +670,127 @@
                 
                 // Update UI with countdown and progress
                 const startTime = Date.now();
+                const totalDuration = 4000;
+                
                 const countdownInterval = setInterval(() => {
                     const elapsed = Date.now() - startTime;
-                    const remaining = Math.max(0, 7 - Math.floor(elapsed / 1000));
-                    const percentage = Math.min((elapsed / 4000) * 100, 100);
+                    const remaining = Math.max(0, Math.ceil((totalDuration - elapsed) / 1000));
+                    const percentage = Math.min((elapsed / totalDuration) * 100, 100);
                     
-                    const countdownEl = document.getElementById('behavioral-countdown');
-                    const progressEl = document.getElementById('behavioral-progress');
-                    
-                    if (countdownEl) {
-                        countdownEl.textContent = `Time remaining: ${remaining}s - Keep interacting!`;
-                    }
-                    if (progressEl) {
-                        progressEl.style.width = `${percentage}%`;
-                    }
+                    updateLoadingProgress(percentage, `Time remaining: ${remaining}s - Keep interacting!`);
                     
                     // Update real-time stats
-                    const stats = behavioralTracker.getStats();
-                    const mouseEl = document.getElementById('stat-mouse');
-                    const clicksEl = document.getElementById('stat-clicks');
-                    const scrollsEl = document.getElementById('stat-scrolls');
-                    
-                    if (mouseEl) mouseEl.textContent = stats.mouseTrailLength || 0;
-                    if (clicksEl) clicksEl.textContent = stats.clickHistoryLength || 0;
-                    if (scrollsEl) scrollsEl.textContent = stats.scrollHistoryLength || 0;
+                    try {
+                        const stats = behavioralTracker.getStats();
+                        updateBehavioralStats(stats);
+                    } catch (e) {
+                        // Stats may not be available yet
+                    }
                     
                     if (remaining === 0) {
                         clearInterval(countdownInterval);
                     }
                 }, 100);
                 
-                // Collect behavioral data (waits 7 seconds)
+                // Collect behavioral data
                 console.log('🎯 Starting behavioral data collection...');
                 const behavioralData = await behavioralTracker.collectBehavioralData();
                 clearInterval(countdownInterval);
-                
                 console.log('✅ Behavioral data collected:', behavioralData);
                 
-                // Phase 2: Analyze fingerprint
-                loadingState.innerHTML = `
-                    <div class="loading-spinner"></div>
-                    <h3>Analyzing Browser Fingerprint...</h3>
-                    <p>Processing ${Object.keys(behavioralData.indicators).length} behavioral indicators...</p>
-                `;
+                // ----------------------------------------
+                // Phase 2: Fingerprint Analysis
+                // ----------------------------------------
+                const analysisLoading = createLoadingState({
+                    title: 'Analyzing Browser Fingerprint...',
+                    subtitle: `Processing ${Object.keys(behavioralData.indicators || {}).length} behavioral indicators...`,
+                    showProgress: true
+                });
+                appContainer.innerHTML = '';
+                appContainer.appendChild(analysisLoading);
                 
+                // Simulate progress during analysis
+                let analysisProgress = 0;
+                const analysisInterval = setInterval(() => {
+                    analysisProgress = Math.min(analysisProgress + 5, 95);
+                    updateLoadingProgress(analysisProgress, 'Collecting browser characteristics...');
+                }, 200);
+                
+                // Run fingerprint analysis
                 const analyzer = new BrowserFingerprintAnalyzer({
                     enableActiveMeasurements: true,
                     activeMeasurements: {
                         downloadUrl: './network-test-3mb.bin',
-                        expectedDownloadBytes: 3 * 1024 * 1024, // 3MB
+                        expectedDownloadBytes: 3 * 1024 * 1024,
                         pingCount: 3
                     }
                 });
+                
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
                 
-                // INJECT behavioral data into fingerprint results
+                clearInterval(analysisInterval);
+                
+                // ----------------------------------------
+                // Phase 3: Inject Behavioral Data
+                // ----------------------------------------
                 fingerprintData.metrics.behavioralIndicators = behavioralData.indicators;
                 fingerprintData.behavioralSummary = behavioralData.summary;
                 fingerprintData.behavioralMetadata = behavioralData.metadata;
                 
-                // NEW: Add raw behavioral telemetry as separate metrics category
+                // Add raw behavioral telemetry as separate metrics category
                 fingerprintData.metrics.behavioralTelemetry = {};
-                for (const [key, value] of Object.entries(behavioralData.telemetry)) {
+                for (const [key, value] of Object.entries(behavioralData.telemetry || {})) {
                     fingerprintData.metrics.behavioralTelemetry[key] = {
                         value: value,
                         description: getTelemetryDescription(key),
-                        risk: 'N/A' // Telemetry is raw data, not risk indicators
+                        risk: 'N/A'
                     };
                 }
                 
-                console.log('✅ Complete fingerprint data with behavioral metrics:', fingerprintData);
+                console.log('✅ Complete fingerprint data:', fingerprintData);
                 
-                // Hide loading state and show content
-                document.getElementById('loading-state').style.display = 'none';
-                document.getElementById('fingerprint-content').style.display = 'block';
+                // ----------------------------------------
+                // Phase 4: Render UI
+                // ----------------------------------------
+                updateLoadingProgress(100, 'Rendering results...');
                 
-                // Populate the UI
-                populateSummary(fingerprintData.summary);
-                populateSuspiciousIndicators(fingerprintData.suspiciousIndicators, fingerprintData.suspiciousSummary);
-                populateBehavioralIndicators(fingerprintData.metrics.behavioralIndicators);
-                populateMetrics(fingerprintData.metrics);
+                // Small delay for visual feedback
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Clear container and render with new modular UI
+                appContainer.innerHTML = '';
+                
+                uiRenderer = new FingerprintUIRenderer(appContainer);
+                uiRenderer.render(fingerprintData);
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 
             } catch (error) {
                 console.error('Error during fingerprint analysis:', error);
-                document.getElementById('loading-state').innerHTML = `
-                    <h3>Analysis Failed</h3>
-                    <p>Error: ${error.message}</p>
-                `;
+                appContainer.innerHTML = '';
+                appContainer.appendChild(createErrorState(error));
             }
-        }
-
-        // Populate summary cards
-        function populateSummary(summary) {
-            document.getElementById('total-metrics').textContent = summary.totalMetrics;
-            document.getElementById('high-risk-count').textContent = summary.highRiskIndicators;
-            document.getElementById('automation-likelihood').textContent = summary.automationLikelihood;
-            
-            const riskElement = document.getElementById('risk-level');
-            riskElement.textContent = summary.riskLevel;
-            riskElement.className = `value risk-${summary.riskLevel.toLowerCase()}`;
-        }
-
-        // Populate suspicious indicators section
-        function populateSuspiciousIndicators(indicators, summary) {
-            const section = document.getElementById('suspicious-indicators-section');
-            const header = document.getElementById('suspicious-header');
-            const title = document.getElementById('suspicious-title');
-            const subtitle = document.getElementById('suspicious-subtitle');
-            const indicatorsList = document.getElementById('indicators-list');
-            
-            // Update summary stats
-            document.getElementById('total-suspicious').textContent = summary.totalIndicators;
-            document.getElementById('high-risk-suspicious').textContent = summary.riskCounts.HIGH;
-            document.getElementById('suspicion-score').textContent = `${Math.round(summary.suspicionScore * 100)}%`;
-            
-            if (!summary.hasSuspiciousActivity) {
-                // Hide the entire section when no suspicious indicators
-                section.style.display = 'none';
-            } else {
-                // Show section when suspicious indicators found
-                section.style.display = 'block';
-                
-                // Suspicious indicators found and above threshold
-                header.className = 'suspicious-indicators-header';
-                title.innerHTML = '🚨 Suspicious Browser Patterns Detected';
-                subtitle.textContent = 'Patterns that indicate sandbox environments or automation tools';
-                
-                // Clear and populate indicators list
-                indicatorsList.innerHTML = '';
-                
-                // Add reasoning header if available
-                if (summary.reasoning) {
-                    const reasoningDiv = document.createElement('div');
-                    reasoningDiv.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 6px;';
-                    reasoningDiv.innerHTML = `
-                        <strong>Detection Reasoning:</strong> ${summary.reasoning}
-                        ${summary.totalDetectedIndicators > summary.totalIndicators ? 
-                            `<br><small>Additional ${summary.totalDetectedIndicators - summary.totalIndicators} weak indicator(s) also detected.</small>` : ''
-                        }
-                    `;
-                    indicatorsList.appendChild(reasoningDiv);
-                }
-                
-                indicators.forEach(indicator => {
-                    const indicatorDiv = document.createElement('div');
-                    indicatorDiv.className = `indicator-item risk-${indicator.riskLevel.toLowerCase()}`;
-                    
-                    const icon = getRiskIcon(indicator.riskLevel);
-                    const importanceIcon = getImportanceIcon(indicator.importance);
-                    
-                    indicatorDiv.innerHTML = `
-                        <div class="indicator-icon risk-${indicator.riskLevel.toLowerCase()}">
-                            ${icon}
-                        </div>
-                        <div class="indicator-content">
-                            <div class="indicator-name">
-                                ${indicator.name} ${importanceIcon}
-                            </div>
-                            <div class="indicator-description">${indicator.description}</div>
-                            <div class="indicator-details">
-                                <span class="indicator-category">${indicator.category}</span>
-                                <span class="indicator-value">Value: ${indicator.value}</span>
-                                <span class="indicator-confidence">Confidence: ${Math.round(indicator.confidence * 100)}%</span>
-                                <span class="indicator-importance" style="background: ${getImportanceColor(indicator.importance)}; color: white;">
-                                    ${indicator.importance}
-                                </span>
-                            </div>
-                            ${indicator.details ? `<div style="margin-top: 0.5rem; font-size: 0.8rem; color: #6c757d;">${indicator.details}</div>` : ''}
-                        </div>
-                    `;
-                    
-                    indicatorsList.appendChild(indicatorDiv);
-                });
-            }
-        }
-
-        // Get risk level icon
-        function getRiskIcon(riskLevel) {
-            switch (riskLevel) {
-                case 'HIGH': return '🚨';
-                case 'MEDIUM': return '⚠️';
-                case 'LOW': return '💡';
-                default: return '❓';
-            }
-        }
-
-        // Get importance level icon
-        function getImportanceIcon(importance) {
-            switch (importance) {
-                case 'CRITICAL': return '🔴';
-                case 'STRONG': return '🟡';
-                case 'WEAK': return '🔵';
-                default: return '⚪';
-            }
-        }
-
-        // Get importance level color
-        function getImportanceColor(importance) {
-            switch (importance) {
-                case 'CRITICAL': return '#dc3545';
-                case 'STRONG': return '#ffc107';
-                case 'WEAK': return '#6c757d';
-                default: return '#e9ecef';
-            }
-        }
-
-        // Populate behavioral indicators section
-        function populateBehavioralIndicators(behavioralData) {
-            const section = document.getElementById('behavioral-indicators-section');
-            const header = document.getElementById('behavioral-header');
-            const title = document.getElementById('behavioral-title');
-            const subtitle = document.getElementById('behavioral-subtitle');
-            const behavioralList = document.getElementById('behavioral-list');
-            
-            if (!behavioralData || behavioralData.error) {
-                // Hide section if no behavioral data available
-                section.style.display = 'none';
-                return;
-            }
-            
-            // Extract summary data
-            const detected = Object.keys(behavioralData).filter(key => 
-                behavioralData[key] && behavioralData[key].value === true
-            ).length;
-            
-            const maxConfidence = behavioralData.maxConfidence?.value || 0;
-            const riskLevel = behavioralData.riskLevel?.value || 'None';
-            
-            // Update summary stats
-            document.getElementById('behavioral-detected').textContent = detected;
-            document.getElementById('behavioral-confidence').textContent = `${Math.round(maxConfidence * 100)}%`;
-            document.getElementById('behavioral-risk').textContent = riskLevel;
-            
-            // Hide section if no behavioral anomalies detected
-            if (detected === 0) {
-                section.style.display = 'none';
-                return;
-            }
-            
-            // Show section since we have detections
-            section.style.display = 'block';
-            
-            // Style header based on risk level
-            if (riskLevel === 'HIGH' || riskLevel === 'MEDIUM') {
-                header.className = 'behavioral-indicators-header';
-                title.innerHTML = '🚨 Behavioral Anomalies Detected';
-                subtitle.textContent = 'Suspicious interaction patterns detected during testing';
-            } else if (detected > 0) {
-                header.className = 'behavioral-indicators-header';
-                title.innerHTML = '⚠️ Behavioral Patterns Detected';
-                subtitle.textContent = 'Some automated behavior patterns identified';
-            }
-            
-            // Clear and populate behavioral list
-            behavioralList.innerHTML = '';
-            
-            // Add session info if available
-            if (behavioralData.sessionDuration && behavioralData.sessionDuration.value > 0) {
-                const sessionInfo = document.createElement('div');
-                sessionInfo.className = 'behavioral-session-info';
-                sessionInfo.style.cssText = `
-                    background: #e7f3ff;
-                    padding: 0.75rem;
-                    border-radius: 6px;
-                    margin-bottom: 0.75rem;
-                    border-left: 3px solid #0066cc;
-                `;
-                sessionInfo.innerHTML = `
-                    <h4 style="margin: 0 0 0.35rem 0; color: #0066cc; font-size: 0.95rem;">📊 Session Information</h4>
-                    <p style="margin: 0; color: #495057; font-size: 0.85rem;">
-                        Session Duration: ${behavioralData.sessionDuration.value}s | 
-                        Total Events: ${behavioralData.totalEvents?.value || 0} | 
-                        Analysis Summary: ${behavioralData.summary?.value || 'No summary available'}
-                    </p>
-                `;
-                behavioralList.appendChild(sessionInfo);
-            }
-            
-            // Add individual behavioral indicators - ONLY SHOW DETECTED ONES
-            const indicatorKeys = [
-                'centralButtonClicks',
-                'clicksWithoutMouseMovement', 
-                'nonHumanScrolling',
-                'artificialTiming',
-                'missingMouseTrails'
-            ];
-            
-            indicatorKeys.forEach(key => {
-                const indicator = behavioralData[key];
-                if (!indicator) return;
-                
-                // ONLY SHOW IF DETECTED (value === true)
-                if (!indicator.value) return;
-                
-                const item = document.createElement('div');
-                item.className = `behavioral-item detected`;
-                
-                const icon = '🚨';
-                const confidenceClass = indicator.confidence > 0.7 ? 'high' : '';
-                
-                item.innerHTML = `
-                    <div class="behavioral-icon">${icon}</div>
-                    <div class="behavioral-content">
-                        <div class="behavioral-name">${formatBehavioralName(key)}</div>
-                        <div class="behavioral-description">${indicator.description}</div>
-                        <div class="behavioral-details">
-                            <span class="behavioral-detail">Count: ${indicator.count}</span>
-                            <span class="behavioral-detail">Threshold: ${indicator.threshold}</span>
-                            <span class="behavioral-confidence ${confidenceClass}">
-                                Confidence: ${Math.round(indicator.confidence * 100)}%
-                            </span>
-                            <span class="behavioral-detail" style="background: #f8d7da; color: #721c24; font-weight: 600;">DETECTED</span>
-                        </div>
-                        ${indicator.details && indicator.details.length > 0 ? `
-                            <details style="margin-top: 0.5rem;">
-                                <summary style="cursor: pointer; color: #667eea; font-size: 0.85rem;">Recent Examples (${indicator.details.length})</summary>
-                                <div style="margin-top: 0.5rem; font-size: 0.75rem;">
-                                    ${indicator.details.slice(0, 3).map(detail => `
-                                        <div style="background: #f8f9fa; padding: 0.25rem 0.5rem; margin: 0.25rem 0; border-radius: 4px;">
-                                            ${JSON.stringify(detail, null, 2).substring(0, 150)}...
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </details>
-                        ` : ''}
-                    </div>
-                `;
-                
-                behavioralList.appendChild(item);
-            });
         }
         
-        // Helper function to format behavioral indicator names
-        function formatBehavioralName(key) {
-            const names = {
-                'centralButtonClicks': 'Central Button Clicks',
-                'clicksWithoutMouseMovement': 'Clicks Without Mouse Movement',
-                'nonHumanScrolling': 'Non-Human Scrolling',
-                'artificialTiming': 'Artificial Timing Patterns',
-                'missingMouseTrails': 'Missing Mouse Trails'
-            };
-            return names[key] || key;
-        }
-
-        function populateMetrics(metrics) {
-            const tableBody = document.getElementById('metrics-table-body');
-            tableBody.innerHTML = '';
-            let metricNumber = 1;
-
-            for (const [categoryName, categoryMetrics] of Object.entries(metrics)) {
-                // Add section header row
-                const sectionRow = createSectionHeaderRow(categoryName);
-                tableBody.appendChild(sectionRow);
-
-                // Add metric rows for this section
-                for (const [metricName, metricData] of Object.entries(categoryMetrics)) {
-                    const metricRow = createMetricRow(metricNumber++, metricName, metricData, categoryName);
-                    tableBody.appendChild(metricRow);
-                }
-            }
-        }
-
-        // Create section header row
-        function createSectionHeaderRow(categoryName) {
-            const row = document.createElement('tr');
-            row.className = `section-header section-${categoryName}`;
-            
-            const cell = document.createElement('td');
-            cell.colSpan = 6;
-            cell.innerHTML = `${getCategoryIcon(categoryName)} ${formatCategoryName(categoryName)}`;
-            
-            row.appendChild(cell);
-            return row;
-        }
-
-        // Create individual metric row
-        function createMetricRow(number, name, data, category) {
-            const row = document.createElement('tr');
-
-            // Number
-            const numberCell = document.createElement('td');
-            numberCell.className = 'metric-number';
-            numberCell.textContent = number;
-
-            // Name
-            const nameCell = document.createElement('td');
-            nameCell.className = 'metric-name';
-            nameCell.textContent = formatMetricName(name);
-
-            // Value
-            const valueCell = document.createElement('td');
-            const valueDiv = document.createElement('div');
-            valueDiv.className = 'metric-value';
-            
-            // Special handling for WebGL image data URL
-            if (name === 'imageDataUrl' && category === 'webgl' && typeof data.value === 'string' && data.value.startsWith('data:image')) {
-                // Create image element instead of text
-                const img = document.createElement('img');
-                img.src = data.value;
-                img.style.maxWidth = '100%';
-                img.style.height = 'auto';
-                img.style.border = '1px solid #dee2e6';
-                img.style.borderRadius = '4px';
-                img.title = 'WebGL Rendered Scene';
-                valueDiv.style.maxWidth = 'none';
-                valueDiv.style.overflow = 'visible';
-                valueDiv.innerHTML = '';
-                valueDiv.appendChild(img);
-            } else {
-                valueDiv.textContent = formatValue(data.value);
-                valueDiv.title = String(data.value); // Full value on hover
-            }
-            
-            valueCell.appendChild(valueDiv);
-
-            // Description
-            const descCell = document.createElement('td');
-            descCell.className = 'metric-description';
-            descCell.textContent = data.description;
-
-            // JavaScript Code
-            const codeCell = document.createElement('td');
-            const codeDiv = document.createElement('div');
-            codeDiv.className = 'metric-code';
-            codeDiv.textContent = getJavaScriptCode(name, category);
-            codeCell.appendChild(codeDiv);
-
-            // Risk
-            const riskCell = document.createElement('td');
-            const riskBadge = document.createElement('div');
-            riskBadge.className = `risk-badge ${(data.risk || 'none').toLowerCase()}`;
-            riskBadge.textContent = data.risk || 'N/A';
-            riskCell.appendChild(riskBadge);
-
-            row.appendChild(numberCell);
-            row.appendChild(nameCell);
-            row.appendChild(valueCell);
-            row.appendChild(descCell);
-            row.appendChild(codeCell);
-            row.appendChild(riskCell);
-
-            return row;
-        }
-
-        // Get category icon
-        function getCategoryIcon(categoryName) {
-            const icons = {
-                navigator: '🧭',
-                display: '🖥️',
-                window: '🪟',
-                automation: '🤖',
-                jsEnvironment: '⚙️',
-                graphics: '🎨',
-                performance: '⚡',
-                webApis: '🔌',
-                document: '📄',
-                security: '🔒',
-                apiOverrides: '🔍',
-                aiAgentDetection: '🕵️',
-                stringSignatureAutomation: '🔬',
-                behavioralIndicators: '🎯',
-                webRTCLeak: '📡',
-                webgl: '🎨'
-            };
-            return icons[categoryName] || '📊';
-        }
-
-        // Get JavaScript code for each metric
-        function getJavaScriptCode(metricName, category) {
-            const codeMap = {
-                // Navigator
-                'userAgent': 'window.navigator.userAgent',
-                'appCodeName': 'window.navigator.appCodeName',
-                'cookieEnabled': 'window.navigator.cookieEnabled',
-                'platform': 'window.navigator.platform',
-                'language': 'window.navigator.language',
-                'webdriver': 'window.navigator.webdriver',
-                'maxTouchPoints': 'window.navigator.maxTouchPoints',
-                'onLine': 'window.navigator.onLine',
-                'buildID': 'window.navigator.buildID',
-                'hardwareConcurrency': 'window.navigator.hardwareConcurrency',
-                'mimeTypesLength': 'window.navigator.mimeTypes.length',
-                'pluginsLength': 'window.navigator.plugins.length',
-                'product': 'window.navigator.product',
-                'appVersion': 'window.navigator.appVersion',
-                'vendor': 'window.navigator.vendor',
-                'vendorSub': 'window.navigator.vendorSub',
-                'productSub': 'window.navigator.productSub',
-                'doNotTrack': 'window.navigator.doNotTrack',
-                'msDoNotTrack': 'window.navigator.msDoNotTrack',
-
-                // Display
-                'colorDepth': 'window.screen.colorDepth',
-                'width': 'window.screen.width',
-                'height': 'window.screen.height',
-                'availWidth': 'window.screen.availWidth',
-                'availHeight': 'window.screen.availHeight',
-                'pixelDepth': 'window.screen.pixelDepth',
-                'orientation': 'window.screen.orientation.type',
-
-                // Window
-                'innerWidth': 'window.innerWidth',
-                'innerHeight': 'window.innerHeight',
-                'outerWidth': 'window.outerWidth',
-                'outerHeight': 'window.outerHeight',
-                'screenTop': 'window.screenTop',
-                'screenLeft': 'window.screenLeft',
-                'scrollX': 'typeof window.scrollX !== "undefined"',
-                'scrollY': 'typeof window.scrollY !== "undefined"',
-                'devicePixelRatio': 'window.devicePixelRatio',
-                'closed': 'window.closed',
-                'opener': 'window.opener !== null',
-                'self': 'typeof window.self !== "undefined"',
-                'historyLength': 'window.history.length',
-
-                // Automation
-                'webdriverFlag': 'window.navigator.webdriver',
-                'seleniumIndicators': 'window.seleniumKey !== undefined',
-                'phantomjsCheck': 'window.callPhantom !== undefined || window._phantom !== undefined',
-                'automationArtifacts': 'Multiple automation artifact checks',
-
-                // JavaScript Environment
-                'setTimeout': 'typeof window.setTimeout !== "undefined"',
-                'setInterval': 'typeof window.setInterval !== "undefined"',
-                'functionBind': 'typeof Function.prototype.bind !== "undefined"',
-                'functionToString': 'typeof Function.prototype.toString !== "undefined"',
-                'mathAbs': 'Math.abs(-3.186)',
-                'arrayBuffer': 'typeof window.ArrayBuffer !== "undefined"',
-                'int8Array': 'typeof window.Int8Array !== "undefined"',
-                'int16Array': 'typeof window.Int16Array !== "undefined"',
-                'int32Array': 'typeof window.Int32Array !== "undefined"',
-                'promise': 'typeof window.Promise !== "undefined"',
-                'boolean': 'typeof window.Boolean !== "undefined"',
-                'map': 'typeof window.Map !== "undefined"',
-                'uriError': 'typeof window.URIError !== "undefined"',
-
-                // Graphics
-                'webglRenderer': 'gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)',
-                'canvas': 'typeof document.createElement("canvas").getContext !== "undefined"',
-                'webgl': 'canvas.getContext("webgl") || canvas.getContext("experimental-webgl")',
-
-                // Performance
-                'memoryLimit': 'window.performance.memory.jsHeapSizeLimit',
-                'usedMemory': 'window.performance.memory.usedJSHeapSize',
-                'totalMemory': 'window.performance.memory.totalJSHeapSize',
-                'redirectCount': 'window.performance.navigation.redirectCount',
-                'navigationType': 'window.performance.navigation.type',
-                'timezoneOffset': 'new Date().getTimezoneOffset()',
-
-                // Web APIs
-                'geolocation': '!!window.navigator.geolocation',
-                'getUserMedia': '!!window.navigator.getUserMedia',
-                'sendBeacon': '!!window.navigator.sendBeacon',
-                'localStorage': 'typeof window.localStorage !== "undefined"',
-                'sessionStorage': 'typeof window.sessionStorage !== "undefined"',
-                'indexedDB': 'typeof window.indexedDB !== "undefined"',
-                'webDatabase': 'typeof window.openDatabase !== "undefined"',
-                'webkitSpeechGrammar': 'typeof window.webkitSpeechGrammar !== "undefined"',
-                'cacheStorage': 'typeof window.CacheStorage !== "undefined"',
-                'midiPort': 'typeof window.MIDIPort !== "undefined"',
-                'mimeTypeArray': 'typeof window.MimeTypeArray !== "undefined"',
-                'pluginArray': 'typeof window.PluginArray !== "undefined"',
-
-                // Document
-                'hasFocus': 'document.hasFocus()',
-                'webkitHidden': 'document.webkitHidden',
-                'documentMode': 'document.documentMode',
-                'elementFromPoint': 'document.elementFromPoint(0,0).childNodes.length',
-                'textNode': 'document.TEXT_NODE',
-                'commentNode': 'document.COMMENT_NODE',
-                'attributeNode': 'document.ATTRIBUTE_NODE',
-                'processingInstructionNode': 'document.PROCESSING_INSTRUCTION_NODE',
-                'documentTypeNode': 'document.DOCUMENT_TYPE_NODE',
-                'isConnected': 'typeof document.isConnected !== "undefined"',
-
-                // Security
-                'isSecureContext': 'window.isSecureContext',
-                'locationProtocol': 'window.location.protocol',
-                'activeXObject': 'typeof window.ActiveXObject !== "undefined"',
-                'msCredentials': 'typeof window.MSCredentials !== "undefined"',
-                'ontouchstart': 'typeof window.ontouchstart !== "undefined"',
-                'ondevicelight': 'typeof window.ondevicelight !== "undefined"',
-                'persistent': 'typeof window.PERSISTENT !== "undefined"',
-                'temporary': 'typeof window.TEMPORARY !== "undefined"',
-
-                // API Overrides
-                'permissionsQuery': 'navigator.permissions.query.toString()',
-                'dateNow': 'Date.now.toString()',
-                'mathRandom': 'Math.random.toString()',
-                'performanceNow': 'performance.now.toString()',
-                'jsonStringify': 'JSON.stringify.toString()',
-                'objectDefineProperty': 'Object.defineProperty.toString()',
-                'setTimeoutOverride': 'setTimeout.toString()',
-                'setIntervalOverride': 'setInterval.toString()',
-
-                // AI Agent Detection
-                'funcToString': 'Function.prototype.toString.toString()',
-                'errorToString': 'Error.prototype.toString.toString()',
-                'addEventListener': 'EventTarget.prototype.addEventListener.toString()',
-                'dispatchEvent': 'EventTarget.prototype.dispatchEvent.toString()',
-                'querySelector': 'Document.prototype.querySelector.toString()',
-                'querySelectorAll': 'Document.prototype.querySelectorAll.toString()',
-                'getComputedStyle': 'getComputedStyle.toString()',
-                'createElement': 'Document.prototype.createElement.toString()',
-                'appendChild': 'Node.prototype.appendChild.toString()',
-                'removeChild': 'Node.prototype.removeChild.toString()',
-                'canvasToDataURL': 'HTMLCanvasElement.prototype.toDataURL.toString()',
-                'canvasGetContext': 'HTMLCanvasElement.prototype.getContext.toString()',
-                'webglGetParameter': 'WebGLRenderingContext.prototype.getParameter.toString()',
-                'fetchSig': 'fetch.toString()',
-                'xmlHttpRequest': 'XMLHttpRequest.toString()',
-                'websocketSig': 'WebSocket.toString()',
-                'requestAnimationFrame': 'requestAnimationFrame.toString()',
-                'cancelAnimationFrame': 'cancelAnimationFrame.toString()',
-                'navigatorUAGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "userAgent").get.toString()',
-                'navigatorLangGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "languages").get.toString()',
-                'navigatorPlatformGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "platform").get.toString()',
-                'navigatorVendorGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "vendor").get.toString()',
-                'navigatorWebdriverGetter': 'Object.getOwnPropertyDescriptor(Navigator.prototype, "webdriver").get.toString()',
-                'geolocationGetCurrentPosition': 'navigator.geolocation.getCurrentPosition.toString()',
-                'geolocationWatchPosition': 'navigator.geolocation.watchPosition.toString()',
-                'clipboardRead': 'navigator.clipboard.read.toString()',
-                'clipboardWrite': 'navigator.clipboard.write.toString()',
-                'localStorageSetItem': 'Storage.prototype.setItem.toString()',
-                'localStorageGetItem': 'Storage.prototype.getItem.toString()',
-                'getUserMedia': 'navigator.mediaDevices.getUserMedia.toString()',
-                'cryptoGetRandomValues': 'crypto.getRandomValues.toString()',
-                'cryptoRandomUUID': 'crypto.randomUUID.toString()',
-                'crossRealm_funcToString_diff': 'Cross-realm Function.toString comparison',
-                'crossRealm_JSON_stringify_diff': 'Cross-realm JSON.stringify comparison',
-                'crossRealm_Object_defineProperty_diff': 'Cross-realm Object.defineProperty comparison',
-                'crossRealm_navigator_userAgent_getter_diff': 'Cross-realm Navigator.userAgent getter comparison',
-                'proxy_permissionsQuery_proxied': 'Proxy detection for permissions.query',
-                'proxy_setTimeout_proxied': 'Proxy detection for setTimeout',
-                'proxy_funcToString_proxied': 'Proxy detection for Function.toString',
-                'proxy_fetch_proxied': 'Proxy detection for fetch',
-                'contextConsistency': 'Advanced cross-context execution consistency analysis',
-                'permissionsTests': 'Permissions API behavior tests',
-
-                // String Signature Automation Detection
-                'setTimeout_signature': '(Error.toString()).replace(/\\s/g, "") === ((setTimeout.toString()).replace(/setTimeout/g, "Error")).replace(/\\s/g, "")',
-                'setInterval_signature': '(Error.toString()).replace(/\\s/g, "") === ((setInterval.toString()).replace(/setInterval/g, "Error")).replace(/\\s/g, "")',
-                'function_bind_signature': '(Error.toString()).replace(/\\s/g, "") === ((Function.prototype.bind.toString()).replace(/bind/g, "Error")).replace(/\\s/g, "")',
-                'function_toString_signature': '(Error.toString()).replace(/\\s/g, "") === ((Function.prototype.toString.toString()).replace(/toString/g, "Error")).replace(/\\s/g, "")',
-                'function_bind_availability': 'typeof Function.prototype.bind === "function"',
-                'phantomjs_stack_trace': '(new Error()).stack.match(/phantomjs/gi) !== null',
-
-                // WebRTC Leak Detection
-                'hasRTCPeerConnection': 'typeof RTCPeerConnection !== "undefined"',
-                'hasRTCDataChannel': 'pc.createDataChannel("test")',
-                'hasHostCandidates': 'ICE candidate type: host',
-                'hasSrflxCandidates': 'ICE candidate type: srflx',
-                'hasRelayCandidates': 'ICE candidate type: relay',
-                'hasPrflxCandidates': 'ICE candidate type: prflx',
-                'localAddressCount': 'Parsed ICE candidates address count',
-                'publicAddressCount': 'srflx candidate addresses count',
-                'candidateCount': 'Total ICE candidates collected',
-                'localAddresses': 'ICE host candidate addresses',
-                'publicAddresses': 'ICE srflx candidate addresses',
-                'sdpHash': 'fnv1a32(pc.localDescription.sdp)',
-                'sdpLength': 'pc.localDescription.sdp.length',
-                'mediaDevicesApiSupported': '!!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices)',
-                'audioInputCount': 'devices.filter(d => d.kind === "audioinput").length',
-                'videoInputCount': 'devices.filter(d => d.kind === "videoinput").length',
-                'audioOutputCount': 'devices.filter(d => d.kind === "audiooutput").length',
-                'microphonePermission': 'navigator.permissions.query({name: "microphone"})',
-                'cameraPermission': 'navigator.permissions.query({name: "camera"})',
-                'collectionDurationMs': 'WebRTC collection timing',
-                'errorCount': 'Non-fatal errors during WebRTC collection',
-                'errorMessages': 'Error messages from WebRTC collection'
-            };
-
-            return codeMap[metricName] || `${category}.${metricName}`;
-        }
-
-        // Helper functions
-        function formatCategoryName(name) {
-            const categoryNames = {
-                navigator: '🧭 Navigator Properties',
-                display: '🖥️ Display & Screen',
-                window: '🪟 Window Properties',
-                automation: '🤖 Automation Detection',
-                jsEnvironment: '⚙️ JavaScript Environment',
-                graphics: '🎨 Graphics & WebGL',
-                performance: '⚡ Performance Metrics',
-                webApis: '🔌 Web APIs',
-                document: '📄 Document Properties',
-                security: '🔒 Security Features',
-                apiOverrides: '🔍 API Overrides',
-                aiAgentDetection: '🕵️ AI Agent Detection',
-                stringSignatureAutomation: '🔬 String Signature Automation Detection',
-                behavioralIndicators: '🎯 Behavioral Indicators',
-                webRTCLeak: '📡 WebRTC Leak Test',
-                webgl: '🎨 WebGL Fingerprint'
-            };
-            return categoryNames[name] || name;
-        }
-
-        function formatMetricName(name) {
-            return name.replace(/([A-Z])/g, ' $1')
-                      .replace(/^./, str => str.toUpperCase())
-                      .replace(/([a-z])([A-Z])/g, '$1 $2');
-        }
-
-        function formatValue(value) {
-            if (typeof value === 'boolean') {
-                return value ? 'True' : 'False';
-            }
-            if (typeof value === 'string' && value.length > 50) {
-                return value.substring(0, 47) + '...';
-            }
-            if (value === null || value === undefined) {
-                return 'Not available';
-            }
-            return String(value);
-        }
-
-        // Export functionality
+        // ============================================================
+        // GLOBAL EXPORT FUNCTION (for legacy compatibility)
+        // ============================================================
         window.exportFingerprintData = function(format) {
             if (!fingerprintData) {
                 alert('No fingerprint data available for export');
                 return;
             }
-
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const filename = `browser-fingerprint-${timestamp}`;
-
-            if (format === 'json') {
-                const dataStr = JSON.stringify(fingerprintData, null, 2);
-                downloadFile(dataStr, `${filename}.json`, 'application/json');
-            } else if (format === 'csv') {
-                const csvData = convertToCSV(fingerprintData.metrics);
-                downloadFile(csvData, `${filename}.csv`, 'text/csv');
-            }
+            
+            import('./fingerprint-ui/components/Export.js').then(({ exportFingerprintData }) => {
+                exportFingerprintData(fingerprintData, format);
+            });
         };
-
-        function convertToCSV(metrics) {
-            const rows = [['Category', 'Metric', 'Value', 'Description', 'Risk Level']];
-            
-            for (const [category, categoryMetrics] of Object.entries(metrics)) {
-                for (const [metric, data] of Object.entries(categoryMetrics)) {
-                    rows.push([
-                        category,
-                        metric,
-                        String(data.value),
-                        data.description,
-                        data.risk || 'N/A'
-                    ]);
-                }
-            }
-            
-            return rows.map(row => 
-                row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-            ).join('\\n');
-        }
-
-        function downloadFile(content, filename, contentType) {
-            const a = document.createElement('a');
-            const file = new Blob([content], { type: contentType });
-            a.href = URL.createObjectURL(file);
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        }
-
-        // Start analysis when page loads
+        
+        // ============================================================
+        // START APPLICATION
+        // ============================================================
         document.addEventListener('DOMContentLoaded', initializeAnalysis);
     </script>
 </body>

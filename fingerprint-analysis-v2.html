@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Fingerprint Analysis | Enterprise Security Dashboard</title>
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Modern fonts for enterprise look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Fingerprint Analysis Styles -->
+    <link rel="stylesheet" href="fingerprint-ui/styles/fingerprint-analysis.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body class="fp-page">
+    <!-- Back Navigation -->
+    <button class="fp-back-btn" onclick="window.history.back()" aria-label="Go back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Back to Lab</span>
+    </button>
+
+    <!-- Main Container -->
+    <div class="fp-container" id="fp-app">
+        <!-- Loading state will be inserted here, then replaced with content -->
+    </div>
+
+    <!-- Main Application Script -->
+    <script type="module">
+        // Import dependencies
+        import { BrowserFingerprintAnalyzer } from './browserFingerprint.js';
+        import { StandaloneBehavioralTracker } from './behavioralTracker.js';
+        
+        // Import UI modules
+        import { FingerprintUIRenderer, getTelemetryDescription } from './fingerprint-ui/FingerprintRenderer.js';
+        import { 
+            createBehavioralLoadingState, 
+            createLoadingState,
+            updateLoadingProgress, 
+            updateBehavioralStats,
+            updateLoadingContent,
+            createErrorState 
+        } from './fingerprint-ui/components/Loading.js';
+        
+        // ============================================================
+        // GLOBAL STATE
+        // ============================================================
+        let fingerprintData = null;
+        let uiRenderer = null;
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        async function initializeAnalysis() {
+            const appContainer = document.getElementById('fp-app');
+            
+            try {
+                // ----------------------------------------
+                // Phase 1: Behavioral Data Collection
+                // ----------------------------------------
+                const behavioralLoading = createBehavioralLoadingState();
+                appContainer.innerHTML = '';
+                appContainer.appendChild(behavioralLoading);
+                
+                // Create standalone behavioral tracker
+                const behavioralTracker = new StandaloneBehavioralTracker({ 
+                    duration: 4000 // 4 seconds
+                });
+                
+                // Update UI with countdown and progress
+                const startTime = Date.now();
+                const totalDuration = 4000;
+                
+                const countdownInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, Math.ceil((totalDuration - elapsed) / 1000));
+                    const percentage = Math.min((elapsed / totalDuration) * 100, 100);
+                    
+                    updateLoadingProgress(percentage, `Time remaining: ${remaining}s - Keep interacting!`);
+                    
+                    // Update real-time stats
+                    try {
+                        const stats = behavioralTracker.getStats();
+                        updateBehavioralStats(stats);
+                    } catch (e) {
+                        // Stats may not be available yet
+                    }
+                    
+                    if (remaining === 0) {
+                        clearInterval(countdownInterval);
+                    }
+                }, 100);
+                
+                // Collect behavioral data
+                console.log('🎯 Starting behavioral data collection...');
+                const behavioralData = await behavioralTracker.collectBehavioralData();
+                clearInterval(countdownInterval);
+                console.log('✅ Behavioral data collected:', behavioralData);
+                
+                // ----------------------------------------
+                // Phase 2: Fingerprint Analysis
+                // ----------------------------------------
+                const analysisLoading = createLoadingState({
+                    title: 'Analyzing Browser Fingerprint...',
+                    subtitle: `Processing ${Object.keys(behavioralData.indicators || {}).length} behavioral indicators...`,
+                    showProgress: true
+                });
+                appContainer.innerHTML = '';
+                appContainer.appendChild(analysisLoading);
+                
+                // Simulate progress during analysis
+                let analysisProgress = 0;
+                const analysisInterval = setInterval(() => {
+                    analysisProgress = Math.min(analysisProgress + 5, 95);
+                    updateLoadingProgress(analysisProgress, 'Collecting browser characteristics...');
+                }, 200);
+                
+                // Run fingerprint analysis
+                const analyzer = new BrowserFingerprintAnalyzer({
+                    enableActiveMeasurements: true,
+                    activeMeasurements: {
+                        downloadUrl: './network-test-3mb.bin',
+                        expectedDownloadBytes: 3 * 1024 * 1024,
+                        pingCount: 3
+                    }
+                });
+                
+                await analyzer.analyzeFingerprint();
+                fingerprintData = analyzer.getAnalysisResults();
+                
+                clearInterval(analysisInterval);
+                
+                // ----------------------------------------
+                // Phase 3: Inject Behavioral Data
+                // ----------------------------------------
+                fingerprintData.metrics.behavioralIndicators = behavioralData.indicators;
+                fingerprintData.behavioralSummary = behavioralData.summary;
+                fingerprintData.behavioralMetadata = behavioralData.metadata;
+                
+                // Add raw behavioral telemetry as separate metrics category
+                fingerprintData.metrics.behavioralTelemetry = {};
+                for (const [key, value] of Object.entries(behavioralData.telemetry || {})) {
+                    fingerprintData.metrics.behavioralTelemetry[key] = {
+                        value: value,
+                        description: getTelemetryDescription(key),
+                        risk: 'N/A'
+                    };
+                }
+                
+                console.log('✅ Complete fingerprint data:', fingerprintData);
+                
+                // ----------------------------------------
+                // Phase 4: Render UI
+                // ----------------------------------------
+                updateLoadingProgress(100, 'Rendering results...');
+                
+                // Small delay for visual feedback
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Clear container and render
+                appContainer.innerHTML = '';
+                
+                uiRenderer = new FingerprintUIRenderer(appContainer);
+                uiRenderer.render(fingerprintData);
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('Error during fingerprint analysis:', error);
+                appContainer.innerHTML = '';
+                appContainer.appendChild(createErrorState(error));
+            }
+        }
+        
+        // ============================================================
+        // GLOBAL EXPORT FUNCTION (for legacy compatibility)
+        // ============================================================
+        window.exportFingerprintData = function(format) {
+            if (!fingerprintData) {
+                alert('No fingerprint data available for export');
+                return;
+            }
+            
+            import('./fingerprint-ui/components/Export.js').then(({ exportFingerprintData }) => {
+                exportFingerprintData(fingerprintData, format);
+            });
+        };
+        
+        // ============================================================
+        // START APPLICATION
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', initializeAnalysis);
+    </script>
+</body>
+</html>

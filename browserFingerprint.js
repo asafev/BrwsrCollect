@@ -2187,6 +2187,11 @@ class BrowserFingerprintAnalyzer {
             timestamp: this.timestamp,
             analysisComplete: this.analysisComplete,
             metrics: this.metrics,
+            // Raw detector results for detailed drill-down views
+            rawResults: {
+                fonts: this.fontsDetector?.result || null,
+                // Add other detectors as needed
+            },
             suspiciousIndicators: combinedSuspiciousIndicators, // Combined indicators
             suspiciousAnalysis: this.suspiciousAnalysis, // Full analysis with reasoning
             suspiciousSummary: combinedSummary, // Combined summary
