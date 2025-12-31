@@ -10,6 +10,73 @@ import { BehavioralStorageManager } from './behavioralStorage.js';
 import { StringSignatureDetector } from './stringSignatureDetector.js';
 import { isNativeFunction } from './utils/functionUtils.js';
 
+// ============================================================
+// ERROR HANDLING UTILITIES
+// ============================================================
+
+/**
+ * Safe property access - returns default value if property access throws or is undefined
+ * @param {Function} accessor - Function that returns the property value
+ * @param {*} defaultValue - Default value if access fails
+ * @returns {*} The property value or default
+ */
+function safeGet(accessor, defaultValue = 'Not available') {
+    try {
+        const value = accessor();
+        return value !== undefined && value !== null ? value : defaultValue;
+    } catch (e) {
+        return defaultValue;
+    }
+}
+
+/**
+ * Safe async operation wrapper - catches errors and returns fallback
+ * @param {Function} asyncFn - Async function to execute
+ * @param {*} fallbackValue - Value to return on error
+ * @param {string} operationName - Name for logging
+ * @returns {Promise<*>} Result or fallback value
+ */
+async function safeAsync(asyncFn, fallbackValue, operationName = 'operation') {
+    try {
+        return await asyncFn();
+    } catch (error) {
+        console.warn(`⚠️ ${operationName} failed:`, error.message);
+        return fallbackValue;
+    }
+}
+
+/**
+ * Create an error metric object for consistent error reporting
+ * @param {Error|string} error - The error object or message
+ * @param {string} description - Description of what failed
+ * @returns {Object} Formatted error metric
+ */
+function createErrorMetric(error, description) {
+    return {
+        value: 'Error',
+        description: description,
+        error: error instanceof Error ? error.message : String(error),
+        risk: 'N/A'
+    };
+}
+
+/**
+ * Wrap a synchronous analysis function with error handling
+ * @param {Function} analysisFn - The analysis function to wrap
+ * @param {string} categoryName - Name of the category for error reporting
+ * @returns {Object} Analysis results or error object
+ */
+function safeAnalysis(analysisFn, categoryName) {
+    try {
+        return analysisFn();
+    } catch (error) {
+        console.warn(`⚠️ ${categoryName} analysis failed:`, error.message);
+        return {
+            error: createErrorMetric(error, `${categoryName} analysis failed`)
+        };
+    }
+}
+
 // New modular detectors for extended fingerprinting
 import { NetworkCapabilitiesDetector } from './detectors/networkCapabilities.js';
 import { BatteryStorageDetector } from './detectors/batteryStorage.js';
@@ -580,23 +647,26 @@ class BrowserFingerprintAnalyzer {
         this.metrics = {};
         this.analysisComplete = false;
         this.timestamp = Date.now();
-        this.suspiciousIndicatorDetector = new SuspiciousIndicatorDetector();
-        this.aiAgentDetector = new AIAgentDetector();
-        this.stringSignatureDetector = new StringSignatureDetector();
+        this.errors = []; // Track errors during analysis
+        
+        // Initialize detectors with safe instantiation
+        this.suspiciousIndicatorDetector = this._safeCreateDetector(() => new SuspiciousIndicatorDetector(), 'SuspiciousIndicatorDetector');
+        this.aiAgentDetector = this._safeCreateDetector(() => new AIAgentDetector(), 'AIAgentDetector');
+        this.stringSignatureDetector = this._safeCreateDetector(() => new StringSignatureDetector(), 'StringSignatureDetector');
         this.suspiciousIndicators = [];
         
-        // New modular detectors
-        this.networkCapabilitiesDetector = new NetworkCapabilitiesDetector();
-        this.batteryStorageDetector = new BatteryStorageDetector();
-        this.activeMeasurementsDetector = new ActiveMeasurementsDetector(options.activeMeasurements || {});
-        this.audioFingerprintDetector = new AudioFingerprintDetector(options.audioFingerprint || {});
-        this.webRTCLeakDetector = new WebRTCLeakDetector(options.webRTC || {});
-        this.webGLFingerprintDetector = new WebGLFingerprintDetector(options.webgl || {});
-        this.speechSynthesisDetector = new SpeechSynthesisDetector(options.speechSynthesis || {});
-        this.languageDetector = new LanguageDetector();
-        this.cssComputedStyleDetector = new CssComputedStyleDetector();
-        this.workerSignalsDetector = new WorkerSignalsDetector(options.workerSignals || {});
-        this.fontsDetector = new FontsDetector(options.fonts || {});
+        // New modular detectors - with safe instantiation
+        this.networkCapabilitiesDetector = this._safeCreateDetector(() => new NetworkCapabilitiesDetector(), 'NetworkCapabilitiesDetector');
+        this.batteryStorageDetector = this._safeCreateDetector(() => new BatteryStorageDetector(), 'BatteryStorageDetector');
+        this.activeMeasurementsDetector = this._safeCreateDetector(() => new ActiveMeasurementsDetector(options.activeMeasurements || {}), 'ActiveMeasurementsDetector');
+        this.audioFingerprintDetector = this._safeCreateDetector(() => new AudioFingerprintDetector(options.audioFingerprint || {}), 'AudioFingerprintDetector');
+        this.webRTCLeakDetector = this._safeCreateDetector(() => new WebRTCLeakDetector(options.webRTC || {}), 'WebRTCLeakDetector');
+        this.webGLFingerprintDetector = this._safeCreateDetector(() => new WebGLFingerprintDetector(options.webgl || {}), 'WebGLFingerprintDetector');
+        this.speechSynthesisDetector = this._safeCreateDetector(() => new SpeechSynthesisDetector(options.speechSynthesis || {}), 'SpeechSynthesisDetector');
+        this.languageDetector = this._safeCreateDetector(() => new LanguageDetector(), 'LanguageDetector');
+        this.cssComputedStyleDetector = this._safeCreateDetector(() => new CssComputedStyleDetector(), 'CssComputedStyleDetector');
+        this.workerSignalsDetector = this._safeCreateDetector(() => new WorkerSignalsDetector(options.workerSignals || {}), 'WorkerSignalsDetector');
+        this.fontsDetector = this._safeCreateDetector(() => new FontsDetector(options.fonts || {}), 'FontsDetector');
         
         // Configuration options
         this.options = {
@@ -608,156 +678,212 @@ class BrowserFingerprintAnalyzer {
     }
 
     /**
+     * Safely create a detector instance - returns null if construction fails
+     * @private
+     */
+    _safeCreateDetector(factory, name) {
+        try {
+            return factory();
+        } catch (error) {
+            console.warn(`⚠️ Failed to create ${name}:`, error.message);
+            this.errors = this.errors || [];
+            this.errors.push({ detector: name, error: error.message });
+            return null;
+        }
+    }
+
+    /**
      * Run comprehensive browser fingerprint analysis
+     * This method never throws - always returns valid results with error information
      */
     async analyzeFingerprint() {
         console.log('🔍 Starting comprehensive browser fingerprint analysis...');
         
+        // Initialize metrics with safe analysis calls
         this.metrics = {
             // Core Navigator Properties
-            navigator: this._analyzeNavigator(),
+            navigator: safeAnalysis(() => this._analyzeNavigator(), 'Navigator'),
             
             // Screen & Display Properties
-            display: this._analyzeDisplay(),
+            display: safeAnalysis(() => this._analyzeDisplay(), 'Display'),
             
             // Browser Window Properties
-            window: this._analyzeWindow(),
+            window: safeAnalysis(() => this._analyzeWindow(), 'Window'),
             
             // Automation Detection Properties
-            automation: this._analyzeAutomation(),
+            automation: safeAnalysis(() => this._analyzeAutomation(), 'Automation'),
             
             // JavaScript Environment
-            jsEnvironment: this._analyzeJSEnvironment(),
+            jsEnvironment: safeAnalysis(() => this._analyzeJSEnvironment(), 'JS Environment'),
             
             // WebGL & Graphics
-            graphics: this._analyzeGraphics(),
+            graphics: safeAnalysis(() => this._analyzeGraphics(), 'Graphics'),
             
             // Performance & Memory
-            performance: this._analyzePerformance(),
+            performance: safeAnalysis(() => this._analyzePerformance(), 'Performance'),
             
             // Web APIs & Features
-            webApis: this._analyzeWebAPIs(),
+            webApis: safeAnalysis(() => this._analyzeWebAPIs(), 'Web APIs'),
             
             // Document Properties
-            document: this._analyzeDocument(),
+            document: safeAnalysis(() => this._analyzeDocument(), 'Document'),
             
             // Security & Privacy
-            security: this._analyzeSecurity(),
+            security: safeAnalysis(() => this._analyzeSecurity(), 'Security'),
             
             // API Override Detection
-            apiOverrides: this._analyzeAPIOverrides()
+            apiOverrides: safeAnalysis(() => this._analyzeAPIOverrides(), 'API Overrides')
         };
 
         // Run Network Capabilities detection (passive, from Connection API)
         console.log('📡 Analyzing network capabilities...');
-        try {
-            const networkMetrics = this.networkCapabilitiesDetector.analyze();
-            this.metrics.networkCapabilities = networkMetrics;
-            console.log('📡 Network capabilities analysis complete:', networkMetrics);
-        } catch (error) {
-            console.warn('⚠️ Network capabilities detection failed:', error.message);
-            this.metrics.networkCapabilities = { error: { value: error.message, description: 'Network detection error' } };
+        if (this.networkCapabilitiesDetector) {
+            try {
+                const networkMetrics = this.networkCapabilitiesDetector.analyze();
+                this.metrics.networkCapabilities = networkMetrics;
+                console.log('📡 Network capabilities analysis complete:', networkMetrics);
+            } catch (error) {
+                console.warn('⚠️ Network capabilities detection failed:', error.message);
+                this.metrics.networkCapabilities = { error: { value: error.message, description: 'Network detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.networkCapabilities = { error: { value: 'Detector not available', description: 'Network capabilities detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run Battery and Storage detection (async APIs)
         console.log('🔋 Analyzing battery and storage...');
-        try {
-            const batteryStorageMetrics = await this.batteryStorageDetector.analyze();
-            this.metrics.batteryStorage = batteryStorageMetrics;
-            console.log('🔋 Battery and storage analysis complete:', batteryStorageMetrics);
-        } catch (error) {
-            console.warn('⚠️ Battery/storage detection failed:', error.message);
-            this.metrics.batteryStorage = { error: { value: error.message, description: 'Battery/storage detection error' } };
+        if (this.batteryStorageDetector) {
+            try {
+                const batteryStorageMetrics = await this.batteryStorageDetector.analyze();
+                this.metrics.batteryStorage = batteryStorageMetrics;
+                console.log('🔋 Battery and storage analysis complete:', batteryStorageMetrics);
+            } catch (error) {
+                console.warn('⚠️ Battery/storage detection failed:', error.message);
+                this.metrics.batteryStorage = { error: { value: error.message, description: 'Battery/storage detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.batteryStorage = { error: { value: 'Detector not available', description: 'Battery/storage detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run Audio Fingerprint detection (async, uses OfflineAudioContext)
         console.log('🔊 Analyzing audio fingerprint...');
-        try {
-            const audioFingerprintMetrics = await this.audioFingerprintDetector.analyze();
-            this.metrics.audioFingerprint = audioFingerprintMetrics;
-            console.log('🔊 Audio fingerprint analysis complete:', audioFingerprintMetrics);
-        } catch (error) {
-            console.warn('⚠️ Audio fingerprint detection failed:', error.message);
-            this.metrics.audioFingerprint = { error: { value: error.message, description: 'Audio fingerprint detection error' } };
+        if (this.audioFingerprintDetector) {
+            try {
+                const audioFingerprintMetrics = await this.audioFingerprintDetector.analyze();
+                this.metrics.audioFingerprint = audioFingerprintMetrics;
+                console.log('🔊 Audio fingerprint analysis complete:', audioFingerprintMetrics);
+            } catch (error) {
+                console.warn('⚠️ Audio fingerprint detection failed:', error.message);
+                this.metrics.audioFingerprint = { error: { value: error.message, description: 'Audio fingerprint detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.audioFingerprint = { error: { value: 'Detector not available', description: 'Audio fingerprint detector failed to initialize', risk: 'N/A' } };
         }
 
 
         // Run Speech Synthesis detection (async - waits for voices when available)
-        console.log('dY") Analyzing speech synthesis...');
-        try {
-            const speechMetrics = await this.speechSynthesisDetector.analyze();
-            this.metrics.speechSynthesis = speechMetrics;
-            console.log('dY") Speech synthesis analysis complete:', speechMetrics);
-        } catch (error) {
-            console.warn('?s??,? Speech synthesis detection failed:', error.message);
-            this.metrics.speechSynthesis = { error: { value: error.message, description: 'Speech synthesis detection error' } };
+        console.log('🗣️ Analyzing speech synthesis...');
+        if (this.speechSynthesisDetector) {
+            try {
+                const speechMetrics = await this.speechSynthesisDetector.analyze();
+                this.metrics.speechSynthesis = speechMetrics;
+                console.log('🗣️ Speech synthesis analysis complete:', speechMetrics);
+            } catch (error) {
+                console.warn('⚠️ Speech synthesis detection failed:', error.message);
+                this.metrics.speechSynthesis = { error: { value: error.message, description: 'Speech synthesis detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.speechSynthesis = { error: { value: 'Detector not available', description: 'Speech synthesis detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run Language detection (sync)
-        console.log('dY") Analyzing language signals...');
-        try {
-            const languageMetrics = this.languageDetector.analyze();
-            this.metrics.language = languageMetrics;
-            console.log('dY") Language analysis complete:', languageMetrics);
-        } catch (error) {
-            console.warn('?s??,? Language detection failed:', error.message);
-            this.metrics.language = { error: { value: error.message, description: 'Language detection error' } };
+        console.log('🌐 Analyzing language signals...');
+        if (this.languageDetector) {
+            try {
+                const languageMetrics = this.languageDetector.analyze();
+                this.metrics.language = languageMetrics;
+                console.log('🌐 Language analysis complete:', languageMetrics);
+            } catch (error) {
+                console.warn('⚠️ Language detection failed:', error.message);
+                this.metrics.language = { error: { value: error.message, description: 'Language detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.language = { error: { value: 'Detector not available', description: 'Language detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run CSS Computed Style detection (sync)
-        console.log('dY") Analyzing computed styles...');
-        try {
-            const cssMetrics = this.cssComputedStyleDetector.analyze();
-            this.metrics.cssComputedStyle = cssMetrics;
-            console.log('dY") Computed style analysis complete:', cssMetrics);
-        } catch (error) {
-            console.warn('?s??,? Computed style detection failed:', error.message);
-            this.metrics.cssComputedStyle = { error: { value: error.message, description: 'Computed style detection error' } };
+        console.log('🎨 Analyzing computed styles...');
+        if (this.cssComputedStyleDetector) {
+            try {
+                const cssMetrics = this.cssComputedStyleDetector.analyze();
+                this.metrics.cssComputedStyle = cssMetrics;
+                console.log('🎨 Computed style analysis complete:', cssMetrics);
+            } catch (error) {
+                console.warn('⚠️ Computed style detection failed:', error.message);
+                this.metrics.cssComputedStyle = { error: { value: error.message, description: 'Computed style detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.cssComputedStyle = { error: { value: 'Detector not available', description: 'CSS computed style detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC)
         console.log('📡 Analyzing WebRTC leaks...');
-        try {
-            const webRTCLeakMetrics = await this.webRTCLeakDetector.analyze();
-            this.metrics.webRTCLeak = webRTCLeakMetrics;
-            console.log('📡 WebRTC leak analysis complete:', webRTCLeakMetrics);
-        } catch (error) {
-            console.warn('⚠️ WebRTC leak detection failed:', error.message);
-            this.metrics.webRTCLeak = { error: { value: error.message, description: 'WebRTC leak detection error' } };
+        if (this.webRTCLeakDetector) {
+            try {
+                const webRTCLeakMetrics = await this.webRTCLeakDetector.analyze();
+                this.metrics.webRTCLeak = webRTCLeakMetrics;
+                console.log('📡 WebRTC leak analysis complete:', webRTCLeakMetrics);
+            } catch (error) {
+                console.warn('⚠️ WebRTC leak detection failed:', error.message);
+                this.metrics.webRTCLeak = { error: { value: error.message, description: 'WebRTC leak detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.webRTCLeak = { error: { value: 'Detector not available', description: 'WebRTC leak detector failed to initialize', risk: 'N/A' } };
         }
-
 
         // Run Worker signals detection (async)
         console.log('🔄 Analyzing worker signals...');
-        try {
-            const workerMetrics = await this.workerSignalsDetector.analyze();
-            this.metrics.workerSignals = workerMetrics;
-            console.log('🔄 Worker signals analysis complete:', workerMetrics);
-        } catch (error) {
-            console.warn('⚠️ Worker signals detection failed:', error.message);
-            this.metrics.workerSignals = { error: { value: error.message, description: 'Worker signals detection error' } };
+        if (this.workerSignalsDetector) {
+            try {
+                const workerMetrics = await this.workerSignalsDetector.analyze();
+                this.metrics.workerSignals = workerMetrics;
+                console.log('🔄 Worker signals analysis complete:', workerMetrics);
+            } catch (error) {
+                console.warn('⚠️ Worker signals detection failed:', error.message);
+                this.metrics.workerSignals = { error: { value: error.message, description: 'Worker signals detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.workerSignals = { error: { value: 'Detector not available', description: 'Worker signals detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run Fonts detection (async - tests installed fonts via FontFace.load)
         console.log('🔤 Analyzing fonts...');
-        try {
-            const fontsMetrics = await this.fontsDetector.analyze();
-            this.metrics.fonts = fontsMetrics;
-            console.log('🔤 Fonts analysis complete:', fontsMetrics);
-        } catch (error) {
-            console.warn('⚠️ Fonts detection failed:', error.message);
-            this.metrics.fonts = { error: { value: error.message, description: 'Fonts detection error' } };
+        if (this.fontsDetector) {
+            try {
+                const fontsMetrics = await this.fontsDetector.analyze();
+                this.metrics.fonts = fontsMetrics;
+                console.log('🔤 Fonts analysis complete:', fontsMetrics);
+            } catch (error) {
+                console.warn('⚠️ Fonts detection failed:', error.message);
+                this.metrics.fonts = { error: { value: error.message, description: 'Fonts detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.fonts = { error: { value: 'Detector not available', description: 'Fonts detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run WebGL Fingerprint detection (sync - collects WebGL parameters and image hash)
         console.log('🎨 Analyzing WebGL fingerprint...');
-        try {
-            const webGLMetrics = await this.webGLFingerprintDetector.analyze();
-            this.metrics.webgl = webGLMetrics;
-            console.log('🎨 WebGL fingerprint analysis complete:', webGLMetrics);
-        } catch (error) {
-            console.warn('⚠️ WebGL fingerprint detection failed:', error.message);
-            this.metrics.webgl = { error: { value: error.message, description: 'WebGL fingerprint detection error' } };
+        if (this.webGLFingerprintDetector) {
+            try {
+                const webGLMetrics = await this.webGLFingerprintDetector.analyze();
+                this.metrics.webgl = webGLMetrics;
+                console.log('🎨 WebGL fingerprint analysis complete:', webGLMetrics);
+            } catch (error) {
+                console.warn('⚠️ WebGL fingerprint detection failed:', error.message);
+                this.metrics.webgl = { error: { value: error.message, description: 'WebGL fingerprint detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.webgl = { error: { value: 'Detector not available', description: 'WebGL fingerprint detector failed to initialize', risk: 'N/A' } };
         }
 
         // Run Media Devices enumeration (async - enumerates available media devices)
@@ -768,11 +894,11 @@ class BrowserFingerprintAnalyzer {
             console.log('🎤 Media devices analysis complete:', mediaDevicesMetrics);
         } catch (error) {
             console.warn('⚠️ Media devices detection failed:', error.message);
-            this.metrics.mediaDevices = { error: { value: error.message, description: 'Media devices detection error' } };
+            this.metrics.mediaDevices = { error: { value: error.message, description: 'Media devices detection error', risk: 'N/A' } };
         }
 
         // Run Active Network Measurements (optional, makes network requests)
-        if (this.options.enableActiveMeasurements) {
+        if (this.options.enableActiveMeasurements && this.activeMeasurementsDetector) {
             console.log('⚡ Running active network measurements...');
             try {
                 const activeMeasurements = await this.activeMeasurementsDetector.analyze(this.options.activeMeasurements);
@@ -793,63 +919,99 @@ class BrowserFingerprintAnalyzer {
 
         // Run AI Agent Detection
         console.log('🤖 Running AI Agent detection...');
-        const aiAgentResults = await this.aiAgentDetector.detectAIAgent();
-        if (aiAgentResults.success) {
-            // Add AI agent metrics to the main metrics collection
-            const aiMetrics = this.aiAgentDetector.getFormattedResults();
-            this.metrics = { ...this.metrics, ...aiMetrics };
-            
-            console.log('🤖 AI Agent detection complete:', aiAgentResults);
-        } else {
-            console.warn('⚠️ AI Agent detection failed:', aiAgentResults.error);
+        let aiAgentResults = { success: false, error: 'Detector not available' };
+        if (this.aiAgentDetector) {
+            try {
+                aiAgentResults = await this.aiAgentDetector.detectAIAgent();
+                if (aiAgentResults && aiAgentResults.success) {
+                    // Add AI agent metrics to the main metrics collection
+                    const aiMetrics = this.aiAgentDetector.getFormattedResults();
+                    this.metrics = { ...this.metrics, ...aiMetrics };
+                    console.log('🤖 AI Agent detection complete:', aiAgentResults);
+                } else {
+                    console.warn('⚠️ AI Agent detection returned no results');
+                }
+            } catch (error) {
+                console.warn('⚠️ AI Agent detection failed:', error.message);
+                aiAgentResults = { success: false, error: error.message };
+            }
         }
 
         // Run String Signature Automation Detection
         console.log('🔍 Running String Signature Automation Detection...');
-        const stringSignatureResults = this.stringSignatureDetector.runAllDetections();
-        const stringSignatureMetrics = this.stringSignatureDetector.getFormattedResults();
-        this.metrics = { ...this.metrics, ...stringSignatureMetrics };
-        console.log('🔍 String Signature detection complete:', stringSignatureResults);
+        let stringSignatureResults = { totalDetected: 0, indicators: [] };
+        if (this.stringSignatureDetector) {
+            try {
+                stringSignatureResults = this.stringSignatureDetector.runAllDetections() || { totalDetected: 0, indicators: [] };
+                const stringSignatureMetrics = this.stringSignatureDetector.getFormattedResults();
+                this.metrics = { ...this.metrics, ...stringSignatureMetrics };
+                console.log('🔍 String Signature detection complete:', stringSignatureResults);
+            } catch (error) {
+                console.warn('⚠️ String Signature detection failed:', error.message);
+            }
+        }
 
         // Collect Behavioral Indicators from stored data
         console.log('🎯 Collecting behavioral indicators...');
-        this.metrics.behavioralIndicators = this._analyzeBehavioralIndicators();
+        this.metrics.behavioralIndicators = safeAnalysis(() => this._analyzeBehavioralIndicators(), 'Behavioral Indicators');
 
         // Analyze suspicious indicators (includes both original and AI agent indicators)
-        const suspiciousResults = this.suspiciousIndicatorDetector.analyzeSuspiciousIndicators(this.metrics);
-        this.suspiciousIndicators = suspiciousResults.indicators; // Filtered indicators
+        let suspiciousResults = { indicators: [], shouldShow: false, reasoning: 'Analysis not available' };
+        if (this.suspiciousIndicatorDetector) {
+            try {
+                suspiciousResults = this.suspiciousIndicatorDetector.analyzeSuspiciousIndicators(this.metrics);
+                this.suspiciousIndicators = suspiciousResults.indicators || []; // Filtered indicators
+            } catch (error) {
+                console.warn('⚠️ Suspicious indicator analysis failed:', error.message);
+                this.suspiciousIndicators = [];
+            }
+        }
         
         // Add AI agent indicators to the suspicious indicators
-        if (aiAgentResults.success) {
-            const aiIndicators = this.aiAgentDetector.getSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...aiIndicators];
+        if (aiAgentResults && aiAgentResults.success && this.aiAgentDetector) {
+            try {
+                const aiIndicators = this.aiAgentDetector.getSuspiciousIndicators();
+                this.suspiciousIndicators = [...this.suspiciousIndicators, ...aiIndicators];
+            } catch (error) {
+                console.warn('⚠️ Failed to get AI agent indicators:', error.message);
+            }
         }
         
         // Add String Signature indicators to suspicious indicators
-        if (stringSignatureResults.totalDetected > 0) {
-            const stringSignatureIndicators = stringSignatureResults.indicators.map(ind => ({
-                category: 'automation_detection',
-                name: ind.id,
-                description: ind.description,
-                severity: ind.severity,
-                confidence: ind.confidence,
-                details: `String signature anomaly detected: ${ind.name}`
-            }));
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...stringSignatureIndicators];
+        if (stringSignatureResults && stringSignatureResults.totalDetected > 0 && stringSignatureResults.indicators) {
+            try {
+                const stringSignatureIndicators = stringSignatureResults.indicators.map(ind => ({
+                    category: 'automation_detection',
+                    name: ind.id || 'unknown',
+                    description: ind.description || 'String signature anomaly',
+                    severity: ind.severity || 'MEDIUM',
+                    confidence: ind.confidence || 0.5,
+                    details: `String signature anomaly detected: ${ind.name || 'unknown'}`
+                }));
+                this.suspiciousIndicators = [...this.suspiciousIndicators, ...stringSignatureIndicators];
+            } catch (error) {
+                console.warn('⚠️ Failed to process string signature indicators:', error.message);
+            }
         }
         
         // Add network/battery/storage indicators
-        this._collectModularDetectorIndicators();
+        try {
+            this._collectModularDetectorIndicators();
+        } catch (error) {
+            console.warn('⚠️ Failed to collect modular detector indicators:', error.message);
+        }
         
         this.suspiciousAnalysis = suspiciousResults; // Full analysis including reasoning
 
         this.analysisComplete = true;
         console.log('✅ Browser fingerprint analysis complete:', this.metrics);
         console.log('🚨 Suspicious indicators analysis:', suspiciousResults);
-        if (aiAgentResults.success) {
-            console.log('🤖 AI Agent indicators:', this.aiAgentDetector.getSuspiciousIndicators());
+        if (aiAgentResults && aiAgentResults.success && this.aiAgentDetector) {
+            try {
+                console.log('🤖 AI Agent indicators:', this.aiAgentDetector.getSuspiciousIndicators());
+            } catch (e) { /* ignore */ }
         }
-        if (stringSignatureResults.totalDetected > 0) {
+        if (stringSignatureResults && stringSignatureResults.totalDetected > 0) {
             console.log('🔍 String Signature indicators:', stringSignatureResults.indicators);
         }
         return this.metrics;
@@ -861,60 +1023,84 @@ class BrowserFingerprintAnalyzer {
      */
     _collectModularDetectorIndicators() {
         // Network capabilities indicators
-        try {
-            const networkIndicators = this.networkCapabilitiesDetector.getSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...networkIndicators];
-        } catch (e) {
-            // Ignore if not available
+        if (this.networkCapabilitiesDetector) {
+            try {
+                const networkIndicators = this.networkCapabilitiesDetector.getSuspiciousIndicators();
+                if (networkIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...networkIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
         }
 
         // Battery/storage indicators
-        try {
-            const batteryStorageIndicators = this.batteryStorageDetector.getSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...batteryStorageIndicators];
-        } catch (e) {
-            // Ignore if not available
+        if (this.batteryStorageDetector) {
+            try {
+                const batteryStorageIndicators = this.batteryStorageDetector.getSuspiciousIndicators();
+                if (batteryStorageIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...batteryStorageIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
         }
 
         // Active measurements indicators (if enabled and available)
-        if (this.options.enableActiveMeasurements) {
+        if (this.options.enableActiveMeasurements && this.activeMeasurementsDetector) {
             try {
                 const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
                 const activeMeasurementIndicators = this.activeMeasurementsDetector.getSuspiciousIndicators(connection);
-                this.suspiciousIndicators = [...this.suspiciousIndicators, ...activeMeasurementIndicators];
+                if (activeMeasurementIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...activeMeasurementIndicators];
+                }
             } catch (e) {
                 // Ignore if not available
             }
         }
 
         // Audio fingerprint indicators
-        try {
-            const audioIndicators = this.audioFingerprintDetector.getSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...audioIndicators];
-        } catch (e) {
-            // Ignore if not available
+        if (this.audioFingerprintDetector) {
+            try {
+                const audioIndicators = this.audioFingerprintDetector.getSuspiciousIndicators();
+                if (audioIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...audioIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
         }
 
         // WebRTC leak indicators
-        try {
-            const webRTCIndicators = this.webRTCLeakDetector.getSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...webRTCIndicators];
-        } catch (e) {
-            // Ignore if not available
+        if (this.webRTCLeakDetector) {
+            try {
+                const webRTCIndicators = this.webRTCLeakDetector.getSuspiciousIndicators();
+                if (webRTCIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...webRTCIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
         }
 
         // WebGL fingerprint indicators
-        try {
-            const webGLIndicators = this.webGLFingerprintDetector.getSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...webGLIndicators];
-        } catch (e) {
-            // Ignore if not available
+        if (this.webGLFingerprintDetector) {
+            try {
+                const webGLIndicators = this.webGLFingerprintDetector.getSuspiciousIndicators();
+                if (webGLIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...webGLIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
         }
 
         // Media devices indicators
         try {
             const mediaDevicesIndicators = this._getMediaDevicesSuspiciousIndicators();
-            this.suspiciousIndicators = [...this.suspiciousIndicators, ...mediaDevicesIndicators];
+            if (mediaDevicesIndicators) {
+                this.suspiciousIndicators = [...this.suspiciousIndicators, ...mediaDevicesIndicators];
+            }
         } catch (e) {
             // Ignore if not available
         }
@@ -974,148 +1160,140 @@ class BrowserFingerprintAnalyzer {
      * @private
      */
     _analyzeNavigator() {
-        const nav = window.navigator;
-        return {
-            userAgent: {
-                value: nav.userAgent,
-                description: 'Browser identification string'
-            },
-            appCodeName: {
-                value: nav.appCodeName,
-                description: 'Browser code name'
-            },
-            cookieEnabled: {
-                value: nav.cookieEnabled,
-                description: 'Cookie support status'
-            },
-            platform: {
-                value: nav.platform,
-                description: 'Operating system platform'
-            },
-            language: {
-                value: nav.language,
-                description: 'Primary browser language'
-            },
-            webdriver: {
-                value: nav.webdriver,
-                description: 'WebDriver automation flag',
-                risk: nav.webdriver === true ? 'HIGH' : 'LOW'
-            },
-            maxTouchPoints: {
-                value: nav.maxTouchPoints,
-                description: 'Maximum touch contact points', // j19
-                risk: nav.maxTouchPoints === 0 ? 'MEDIUM' : 'LOW'
-            },
-            msMaxTouchPoints: {
-                value: nav.msMaxTouchPoints || 'Not available',
-                description: 'Microsoft-specific max touch points' // j20
-            },
-            hardwareConcurrency: {
-                value: nav.hardwareConcurrency,
-                description: 'Number of logical processor cores',
-                risk: (nav.hardwareConcurrency && nav.hardwareConcurrency % 2 !== 0) ? 'MEDIUM' : 'LOW'
-            },
-            pluginsLength: {
-                value: nav.plugins ? nav.plugins.length : 0,
-                description: 'Number of browser plugins available',
-                risk: (nav.plugins && nav.plugins.length === 0) ? 'HIGH' : 'LOW'
-            },
-            mimeTypesLength: {
-                value: nav.mimeTypes ? nav.mimeTypes.length : 0,
-                description: 'Number of MIME types supported',
-                risk: (nav.mimeTypes && nav.mimeTypes.length === 0) ? 'HIGH' : 'LOW'
-            },
-            onLine: {
-                value: nav.onLine,
-                description: 'Network connectivity status'
-            },
-            buildID: {
-                value: nav.buildID || 'Not available',
-                description: 'Browser build identifier'
-            },
-            hardwareConcurrency: {
-                value: nav.hardwareConcurrency,
-                description: 'CPU logical processors count'
-            },
-            mimeTypesLength: {
-                value: nav.mimeTypes ? nav.mimeTypes.length : 0,
-                description: 'Supported MIME types count'
-            },
-            pluginsLength: {
-                value: nav.plugins ? nav.plugins.length : 0,
-                description: 'Installed plugins count',
-                risk: nav.plugins && nav.plugins.length === 0 ? 'MEDIUM' : 'LOW'
-            },
-            product: {
-                value: nav.product,
-                description: 'Browser engine name'
-            },
-            appVersion: {
-                value: nav.appVersion,
-                description: 'Browser version information'
-            },
-            cpuClass: {
-                value: nav.cpuClass || 'Not available',
-                description: 'CPU class architecture'
-            },
-            vendor: {
-                value: nav.vendor,
-                description: 'Browser vendor'
-            },
-            vendorSub: {
-                value: nav.vendorSub,
-                description: 'Browser vendor sub-version'
-            },
-            productSub: {
-                value: nav.productSub,
-                description: 'Browser product sub-version'
-            },
-            doNotTrack: {
-                value: nav.doNotTrack,
-                description: 'Do Not Track preference' // j21
-            },
-            msDoNotTrack: {
-                value: nav.msDoNotTrack || 'Not available',
-                description: 'Microsoft Do Not Track' // j22
-            },
-            // j247, j248 - Plugins string representation
-            pluginsString1: {
-                value: nav.plugins && nav.plugins.length > 0 ? nav.plugins[0].name : 'Not available',
-                description: 'First plugin name string' // j247
-            },
-            pluginsString2: {
-                value: nav.plugins && nav.plugins.length > 1 ? nav.plugins[1].name : 'Not available',
-                description: 'Second plugin name string' // j248
-            },
-            // j257, j258, j259 - Vendor-specific getUserMedia
-            hasWebkitGetUserMedia: {
-                value: !!nav.webkitGetUserMedia,
-                description: 'Webkit getUserMedia availability' // j257
-            },
-            hasMozGetUserMedia: {
-                value: !!nav.mozGetUserMedia,
-                description: 'Mozilla getUserMedia availability' // j258
-            },
-            hasMsGetUserMedia: {
-                value: !!nav.msGetUserMedia,
-                description: 'Microsoft getUserMedia availability' // j259
-            },
-            // j266 - vibrate API
-            hasVibrate: {
-                value: !!nav.vibrate,
-                description: 'Vibrate API availability' // j266
-            },
-            // j267 - getBattery API
-            hasGetBattery: {
-                value: !!nav.getBattery,
-                description: 'Battery Status API availability' // j267
-            },
-            // j276 - connection API
-            hasConnection: {
-                value: !!nav.connection,
-                description: 'Network Information API availability' // j276
-            }
-        };
+        try {
+            const nav = window.navigator || {};
+            return {
+                userAgent: {
+                    value: safeGet(() => nav.userAgent, 'Unknown'),
+                    description: 'Browser identification string'
+                },
+                appCodeName: {
+                    value: safeGet(() => nav.appCodeName),
+                    description: 'Browser code name'
+                },
+                cookieEnabled: {
+                    value: safeGet(() => nav.cookieEnabled, false),
+                    description: 'Cookie support status'
+                },
+                platform: {
+                    value: safeGet(() => nav.platform),
+                    description: 'Operating system platform'
+                },
+                language: {
+                    value: safeGet(() => nav.language),
+                    description: 'Primary browser language'
+                },
+                webdriver: {
+                    value: safeGet(() => nav.webdriver, false),
+                    description: 'WebDriver automation flag',
+                    risk: safeGet(() => nav.webdriver, false) === true ? 'HIGH' : 'LOW'
+                },
+                maxTouchPoints: {
+                    value: safeGet(() => nav.maxTouchPoints, 0),
+                    description: 'Maximum touch contact points',
+                    risk: safeGet(() => nav.maxTouchPoints, 0) === 0 ? 'MEDIUM' : 'LOW'
+                },
+                msMaxTouchPoints: {
+                    value: safeGet(() => nav.msMaxTouchPoints),
+                    description: 'Microsoft-specific max touch points'
+                },
+                hardwareConcurrency: {
+                    value: safeGet(() => nav.hardwareConcurrency),
+                    description: 'Number of logical processor cores',
+                    risk: (() => {
+                        const cores = safeGet(() => nav.hardwareConcurrency, 0);
+                        return (cores && cores % 2 !== 0) ? 'MEDIUM' : 'LOW';
+                    })()
+                },
+                pluginsLength: {
+                    value: safeGet(() => nav.plugins ? nav.plugins.length : 0, 0),
+                    description: 'Number of browser plugins available',
+                    risk: safeGet(() => nav.plugins && nav.plugins.length, 1) === 0 ? 'HIGH' : 'LOW'
+                },
+                mimeTypesLength: {
+                    value: safeGet(() => nav.mimeTypes ? nav.mimeTypes.length : 0, 0),
+                    description: 'Number of MIME types supported',
+                    risk: safeGet(() => nav.mimeTypes && nav.mimeTypes.length, 1) === 0 ? 'HIGH' : 'LOW'
+                },
+                onLine: {
+                    value: safeGet(() => nav.onLine, true),
+                    description: 'Network connectivity status'
+                },
+                buildID: {
+                    value: safeGet(() => nav.buildID),
+                    description: 'Browser build identifier'
+                },
+                product: {
+                    value: safeGet(() => nav.product),
+                    description: 'Browser engine name'
+                },
+                appVersion: {
+                    value: safeGet(() => nav.appVersion),
+                    description: 'Browser version information'
+                },
+                cpuClass: {
+                    value: safeGet(() => nav.cpuClass),
+                    description: 'CPU class architecture'
+                },
+                vendor: {
+                    value: safeGet(() => nav.vendor),
+                    description: 'Browser vendor'
+                },
+                vendorSub: {
+                    value: safeGet(() => nav.vendorSub),
+                    description: 'Browser vendor sub-version'
+                },
+                productSub: {
+                    value: safeGet(() => nav.productSub),
+                    description: 'Browser product sub-version'
+                },
+                doNotTrack: {
+                    value: safeGet(() => nav.doNotTrack),
+                    description: 'Do Not Track preference'
+                },
+                msDoNotTrack: {
+                    value: safeGet(() => nav.msDoNotTrack),
+                    description: 'Microsoft Do Not Track'
+                },
+                pluginsString1: {
+                    value: safeGet(() => nav.plugins && nav.plugins.length > 0 ? nav.plugins[0].name : null),
+                    description: 'First plugin name string'
+                },
+                pluginsString2: {
+                    value: safeGet(() => nav.plugins && nav.plugins.length > 1 ? nav.plugins[1].name : null),
+                    description: 'Second plugin name string'
+                },
+                hasWebkitGetUserMedia: {
+                    value: safeGet(() => !!nav.webkitGetUserMedia, false),
+                    description: 'Webkit getUserMedia availability'
+                },
+                hasMozGetUserMedia: {
+                    value: safeGet(() => !!nav.mozGetUserMedia, false),
+                    description: 'Mozilla getUserMedia availability'
+                },
+                hasMsGetUserMedia: {
+                    value: safeGet(() => !!nav.msGetUserMedia, false),
+                    description: 'Microsoft getUserMedia availability'
+                },
+                hasVibrate: {
+                    value: safeGet(() => !!nav.vibrate, false),
+                    description: 'Vibrate API availability'
+                },
+                hasGetBattery: {
+                    value: safeGet(() => !!nav.getBattery, false),
+                    description: 'Battery Status API availability'
+                },
+                hasConnection: {
+                    value: safeGet(() => !!nav.connection, false),
+                    description: 'Network Information API availability'
+                }
+            };
+        } catch (error) {
+            console.warn('⚠️ Navigator analysis failed:', error.message);
+            return {
+                error: createErrorMetric(error, 'Navigator analysis failed')
+            };
+        }
     }
 
     /**
