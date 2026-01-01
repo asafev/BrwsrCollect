@@ -10,3 +10,15 @@ export { createSuspiciousIndicatorsSection, createBehavioralIndicatorsSection } 
 export { createLoadingState, createBehavioralLoadingState, updateLoadingProgress, updateBehavioralStats, updateLoadingContent, createErrorState } from './Loading.js';
 export { createExportBar, exportFingerprintData } from './Export.js';
 export { showDetailModal, hideDetailModal } from './DetailModal.js';
+export { FingerprintConsole, createFingerprintConsole } from './Console.js';
+
+// Diff View Components
+export { 
+    createDiffToggleBar, 
+    createDiffMetricsTable, 
+    createDiffSection, 
+    createNoDifferencesState, 
+    createDiffOverviewCard,
+    updateDiffSummary,
+    getDiffConfig
+} from './DiffView.js';

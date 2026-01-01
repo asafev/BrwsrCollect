@@ -9,11 +9,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Modern fonts for enterprise look -->
+    <!-- Modern fonts for enterprise look - Segoe UI fallback to system fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <!-- Fingerprint Analysis Styles -->
-    <link rel="stylesheet" href="fingerprint-ui/styles/fingerprint-analysis.css">
+    <!-- Enterprise Design System Styles (Primary - takes precedence) -->
+    <link rel="stylesheet" href="fingerprint-ui/styles/enterprise-design-system.css">
+    <link rel="stylesheet" href="fingerprint-ui/styles/enterprise-components.css">
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
@@ -38,6 +39,7 @@
         let BrowserFingerprintAnalyzer, StandaloneBehavioralTracker;
         let FingerprintUIRenderer, getTelemetryDescription;
         let createBehavioralLoadingState, createLoadingState, updateLoadingProgress, updateBehavioralStats, updateLoadingContent, createErrorState;
+        let FingerprintConsole;
         
         try {
             const fpModule = await import('./browserFingerprint.js');
@@ -71,6 +73,13 @@
             createErrorState = loadingModule.createErrorState;
         } catch (e) {
             console.error('Failed to load Loading.js:', e);
+        }
+        
+        try {
+            const consoleModule = await import('./fingerprint-ui/components/Console.js');
+            FingerprintConsole = consoleModule.FingerprintConsole;
+        } catch (e) {
+            console.error('Failed to load Console.js:', e);
         }
         
         // Fallback for createErrorState if not loaded
@@ -181,16 +190,36 @@
                 // ----------------------------------------
                 // Phase 2: Fingerprint Analysis with Real-Time Progress
                 // ----------------------------------------
+                
+                // Create container for loading state and console
+                appContainer.innerHTML = '';
+                
+                // Create loading state
                 if (createLoadingState) {
                     const analysisLoading = createLoadingState({
                         title: 'Analyzing Browser Fingerprint...',
                         subtitle: `Processing ${Object.keys(behavioralData.indicators || {}).length} behavioral indicators...`,
                         showProgress: true
                     });
-                    appContainer.innerHTML = '';
                     appContainer.appendChild(analysisLoading);
                 } else {
-                    appContainer.innerHTML = '<div style="padding: 40px; text-align: center;"><h2>🔍 Analyzing Browser Fingerprint...</h2></div>';
+                    const loadingDiv = document.createElement('div');
+                    loadingDiv.style.cssText = 'padding: 40px; text-align: center;';
+                    loadingDiv.innerHTML = '<h2>🔍 Analyzing Browser Fingerprint...</h2>';
+                    appContainer.appendChild(loadingDiv);
+                }
+                
+                // Create console for detailed logging
+                let fpConsole = null;
+                if (FingerprintConsole) {
+                    fpConsole = new FingerprintConsole({
+                        container: appContainer,
+                        title: 'Analysis Log',
+                        expanded: true,
+                        timestamps: true
+                    });
+                    fpConsole.info('Fingerprint analysis initialized');
+                    fpConsole.info(`Behavioral indicators collected: ${Object.keys(behavioralData.indicators || {}).length}`);
                 }
                 
                 // Run fingerprint analysis
@@ -198,12 +227,14 @@
                     throw new Error('BrowserFingerprintAnalyzer module failed to load');
                 }
                 
-                // Progress callback for real-time UI updates
+                // Progress callback for real-time UI updates AND console logging
                 const handleProgress = (progress) => {
+                    // Update loading UI
                     if (updateLoadingProgress) {
                         updateLoadingProgress(progress.percentage, progress.message);
                     }
-                    // Also update subtitle with completed phases info
+                    
+                    // Update subtitle with completed phases info
                     if (updateLoadingContent && progress.completedPhases) {
                         const phaseNames = {
                             core: '📊 Core Properties',
@@ -231,6 +262,11 @@
                         const subtitle = completedNames ? `✅ ${completedNames}` : progress.message;
                         updateLoadingContent('Analyzing Browser Fingerprint...', subtitle);
                     }
+                    
+                    // Log to console
+                    if (fpConsole) {
+                        fpConsole.handleProgress(progress);
+                    }
                 };
                 
                 const analyzer = new BrowserFingerprintAnalyzer({
@@ -241,11 +277,17 @@
                         pingCount: 3
                     },
                     networkTimeout: 5000, // 5 second timeout for network tests
+                    detectorTimeout: 3000, // 3 second timeout for individual detectors
                     onProgress: handleProgress
                 });
                 
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
+                
+                // Mark console as complete
+                if (fpConsole) {
+                    fpConsole.complete();
+                }
                 
                 // ----------------------------------------
                 // Phase 3: Inject Behavioral Data
@@ -282,8 +324,11 @@
                 appContainer.innerHTML = '';
                 
                 if (FingerprintUIRenderer) {
-                    uiRenderer = new FingerprintUIRenderer(appContainer);
-                    uiRenderer.render(fingerprintData);
+                    uiRenderer = new FingerprintUIRenderer(appContainer, {
+                        diffModeDefault: false, // Start with full view, user can toggle
+                        baselinePath: './fp_base/browser-fingerprint-chrome-trivial.json'
+                    });
+                    await uiRenderer.render(fingerprintData);
                 } else {
                     // Fallback: render basic JSON view
                     console.warn('⚠️ FingerprintUIRenderer not available, showing fallback view');

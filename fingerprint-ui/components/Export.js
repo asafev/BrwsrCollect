@@ -1,6 +1,7 @@
 /**
  * Fingerprint UI - Export Functionality
- * Export fingerprint data to JSON or CSV formats
+ * Enterprise-grade export controls for fingerprint data
+ * Supports JSON and CSV formats with professional styling
  */
 
 /**
@@ -11,24 +12,33 @@
 export function createExportBar(onExport) {
     const bar = document.createElement('div');
     bar.className = 'fp-export-bar';
+    bar.setAttribute('role', 'toolbar');
+    bar.setAttribute('aria-label', 'Export and view controls');
     
     bar.innerHTML = `
-        <button class="fp-export-btn" data-format="json">
-            <span>📄</span>
-            <span>Export JSON</span>
-        </button>
-        <button class="fp-export-btn fp-export-btn--secondary" data-format="csv">
-            <span>📊</span>
-            <span>Export CSV</span>
-        </button>
-        <button class="fp-export-btn" id="fp-expand-all" style="background: linear-gradient(135deg, var(--fp-gray-600), var(--fp-gray-700));">
-            <span>📂</span>
-            <span>Expand All</span>
-        </button>
-        <button class="fp-export-btn" id="fp-collapse-all" style="background: linear-gradient(135deg, var(--fp-gray-500), var(--fp-gray-600));">
-            <span>📁</span>
-            <span>Collapse All</span>
-        </button>
+        <div class="fp-export-bar__group" style="display: flex; gap: var(--fp-space-3, 0.75rem); align-items: center;">
+            <span style="font-size: var(--fp-font-size-300, 0.8125rem); color: var(--fp-neutral-foreground-3, #616161); font-weight: 500;">Export Data:</span>
+            <button class="fp-export-btn" data-format="json" aria-label="Export as JSON">
+                <span aria-hidden="true">📄</span>
+                <span>JSON</span>
+            </button>
+            <button class="fp-export-btn fp-export-btn--secondary" data-format="csv" aria-label="Export as CSV">
+                <span aria-hidden="true">📊</span>
+                <span>CSV</span>
+            </button>
+        </div>
+        <div class="fp-export-bar__divider" style="width: 1px; height: 24px; background: var(--fp-neutral-stroke-2, #E0E0E0);"></div>
+        <div class="fp-export-bar__group" style="display: flex; gap: var(--fp-space-3, 0.75rem); align-items: center;">
+            <span style="font-size: var(--fp-font-size-300, 0.8125rem); color: var(--fp-neutral-foreground-3, #616161); font-weight: 500;">Sections:</span>
+            <button class="fp-btn fp-btn--secondary" id="fp-expand-all" aria-label="Expand all sections">
+                <span aria-hidden="true">⊕</span>
+                <span>Expand All</span>
+            </button>
+            <button class="fp-btn fp-btn--secondary" id="fp-collapse-all" aria-label="Collapse all sections">
+                <span aria-hidden="true">⊖</span>
+                <span>Collapse All</span>
+            </button>
+        </div>
     `;
     
     // Add event listeners for export buttons

@@ -679,7 +679,9 @@ class BrowserFingerprintAnalyzer {
             // Custom URLs for active measurements
             activeMeasurements: options.activeMeasurements || {},
             // Timeout for network measurements (default 5 seconds)
-            networkTimeout: options.networkTimeout ?? 5000
+            networkTimeout: options.networkTimeout ?? 5000,
+            // Timeout for individual detectors (default 3 seconds)
+            detectorTimeout: options.detectorTimeout ?? 3000
         };
     }
 
@@ -798,12 +800,16 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('network', 'complete', { message: 'Network capabilities analyzed' });
 
-        // Run Battery and Storage detection (async APIs)
+        // Run Battery and Storage detection (async APIs) - WITH TIMEOUT
         this._reportProgress('battery', 'starting', { message: 'Analyzing battery and storage...' });
         console.log('🔋 Analyzing battery and storage...');
         if (this.batteryStorageDetector) {
             try {
-                const batteryStorageMetrics = await this.batteryStorageDetector.analyze();
+                const batteryStorageMetrics = await this._withTimeout(
+                    this.batteryStorageDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Battery/storage detection'
+                );
                 this.metrics.batteryStorage = batteryStorageMetrics;
                 console.log('🔋 Battery and storage analysis complete:', batteryStorageMetrics);
             } catch (error) {
@@ -815,12 +821,16 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('battery', 'complete', { message: 'Battery and storage analyzed' });
 
-        // Run Audio Fingerprint detection (async, uses OfflineAudioContext)
+        // Run Audio Fingerprint detection (async, uses OfflineAudioContext) - WITH TIMEOUT
         this._reportProgress('audio', 'starting', { message: 'Analyzing audio fingerprint...' });
         console.log('🔊 Analyzing audio fingerprint...');
         if (this.audioFingerprintDetector) {
             try {
-                const audioFingerprintMetrics = await this.audioFingerprintDetector.analyze();
+                const audioFingerprintMetrics = await this._withTimeout(
+                    this.audioFingerprintDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Audio fingerprint detection'
+                );
                 this.metrics.audioFingerprint = audioFingerprintMetrics;
                 console.log('🔊 Audio fingerprint analysis complete:', audioFingerprintMetrics);
             } catch (error) {
@@ -833,12 +843,16 @@ class BrowserFingerprintAnalyzer {
         this._reportProgress('audio', 'complete', { message: 'Audio fingerprint analyzed' });
 
 
-        // Run Speech Synthesis detection (async - waits for voices when available)
+        // Run Speech Synthesis detection (async - waits for voices when available) - WITH TIMEOUT
         this._reportProgress('speech', 'starting', { message: 'Analyzing speech synthesis...' });
         console.log('🗣️ Analyzing speech synthesis...');
         if (this.speechSynthesisDetector) {
             try {
-                const speechMetrics = await this.speechSynthesisDetector.analyze();
+                const speechMetrics = await this._withTimeout(
+                    this.speechSynthesisDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Speech synthesis detection'
+                );
                 this.metrics.speechSynthesis = speechMetrics;
                 console.log('🗣️ Speech synthesis analysis complete:', speechMetrics);
             } catch (error) {
@@ -884,12 +898,16 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('css', 'complete', { message: 'Computed styles analyzed' });
 
-        // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC)
+        // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC) - WITH TIMEOUT
         this._reportProgress('webrtc', 'starting', { message: 'Analyzing WebRTC leaks...' });
         console.log('📡 Analyzing WebRTC leaks...');
         if (this.webRTCLeakDetector) {
             try {
-                const webRTCLeakMetrics = await this.webRTCLeakDetector.analyze();
+                const webRTCLeakMetrics = await this._withTimeout(
+                    this.webRTCLeakDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'WebRTC leak detection'
+                );
                 this.metrics.webRTCLeak = webRTCLeakMetrics;
                 console.log('📡 WebRTC leak analysis complete:', webRTCLeakMetrics);
             } catch (error) {
@@ -901,12 +919,16 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('webrtc', 'complete', { message: 'WebRTC leaks analyzed' });
 
-        // Run Worker signals detection (async)
+        // Run Worker signals detection (async) - WITH TIMEOUT
         this._reportProgress('workers', 'starting', { message: 'Analyzing worker signals...' });
         console.log('🔄 Analyzing worker signals...');
         if (this.workerSignalsDetector) {
             try {
-                const workerMetrics = await this.workerSignalsDetector.analyze();
+                const workerMetrics = await this._withTimeout(
+                    this.workerSignalsDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Worker signals detection'
+                );
                 this.metrics.workerSignals = workerMetrics;
                 console.log('🔄 Worker signals analysis complete:', workerMetrics);
             } catch (error) {
@@ -918,12 +940,16 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('workers', 'complete', { message: 'Worker signals analyzed' });
 
-        // Run Fonts detection (async - tests installed fonts via FontFace.load)
+        // Run Fonts detection (async - tests installed fonts via FontFace.load) - WITH TIMEOUT
         this._reportProgress('fonts', 'starting', { message: 'Analyzing fonts...' });
         console.log('🔤 Analyzing fonts...');
         if (this.fontsDetector) {
             try {
-                const fontsMetrics = await this.fontsDetector.analyze();
+                const fontsMetrics = await this._withTimeout(
+                    this.fontsDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Fonts detection'
+                );
                 this.metrics.fonts = fontsMetrics;
                 console.log('🔤 Fonts analysis complete:', fontsMetrics);
             } catch (error) {
@@ -935,12 +961,16 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('fonts', 'complete', { message: 'Fonts analyzed' });
 
-        // Run WebGL Fingerprint detection (sync - collects WebGL parameters and image hash)
+        // Run WebGL Fingerprint detection - WITH TIMEOUT
         this._reportProgress('webgl', 'starting', { message: 'Analyzing WebGL fingerprint...' });
         console.log('🎨 Analyzing WebGL fingerprint...');
         if (this.webGLFingerprintDetector) {
             try {
-                const webGLMetrics = await this.webGLFingerprintDetector.analyze();
+                const webGLMetrics = await this._withTimeout(
+                    this.webGLFingerprintDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'WebGL fingerprint detection'
+                );
                 this.metrics.webgl = webGLMetrics;
                 console.log('🎨 WebGL fingerprint analysis complete:', webGLMetrics);
             } catch (error) {
@@ -952,11 +982,15 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('webgl', 'complete', { message: 'WebGL fingerprint analyzed' });
 
-        // Run Media Devices enumeration (async - enumerates available media devices)
+        // Run Media Devices enumeration (async - enumerates available media devices) - WITH TIMEOUT
         this._reportProgress('media', 'starting', { message: 'Analyzing media devices...' });
         console.log('🎤 Analyzing media devices...');
         try {
-            const mediaDevicesMetrics = await this._analyzeMediaDevices();
+            const mediaDevicesMetrics = await this._withTimeout(
+                this._analyzeMediaDevices(),
+                this.options.detectorTimeout,
+                'Media devices detection'
+            );
             this.metrics.mediaDevices = mediaDevicesMetrics;
             console.log('🎤 Media devices analysis complete:', mediaDevicesMetrics);
         } catch (error) {

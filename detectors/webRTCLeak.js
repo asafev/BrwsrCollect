@@ -382,8 +382,9 @@ class WebRTCLeakDetector {
                             if (parsed.type === 'relay') result.leakTest.candidateTypesSeen.relay = true;
                             if (parsed.type === 'prflx') result.leakTest.candidateTypesSeen.prflx = true;
                             
-                            // Collect addresses
-                            if (parsed.address) {
+                            // Collect addresses - only include valid IPv4 addresses
+                            // Ignore mDNS hostnames (e.g., uuid.local) and other non-IP formats
+                            if (parsed.address && (parsed.addressType === 'private_ipv4' || parsed.addressType === 'public_ipv4')) {
                                 seenAddresses.add(parsed.address);
                                 
                                 // Public addresses from srflx candidates
@@ -412,7 +413,8 @@ class WebRTCLeakDetector {
                                 if (!exists) {
                                     result.leakTest.localCandidates.push(parsed);
                                     
-                                    if (parsed.address) {
+                                    // Only add valid IPv4 addresses (not mDNS hostnames like uuid.local)
+                                    if (parsed.address && (parsed.addressType === 'private_ipv4' || parsed.addressType === 'public_ipv4')) {
                                         seenAddresses.add(parsed.address);
                                     }
                                 }

@@ -46,25 +46,33 @@ export function createMetricsTable(metrics, categoryKey, rawData = null) {
         rawResultsStore[categoryKey] = rawData;
     }
     
+    // Create wrapper for responsive table
+    const wrapper = document.createElement('div');
+    wrapper.className = 'fp-table-wrapper';
+    wrapper.style.cssText = 'overflow-x: auto; -webkit-overflow-scrolling: touch;';
+    
     const table = document.createElement('table');
     table.className = 'fp-metrics-table';
+    table.setAttribute('role', 'table');
+    table.setAttribute('aria-label', `${categoryKey} metrics`);
     
-    // Create header
+    // Create header with improved accessibility
     const thead = document.createElement('thead');
     thead.innerHTML = `
-        <tr>
-            <th style="width: 40px;">#</th>
-            <th style="width: 180px;">Metric</th>
-            <th style="width: 220px;">Value</th>
-            <th style="width: 240px;">Description</th>
-            <th style="width: 220px;">JS Code</th>
-            <th style="width: 80px;">Risk</th>
+        <tr role="row">
+            <th role="columnheader" scope="col" style="width: 44px; text-align: center;">#</th>
+            <th role="columnheader" scope="col" style="width: 180px;">Metric Name</th>
+            <th role="columnheader" scope="col" style="width: 220px;">Current Value</th>
+            <th role="columnheader" scope="col" style="width: 240px;">Description</th>
+            <th role="columnheader" scope="col" style="width: 200px;">API Reference</th>
+            <th role="columnheader" scope="col" style="width: 90px; text-align: center;">Risk Level</th>
         </tr>
     `;
     table.appendChild(thead);
     
     // Create body
     const tbody = document.createElement('tbody');
+    tbody.setAttribute('role', 'rowgroup');
     
     let index = 1;
     for (const [metricName, metricData] of Object.entries(metrics)) {
@@ -79,7 +87,8 @@ export function createMetricsTable(metrics, categoryKey, rawData = null) {
     }
     
     table.appendChild(tbody);
-    return table;
+    wrapper.appendChild(table);
+    return wrapper;
 }
 
 /**

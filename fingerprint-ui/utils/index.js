@@ -4,3 +4,4 @@
  */
 
 export * from './helpers.js';
+export { BaselineComparator, createBaselineComparator, DiffType } from './BaselineComparator.js';

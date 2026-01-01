@@ -1,0 +1,3756 @@
+{
+  "timestamp": 1767194847995,
+  "analysisComplete": true,
+  "metrics": {
+    "navigator": {
+      "userAgent": {
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "description": "Browser identification string"
+      },
+      "appCodeName": {
+        "value": "Mozilla",
+        "description": "Browser code name"
+      },
+      "cookieEnabled": {
+        "value": true,
+        "description": "Cookie support status"
+      },
+      "platform": {
+        "value": "Win32",
+        "description": "Operating system platform"
+      },
+      "language": {
+        "value": "en-US",
+        "description": "Primary browser language"
+      },
+      "webdriver": {
+        "value": false,
+        "description": "WebDriver automation flag",
+        "risk": "LOW"
+      },
+      "maxTouchPoints": {
+        "value": 10,
+        "description": "Maximum touch contact points",
+        "risk": "LOW"
+      },
+      "msMaxTouchPoints": {
+        "value": "Not available",
+        "description": "Microsoft-specific max touch points"
+      },
+      "hardwareConcurrency": {
+        "value": 12,
+        "description": "Number of logical processor cores",
+        "risk": "LOW"
+      },
+      "pluginsLength": {
+        "value": 5,
+        "description": "Number of browser plugins available",
+        "risk": "LOW"
+      },
+      "mimeTypesLength": {
+        "value": 2,
+        "description": "Number of MIME types supported",
+        "risk": "LOW"
+      },
+      "onLine": {
+        "value": true,
+        "description": "Network connectivity status"
+      },
+      "buildID": {
+        "value": "Not available",
+        "description": "Browser build identifier"
+      },
+      "product": {
+        "value": "Gecko",
+        "description": "Browser engine name"
+      },
+      "appVersion": {
+        "value": "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "description": "Browser version information"
+      },
+      "cpuClass": {
+        "value": "Not available",
+        "description": "CPU class architecture"
+      },
+      "vendor": {
+        "value": "Google Inc.",
+        "description": "Browser vendor"
+      },
+      "vendorSub": {
+        "value": "",
+        "description": "Browser vendor sub-version"
+      },
+      "productSub": {
+        "value": "20030107",
+        "description": "Browser product sub-version"
+      },
+      "doNotTrack": {
+        "value": "Not available",
+        "description": "Do Not Track preference"
+      },
+      "msDoNotTrack": {
+        "value": "Not available",
+        "description": "Microsoft Do Not Track"
+      },
+      "pluginsString1": {
+        "value": "PDF Viewer",
+        "description": "First plugin name string"
+      },
+      "pluginsString2": {
+        "value": "Chrome PDF Viewer",
+        "description": "Second plugin name string"
+      },
+      "hasWebkitGetUserMedia": {
+        "value": true,
+        "description": "Webkit getUserMedia availability"
+      },
+      "hasMozGetUserMedia": {
+        "value": false,
+        "description": "Mozilla getUserMedia availability"
+      },
+      "hasMsGetUserMedia": {
+        "value": false,
+        "description": "Microsoft getUserMedia availability"
+      },
+      "hasVibrate": {
+        "value": true,
+        "description": "Vibrate API availability"
+      },
+      "hasGetBattery": {
+        "value": true,
+        "description": "Battery Status API availability"
+      },
+      "hasConnection": {
+        "value": true,
+        "description": "Network Information API availability"
+      }
+    },
+    "display": {
+      "colorDepth": {
+        "value": 24,
+        "description": "Screen color depth in bits"
+      },
+      "width": {
+        "value": 1920,
+        "description": "Screen width in pixels"
+      },
+      "height": {
+        "value": 1080,
+        "description": "Screen height in pixels"
+      },
+      "availWidth": {
+        "value": 1920,
+        "description": "Available screen width"
+      },
+      "availHeight": {
+        "value": 1032,
+        "description": "Available screen height"
+      },
+      "pixelDepth": {
+        "value": 24,
+        "description": "Screen pixel depth"
+      },
+      "orientation": {
+        "value": "landscape-primary",
+        "description": "Screen orientation type"
+      }
+    },
+    "window": {
+      "innerWidth": {
+        "value": 2133,
+        "description": "Viewport inner width"
+      },
+      "innerHeight": {
+        "value": 1012,
+        "description": "Viewport inner height"
+      },
+      "outerWidth": {
+        "value": 1920,
+        "description": "Browser window outer width",
+        "risk": "LOW"
+      },
+      "outerHeight": {
+        "value": 1032,
+        "description": "Browser window outer height",
+        "risk": "LOW"
+      },
+      "screenTop": {
+        "value": 0,
+        "description": "Window position from screen top"
+      },
+      "screenLeft": {
+        "value": 0,
+        "description": "Window position from screen left"
+      },
+      "scrollX": {
+        "value": true,
+        "description": "Horizontal scroll API availability"
+      },
+      "scrollY": {
+        "value": true,
+        "description": "Vertical scroll API availability"
+      },
+      "devicePixelRatio": {
+        "value": 0.8999999761581421,
+        "description": "Device pixel ratio"
+      },
+      "closed": {
+        "value": false,
+        "description": "Window closed status"
+      },
+      "opener": {
+        "value": false,
+        "description": "Window opener reference exists"
+      },
+      "self": {
+        "value": true,
+        "description": "Window self reference availability"
+      },
+      "historyLength": {
+        "value": 12,
+        "description": "Number of entries in session history",
+        "risk": "LOW"
+      },
+      "mozPaintCount": {
+        "value": "Not available",
+        "description": "Firefox paint count"
+      },
+      "mozInnerScreenX": {
+        "value": "Not available",
+        "description": "Firefox inner screen X position"
+      },
+      "hasSidebar": {
+        "value": false,
+        "description": "Firefox sidebar API availability"
+      },
+      "hasScrollTo": {
+        "value": true,
+        "description": "scrollTo function availability"
+      },
+      "hasChromeApp": {
+        "value": true,
+        "description": "Chrome app API availability"
+      },
+      "hasChromeCsi": {
+        "value": true,
+        "description": "Chrome CSI API availability"
+      },
+      "hasInstallTrigger": {
+        "value": false,
+        "description": "Firefox InstallTrigger availability"
+      },
+      "hasExternal": {
+        "value": true,
+        "description": "Window external object availability"
+      },
+      "hasCallPhantom": {
+        "value": false,
+        "description": "PhantomJS callPhantom availability"
+      }
+    },
+    "automation": {
+      "webdriverFlag": {
+        "value": false,
+        "description": "Navigator webdriver property",
+        "risk": "LOW"
+      },
+      "webdriverAttribute": {
+        "value": false,
+        "description": "Document element webdriver attribute",
+        "risk": "LOW"
+      },
+      "seleniumIndicators": {
+        "value": 0,
+        "description": "Selenium automation indicators detected",
+        "risk": "LOW",
+        "details": []
+      },
+      "phantomjsCheck": {
+        "value": false,
+        "description": "PhantomJS automation indicators",
+        "risk": "LOW"
+      },
+      "cdpIndicators": {
+        "value": false,
+        "description": "Chrome extension runtime detected",
+        "risk": "LOW"
+      },
+      "automationLibraries": {
+        "value": false,
+        "description": "Playwright/Puppeteer automation libraries detected",
+        "risk": "LOW"
+      },
+      "automationArtifacts": {
+        "value": 0,
+        "description": "Total automation artifacts detected",
+        "risk": "LOW"
+      }
+    },
+    "jsEnvironment": {
+      "setTimeout": {
+        "value": true,
+        "description": "setTimeout function availability"
+      },
+      "setInterval": {
+        "value": true,
+        "description": "setInterval function availability"
+      },
+      "functionBind": {
+        "value": true,
+        "description": "Function.prototype.bind availability"
+      },
+      "functionToString": {
+        "value": true,
+        "description": "Function.prototype.toString availability"
+      },
+      "mathAbs": {
+        "value": 3.186,
+        "description": "Math.abs function test result"
+      },
+      "arrayBuffer": {
+        "value": true,
+        "description": "ArrayBuffer API availability"
+      },
+      "int8Array": {
+        "value": true,
+        "description": "Int8Array API availability"
+      },
+      "int16Array": {
+        "value": true,
+        "description": "Int16Array API availability"
+      },
+      "int32Array": {
+        "value": true,
+        "description": "Int32Array API availability"
+      },
+      "promise": {
+        "value": true,
+        "description": "Promise API availability"
+      },
+      "boolean": {
+        "value": true,
+        "description": "Boolean constructor availability"
+      },
+      "map": {
+        "value": true,
+        "description": "Map API availability"
+      },
+      "uriError": {
+        "value": true,
+        "description": "URIError availability"
+      },
+      "intlAPI": {
+        "value": 0,
+        "description": "Internationalization API objects available"
+      },
+      "intlLocale": {
+        "value": "en-US",
+        "description": "Browser default locale"
+      },
+      "v8BreakIterator": {
+        "value": true,
+        "description": "V8 engine-specific break iterator"
+      },
+      "errorStackTrace": {
+        "value": true,
+        "description": "Error stack trace support"
+      },
+      "performanceNow": {
+        "value": true,
+        "description": "High resolution time API"
+      },
+      "asyncFunction": {
+        "value": true,
+        "description": "Async function constructor available"
+      },
+      "generatorFunction": {
+        "value": true,
+        "description": "Generator function support"
+      },
+      "memoryAPI": {
+        "value": true,
+        "description": "Performance memory API availability"
+      },
+      "webAssembly": {
+        "value": true,
+        "description": "WebAssembly support"
+      },
+      "bigInt": {
+        "value": true,
+        "description": "BigInt primitive support"
+      },
+      "weakMap": {
+        "value": true,
+        "description": "WeakMap collection support"
+      },
+      "weakSet": {
+        "value": true,
+        "description": "WeakSet collection support"
+      },
+      "proxy": {
+        "value": true,
+        "description": "Proxy object support"
+      },
+      "reflect": {
+        "value": true,
+        "description": "Reflect API support"
+      },
+      "symbol": {
+        "value": true,
+        "description": "Symbol primitive support"
+      },
+      "mapIterator": {
+        "value": true,
+        "description": "Map iterator support"
+      },
+      "xhrString": {
+        "value": "function XMLHttpRequest() { [native code] }",
+        "description": "XMLHttpRequest toString representation"
+      },
+      "int8ArrayLen5": {
+        "value": 5,
+        "description": "Int8Array length 5 sanity check"
+      },
+      "hasUint8ClampedArray": {
+        "value": true,
+        "description": "Uint8ClampedArray availability"
+      },
+      "hasSharedArrayBuffer": {
+        "value": false,
+        "description": "SharedArrayBuffer availability"
+      },
+      "hasAtomics": {
+        "value": true,
+        "description": "Atomics API availability"
+      },
+      "hasDataView": {
+        "value": true,
+        "description": "DataView availability"
+      },
+      "hasEval": {
+        "value": true,
+        "description": "eval function availability"
+      },
+      "hasJsonStringify": {
+        "value": true,
+        "description": "JSON.stringify availability"
+      }
+    },
+    "graphics": {
+      "webglRenderer": {
+        "value": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x0000A7A1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "description": "WebGL renderer information"
+      },
+      "canvas": {
+        "value": true,
+        "description": "Canvas API availability"
+      },
+      "webgl": {
+        "value": true,
+        "description": "WebGL support availability"
+      }
+    },
+    "performance": {
+      "memoryLimit": {
+        "value": 4294967296,
+        "description": "JavaScript heap size limit"
+      },
+      "usedMemory": {
+        "value": 11328491,
+        "description": "Used JavaScript heap size"
+      },
+      "totalMemory": {
+        "value": 18138131,
+        "description": "Total JavaScript heap size"
+      },
+      "redirectCount": {
+        "value": 0,
+        "description": "Page redirect count"
+      },
+      "navigationType": {
+        "value": 0,
+        "description": "Navigation type"
+      },
+      "timezoneOffset": {
+        "value": -120,
+        "description": "Timezone offset in minutes"
+      }
+    },
+    "webApis": {
+      "geolocation": {
+        "value": true,
+        "description": "Geolocation API availability"
+      },
+      "getUserMedia": {
+        "value": true,
+        "description": "getUserMedia API availability"
+      },
+      "sendBeacon": {
+        "value": true,
+        "description": "sendBeacon API availability"
+      },
+      "localStorage": {
+        "value": true,
+        "description": "localStorage API availability"
+      },
+      "sessionStorage": {
+        "value": true,
+        "description": "sessionStorage API availability"
+      },
+      "indexedDB": {
+        "value": true,
+        "description": "IndexedDB API availability"
+      },
+      "webDatabase": {
+        "value": false,
+        "description": "Web SQL Database API availability"
+      },
+      "webkitSpeechGrammar": {
+        "value": true,
+        "description": "Speech Recognition API availability"
+      },
+      "cacheStorage": {
+        "value": true,
+        "description": "Cache Storage API availability"
+      },
+      "midiPort": {
+        "value": true,
+        "description": "MIDI API availability"
+      },
+      "mimeTypeArray": {
+        "value": true,
+        "description": "MimeTypeArray availability"
+      },
+      "pluginArray": {
+        "value": true,
+        "description": "PluginArray availability"
+      },
+      "hasRequestAnimationFrame": {
+        "value": true,
+        "description": "requestAnimationFrame availability"
+      },
+      "hasWebkitRequestAnimationFrame": {
+        "value": true,
+        "description": "Webkit requestAnimationFrame availability"
+      },
+      "hasMozRequestAnimationFrame": {
+        "value": false,
+        "description": "Mozilla requestAnimationFrame availability"
+      },
+      "hasORequestAnimationFrame": {
+        "value": false,
+        "description": "Opera requestAnimationFrame availability"
+      },
+      "hasMsRequestAnimationFrame": {
+        "value": false,
+        "description": "Microsoft requestAnimationFrame availability"
+      },
+      "hasPostMessage": {
+        "value": true,
+        "description": "postMessage availability"
+      },
+      "hasMessageChannel": {
+        "value": true,
+        "description": "MessageChannel availability"
+      },
+      "hasAudioContext": {
+        "value": true,
+        "description": "AudioContext availability"
+      },
+      "hasSpeechSynthesis": {
+        "value": true,
+        "description": "SpeechSynthesis availability"
+      },
+      "hasCreateImageBitmap": {
+        "value": true,
+        "description": "createImageBitmap availability"
+      },
+      "hasFetch": {
+        "value": true,
+        "description": "fetch API availability"
+      },
+      "hasCryptoGetRandomValues": {
+        "value": true,
+        "description": "crypto.getRandomValues availability"
+      },
+      "hasNotification": {
+        "value": true,
+        "description": "Notification API availability"
+      },
+      "hasBroadcastChannel": {
+        "value": true,
+        "description": "BroadcastChannel API availability"
+      },
+      "hasOffscreenCanvas": {
+        "value": true,
+        "description": "OffscreenCanvas availability"
+      },
+      "hasMediaDevices": {
+        "value": true,
+        "description": "MediaDevices API availability"
+      },
+      "hasEnumerateDevices": {
+        "value": true,
+        "description": "enumerateDevices API availability"
+      }
+    },
+    "document": {
+      "hasFocus": {
+        "value": true,
+        "description": "Document focus status"
+      },
+      "webkitHidden": {
+        "value": false,
+        "description": "Webkit visibility state"
+      },
+      "documentMode": {
+        "value": "Not available",
+        "description": "IE document mode"
+      },
+      "elementFromPoint": {
+        "value": 3,
+        "description": "Element at point (0,0) child count"
+      },
+      "textNode": {
+        "value": 3,
+        "description": "Document TEXT_NODE constant"
+      },
+      "commentNode": {
+        "value": 8,
+        "description": "Document COMMENT_NODE constant"
+      },
+      "attributeNode": {
+        "value": 2,
+        "description": "Document ATTRIBUTE_NODE constant"
+      },
+      "processingInstructionNode": {
+        "value": 7,
+        "description": "Document PROCESSING_INSTRUCTION_NODE constant"
+      },
+      "documentTypeNode": {
+        "value": 10,
+        "description": "Document DOCUMENT_TYPE_NODE constant"
+      },
+      "isConnected": {
+        "value": true,
+        "description": "Document isConnected property availability"
+      },
+      "hasLookupNamespaceURI": {
+        "value": true,
+        "description": "lookupNamespaceURI function availability"
+      },
+      "hasCreateDocumentFragment": {
+        "value": true,
+        "description": "createDocumentFragment availability"
+      },
+      "hasQuerySelectorAll": {
+        "value": true,
+        "description": "querySelectorAll availability"
+      },
+      "hasCreateTreeWalker": {
+        "value": true,
+        "description": "createTreeWalker availability"
+      },
+      "hasCreateRange": {
+        "value": true,
+        "description": "createRange availability"
+      }
+    },
+    "security": {
+      "isSecureContext": {
+        "value": true,
+        "description": "Secure context (HTTPS) status"
+      },
+      "locationProtocol": {
+        "value": "http:",
+        "description": "Current page protocol"
+      },
+      "activeXObject": {
+        "value": false,
+        "description": "ActiveXObject availability (IE legacy)",
+        "risk": "LOW"
+      },
+      "msCredentials": {
+        "value": false,
+        "description": "Microsoft Credentials API availability"
+      },
+      "ontouchstart": {
+        "value": false,
+        "description": "Touch events support"
+      },
+      "ondevicelight": {
+        "value": false,
+        "description": "Device light sensor API availability"
+      },
+      "persistent": {
+        "value": true,
+        "description": "Persistent storage constant availability"
+      },
+      "temporary": {
+        "value": true,
+        "description": "Temporary storage constant availability"
+      }
+    },
+    "apiOverrides": {
+      "permissionsQuery": {
+        "value": "[Native Code]",
+        "description": "Permissions API query function signature",
+        "risk": "LOW"
+      },
+      "dateNow": {
+        "value": "[Native Code]",
+        "description": "Date.now function signature",
+        "risk": "LOW"
+      },
+      "mathRandom": {
+        "value": "[Native Code]",
+        "description": "Math.random function signature",
+        "risk": "LOW"
+      },
+      "performanceNow": {
+        "value": "[Native Code]",
+        "description": "Performance.now function signature",
+        "risk": "LOW"
+      },
+      "jsonStringify": {
+        "value": "[Native Code]",
+        "description": "JSON.stringify function signature",
+        "risk": "LOW"
+      },
+      "objectDefineProperty": {
+        "value": "[Native Code]",
+        "description": "Object.defineProperty function signature",
+        "risk": "LOW"
+      },
+      "setTimeout": {
+        "value": "[Native Code]",
+        "description": "setTimeout function signature",
+        "risk": "LOW"
+      },
+      "setInterval": {
+        "value": "[Native Code]",
+        "description": "setInterval function signature",
+        "risk": "LOW"
+      }
+    },
+    "networkCapabilities": {
+      "hasNetworkInformationAPI": {
+        "value": true,
+        "description": "Network Information API availability",
+        "risk": "N/A"
+      },
+      "connectionType": {
+        "value": "Available",
+        "description": "navigator.connection object status",
+        "risk": "N/A"
+      },
+      "rtt": {
+        "value": 0,
+        "description": "Round-trip time in milliseconds (estimated)",
+        "risk": "MEDIUM"
+      },
+      "downlink": {
+        "value": 4.8,
+        "description": "Effective bandwidth in Mbps (estimated)",
+        "risk": "LOW"
+      },
+      "effectiveType": {
+        "value": "4g",
+        "description": "Effective connection type (slow-2g, 2g, 3g, 4g)",
+        "risk": "N/A"
+      },
+      "saveData": {
+        "value": false,
+        "description": "Data saver mode enabled by user",
+        "risk": "N/A"
+      },
+      "type": {
+        "value": "Not available",
+        "description": "Physical connection type (wifi, cellular, ethernet, bluetooth, etc.)",
+        "risk": "N/A"
+      },
+      "downlinkMax": {
+        "value": "Not available",
+        "description": "Maximum downlink speed for current connection type in Mbps",
+        "risk": "N/A"
+      },
+      "connectionQualityScore": {
+        "value": 100,
+        "description": "Computed network quality score (0-100)",
+        "risk": "N/A"
+      },
+      "networkProfile": {
+        "value": "good",
+        "description": "Network profile classification for fingerprinting",
+        "risk": "N/A"
+      },
+      "connectionAnomalies": {
+        "value": [
+          "zero_rtt"
+        ],
+        "description": "Detected connection anomalies that may indicate automation",
+        "risk": "MEDIUM"
+      }
+    },
+    "batteryStorage": {
+      "hasBatteryAPI": {
+        "value": true,
+        "description": "Battery Status API availability",
+        "risk": "N/A"
+      },
+      "batteryLevel": {
+        "value": 100,
+        "description": "Battery charge level (0-100%)",
+        "risk": "LOW"
+      },
+      "batteryLevelRaw": {
+        "value": 1,
+        "description": "Battery charge level raw value (0-1)",
+        "risk": "N/A"
+      },
+      "batteryCharging": {
+        "value": true,
+        "description": "Battery charging status",
+        "risk": "N/A"
+      },
+      "batteryChargingTime": {
+        "value": "Fully charged/discharged",
+        "description": "Time until fully charged",
+        "risk": "N/A"
+      },
+      "batteryChargingTimeRaw": {
+        "value": 0,
+        "description": "Time until fully charged (seconds, Infinity if not charging)",
+        "risk": "N/A"
+      },
+      "batteryDischargingTime": {
+        "value": "Not applicable",
+        "description": "Time until fully discharged",
+        "risk": "N/A"
+      },
+      "batteryDischargingTimeRaw": {
+        "value": null,
+        "description": "Time until fully discharged (seconds, Infinity if charging)",
+        "risk": "N/A"
+      },
+      "batteryStatus": {
+        "value": "Fully charged",
+        "description": "Human-readable battery status",
+        "risk": "N/A"
+      },
+      "hasStorageAPI": {
+        "value": true,
+        "description": "Storage Manager API availability",
+        "risk": "N/A"
+      },
+      "hasStoragePersisted": {
+        "value": true,
+        "description": "Storage persistence API availability",
+        "risk": "N/A"
+      },
+      "storageQuota": {
+        "value": "284.83 GB",
+        "description": "Total storage quota allocated to origin",
+        "risk": "N/A"
+      },
+      "storageQuotaBytes": {
+        "value": 305833336012,
+        "description": "Total storage quota in bytes",
+        "risk": "LOW"
+      },
+      "storageUsage": {
+        "value": "0 Bytes",
+        "description": "Current storage usage",
+        "risk": "N/A"
+      },
+      "storageUsageBytes": {
+        "value": 0,
+        "description": "Current storage usage in bytes",
+        "risk": "N/A"
+      },
+      "storageAvailable": {
+        "value": "284.83 GB",
+        "description": "Available storage space",
+        "risk": "N/A"
+      },
+      "storageAvailableBytes": {
+        "value": 305833336012,
+        "description": "Available storage space in bytes",
+        "risk": "N/A"
+      },
+      "storageUsagePercentage": {
+        "value": 0,
+        "description": "Storage usage as percentage of quota",
+        "risk": "N/A"
+      },
+      "storagePersisted": {
+        "value": false,
+        "description": "Storage persistence status (durable vs best-effort)",
+        "risk": "N/A"
+      },
+      "storageUsageDetails": {
+        "value": "{}",
+        "description": "Detailed storage usage breakdown by type",
+        "risk": "N/A"
+      },
+      "timingResolutionMin": {
+        "value": 0.09999990463256836,
+        "description": "Minimum observed timing resolution (ms)",
+        "risk": "N/A"
+      },
+      "timingResolutionMax": {
+        "value": 0.10000014305114746,
+        "description": "Maximum observed timing resolution (ms)",
+        "risk": "N/A"
+      },
+      "timingResolutionAvg": {
+        "value": 0.1,
+        "description": "Average timing resolution (ms)",
+        "risk": "LOW"
+      },
+      "timingResolutionSamples": {
+        "value": 100,
+        "description": "Number of timing samples collected",
+        "risk": "N/A"
+      },
+      "hasDeviceMemory": {
+        "value": true,
+        "description": "Device Memory API availability",
+        "risk": "N/A"
+      },
+      "deviceMemory": {
+        "value": 8,
+        "description": "Device memory in GB (approximate)",
+        "risk": "LOW"
+      },
+      "deviceMemoryFormatted": {
+        "value": "8GB",
+        "description": "Device memory formatted",
+        "risk": "N/A"
+      },
+      "deviceMemoryBytes": {
+        "value": 8589934592,
+        "description": "Device memory in bytes (approximate)",
+        "risk": "N/A"
+      },
+      "stackSizeLimit": {
+        "value": 9581,
+        "description": "JavaScript call stack size limit",
+        "risk": "LOW"
+      }
+    },
+    "audioFingerprint": {
+      "audioSupported": {
+        "value": true,
+        "description": "OfflineAudioContext API availability",
+        "risk": "N/A"
+      },
+      "audioSum": {
+        "value": -0.149,
+        "description": "Sum of audio sample values (deterministically rounded)",
+        "risk": "N/A"
+      },
+      "audioGain": {
+        "value": -20.43,
+        "description": "Dynamics compressor reduction value",
+        "risk": "N/A"
+      },
+      "audioFreq": {
+        "value": 6817,
+        "description": "Aggregate frequency data from analyser",
+        "risk": "N/A"
+      },
+      "audioTime": {
+        "value": 261004,
+        "description": "Aggregate time-domain data from analyser",
+        "risk": "N/A"
+      },
+      "audioUnique": {
+        "value": 460,
+        "description": "Count of unique sample values after rounding",
+        "risk": "LOW"
+      },
+      "audioDataHash": {
+        "value": "107a1bac",
+        "description": "FNV-1a hash of audio sample data",
+        "risk": "N/A"
+      },
+      "audioCopyHash": {
+        "value": "107a1bac",
+        "description": "FNV-1a hash of copied audio data (integrity check)",
+        "risk": "N/A"
+      },
+      "audioTrap": {
+        "value": 1,
+        "description": "Integrity score (1.0 = data matches copy, no anomalies)",
+        "risk": "LOW"
+      },
+      "audioSampleRate": {
+        "value": 44100,
+        "description": "Audio sample rate used for rendering",
+        "risk": "N/A"
+      },
+      "audioFftSize": {
+        "value": 2048,
+        "description": "FFT size used for frequency analysis",
+        "risk": "N/A"
+      },
+      "audioChannelCount": {
+        "value": 1,
+        "description": "Number of audio channels",
+        "risk": "N/A"
+      },
+      "audioCollectionTime": {
+        "value": 5,
+        "description": "Time taken to collect audio fingerprint (ms)",
+        "risk": "N/A"
+      },
+      "audioDebugValues": {
+        "value": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.0051,
+          -0.0103,
+          0.0156,
+          -0.021,
+          0.0266,
+          -0.0321,
+          0.0378,
+          -0.0436,
+          0.0494,
+          -0.0547,
+          0.06,
+          -0.0658,
+          0.0715,
+          -0.0772,
+          0.0824,
+          -0.0874,
+          0.0931,
+          -0.0989,
+          0.1047,
+          -0.1098,
+          0.1146,
+          -0.1206,
+          0.1267,
+          -0.132,
+          0.1367,
+          -0.1418,
+          0.148
+        ],
+        "description": "First 32 rounded sample values for debugging",
+        "risk": "N/A"
+      }
+    },
+    "speechSynthesis": {
+      "speechSupported": {
+        "value": true,
+        "description": "SpeechSynthesis API availability",
+        "risk": "N/A"
+      },
+      "speechVoicesCount": {
+        "value": 22,
+        "description": "Number of SpeechSynthesis voices available",
+        "risk": "N/A"
+      },
+      "speechLocalVoicesCount": {
+        "value": 3,
+        "description": "Number of local voices (CreepJS method)",
+        "risk": "N/A"
+      },
+      "speechRemoteVoicesCount": {
+        "value": 19,
+        "description": "Number of remote voices (CreepJS method)",
+        "risk": "N/A"
+      },
+      "speechLanguagesCount": {
+        "value": 18,
+        "description": "Number of unique voice languages",
+        "risk": "N/A"
+      },
+      "speechDefaultVoiceName": {
+        "value": "Microsoft David - English (United States)",
+        "description": "Default SpeechSynthesis voice name (if available)",
+        "risk": "N/A"
+      },
+      "speechDefaultVoiceLang": {
+        "value": "en-US",
+        "description": "Default SpeechSynthesis voice language (if available)",
+        "risk": "N/A"
+      },
+      "speechVoiceLangMismatch": {
+        "value": false,
+        "description": "Whether default voice lang mismatches Intl locale (suspicious)",
+        "risk": "N/A"
+      },
+      "speechVoiceListHash": {
+        "value": "27669686",
+        "description": "FNV-1a hash of voice name/lang/localService list",
+        "risk": "N/A"
+      },
+      "speechBlockedReason": {
+        "value": "None",
+        "description": "Reason voices are unavailable or blocked",
+        "risk": "N/A"
+      }
+    },
+    "language": {
+      "languagePrimary": {
+        "value": "en-US",
+        "description": "navigator.language (normalized)",
+        "risk": "N/A"
+      },
+      "languagesList": {
+        "value": [
+          "en-US",
+          "en-GB",
+          "ru-RU",
+          "ru",
+          "en",
+          "he"
+        ],
+        "description": "navigator.languages list (normalized)",
+        "risk": "N/A"
+      },
+      "intlResolvedLocale": {
+        "value": "en-US",
+        "description": "Intl.DateTimeFormat().resolvedOptions().locale (normalized)",
+        "risk": "N/A"
+      },
+      "intlComprehensiveLocales": {
+        "value": "en-US, en-US, en-US, en-US, en-US, en-US",
+        "description": "Locales from 7 Intl constructors (CreepJS method)",
+        "risk": "N/A"
+      },
+      "intlConstructorsCount": {
+        "value": 6,
+        "description": "Number of Intl constructors that provided locale data",
+        "risk": "N/A"
+      },
+      "documentLang": {
+        "value": "en",
+        "description": "document.documentElement.lang (normalized)",
+        "risk": "N/A"
+      },
+      "languageSetCount": {
+        "value": 6,
+        "description": "Unique language tags across all sources",
+        "risk": "N/A"
+      },
+      "languageSetHash": {
+        "value": "6ac75202",
+        "description": "FNV-1a hash of unique language set",
+        "risk": "N/A"
+      },
+      "localeEntropyIsTrusty": {
+        "value": true,
+        "description": "Whether locale entropy is trustworthy (currency format match)",
+        "risk": "N/A"
+      },
+      "localeIntlEntropyIsTrusty": {
+        "value": true,
+        "description": "Whether Intl locales match navigator.language",
+        "risk": "N/A"
+      },
+      "systemCurrencyLocale": {
+        "value": "1 US dollar",
+        "description": "Currency format using explicit language",
+        "risk": "N/A"
+      },
+      "engineCurrencyLocale": {
+        "value": "1 US dollar",
+        "description": "Currency format using default/engine language",
+        "risk": "N/A"
+      }
+    },
+    "cssComputedStyle": {
+      "cssComputedStyleSupported": {
+        "value": true,
+        "description": "Computed style API availability",
+        "risk": "N/A"
+      },
+      "cssComputedStylePropertyCount": {
+        "value": 32,
+        "description": "Number of CSS properties sampled",
+        "risk": "N/A"
+      },
+      "cssComputedStyleMissingCount": {
+        "value": 0,
+        "description": "Number of properties missing from computed style",
+        "risk": "N/A"
+      },
+      "cssComputedStyleMissingProperties": {
+        "value": [],
+        "description": "Sample of missing computed style properties",
+        "risk": "N/A"
+      },
+      "cssComputedStyleHash": {
+        "value": "83e17b63",
+        "description": "FNV-1a hash of curated computed style values",
+        "risk": "N/A"
+      },
+      "cssSystemColorsCount": {
+        "value": 38,
+        "description": "Number of system color keywords tested",
+        "risk": "N/A"
+      },
+      "cssSystemFontsCount": {
+        "value": 6,
+        "description": "Number of system font keywords tested",
+        "risk": "N/A"
+      },
+      "cssSystemStylesHash": {
+        "value": "1adf44ee",
+        "description": "FNV-1a hash of system colors and fonts (CreepJS method)",
+        "risk": "N/A"
+      },
+      "cssFeaturesSupported": {
+        "value": 8,
+        "description": "Modern CSS features supported (critical for bot detection)",
+        "risk": "N/A"
+      },
+      "cssFeaturesTotal": {
+        "value": 9,
+        "description": "Total modern CSS features tested",
+        "risk": "N/A"
+      },
+      "cssFeaturesHash": {
+        "value": "1b985f31",
+        "description": "Hash of supported modern CSS features",
+        "risk": "N/A"
+      },
+      "cssVariablesWork": {
+        "value": true,
+        "description": "CSS custom properties resolution",
+        "risk": "N/A"
+      },
+      "cssMediaQueriesHash": {
+        "value": "6a7e62cd",
+        "description": "Hash of media query states",
+        "risk": "N/A"
+      },
+      "cssBlinkQuirksHash": {
+        "value": "5c9becf0",
+        "description": "Hash of Blink-specific rendering quirks",
+        "risk": "N/A"
+      },
+      "cssFontRenderingWidth": {
+        "value": 514.5486450195312,
+        "description": "Font rendering width (critical fingerprint)",
+        "risk": "N/A"
+      },
+      "cssFontRenderingHeight": {
+        "value": 115.19097900390625,
+        "description": "Font rendering height (critical fingerprint)",
+        "risk": "N/A"
+      },
+      "cssFontRenderingHash": {
+        "value": "7ccb9f11",
+        "description": "Hash of font rendering metrics",
+        "risk": "N/A"
+      },
+      "cssComputedStyleHasLies": {
+        "value": false,
+        "description": "Detected getComputedStyle inconsistencies (bot signal)",
+        "risk": "N/A"
+      },
+      "cssComputedStyleDiffFlags": {
+        "value": "None",
+        "description": "Flags indicating computed style anomalies",
+        "risk": "N/A"
+      },
+      "cssComputedStyleError": {
+        "value": "None",
+        "description": "Computed style collection error (if any)",
+        "risk": "N/A"
+      }
+    },
+    "webRTCLeak": {
+      "hasRTCPeerConnection": {
+        "value": true,
+        "description": "RTCPeerConnection API availability",
+        "risk": "N/A"
+      },
+      "hasRTCDataChannel": {
+        "value": true,
+        "description": "RTCDataChannel support (verified)",
+        "risk": "N/A"
+      },
+      "hasHostCandidates": {
+        "value": true,
+        "description": "Host (local) candidates detected",
+        "risk": "N/A"
+      },
+      "hasSrflxCandidates": {
+        "value": true,
+        "description": "Server reflexive (STUN) candidates detected",
+        "risk": "N/A"
+      },
+      "hasRelayCandidates": {
+        "value": false,
+        "description": "Relay (TURN) candidates detected",
+        "risk": "N/A"
+      },
+      "hasPrflxCandidates": {
+        "value": false,
+        "description": "Peer reflexive candidates detected",
+        "risk": "N/A"
+      },
+      "localAddressCount": {
+        "value": 1,
+        "description": "Number of local IP addresses detected",
+        "risk": "MEDIUM"
+      },
+      "publicAddressCount": {
+        "value": 1,
+        "description": "Number of public IP addresses detected via srflx",
+        "risk": "HIGH"
+      },
+      "candidateCount": {
+        "value": 12,
+        "description": "Total ICE candidates collected",
+        "risk": "N/A"
+      },
+      "localAddresses": {
+        "value": "77.125.51.6",
+        "description": "Local IP addresses (host candidates)",
+        "risk": "MEDIUM"
+      },
+      "publicAddresses": {
+        "value": "77.125.51.6",
+        "description": "Public IP addresses (srflx candidates)",
+        "risk": "HIGH"
+      },
+      "sdpHash": {
+        "value": "fe25e4e9",
+        "description": "FNV-1a hash of SDP (Session Description Protocol)",
+        "risk": "N/A"
+      },
+      "sdpLength": {
+        "value": 7381,
+        "description": "SDP content length in characters",
+        "risk": "N/A"
+      },
+      "mediaDevicesApiSupported": {
+        "value": true,
+        "description": "navigator.mediaDevices.enumerateDevices availability",
+        "risk": "N/A"
+      },
+      "audioInputCount": {
+        "value": 1,
+        "description": "Number of audio input devices",
+        "risk": "N/A"
+      },
+      "videoInputCount": {
+        "value": 1,
+        "description": "Number of video input devices",
+        "risk": "N/A"
+      },
+      "audioOutputCount": {
+        "value": 1,
+        "description": "Number of audio output devices",
+        "risk": "N/A"
+      },
+      "microphonePermission": {
+        "value": "prompt",
+        "description": "Microphone permission state (granted/denied/prompt/unsupported)",
+        "risk": "N/A"
+      },
+      "cameraPermission": {
+        "value": "prompt",
+        "description": "Camera permission state (granted/denied/prompt/unsupported)",
+        "risk": "N/A"
+      },
+      "collectionDurationMs": {
+        "value": 156,
+        "description": "WebRTC data collection duration in milliseconds",
+        "risk": "N/A"
+      },
+      "errorCount": {
+        "value": 0,
+        "description": "Number of non-fatal errors during collection",
+        "risk": "N/A"
+      },
+      "errorMessages": {
+        "value": "None",
+        "description": "Error messages encountered during collection",
+        "risk": "N/A"
+      }
+    },
+    "workerSignals": {
+      "workerWindowProfileHash": {
+        "value": "f88fed74",
+        "description": "FNV-1a hash of window profile",
+        "risk": "N/A"
+      },
+      "workerProfileHash": {
+        "value": "3eab1275",
+        "description": "FNV-1a hash of dedicated worker profile",
+        "risk": "N/A"
+      },
+      "workerMismatchCount": {
+        "value": 0,
+        "description": "Number of mismatched fields between window and worker",
+        "risk": "N/A"
+      },
+      "workerMismatchFields": {
+        "value": "None",
+        "description": "Fields that differ between window and worker",
+        "risk": "N/A"
+      },
+      "workerMissingFields": {
+        "value": "None",
+        "description": "Fields missing from worker profile",
+        "risk": "N/A"
+      },
+      "workerStatus": {
+        "value": "ok",
+        "description": "Dedicated worker collection status",
+        "risk": "N/A"
+      },
+      "workerStatusReason": {
+        "value": "None",
+        "description": "Dedicated worker failure reason (if any)",
+        "risk": "N/A"
+      },
+      "sharedWorkerStatus": {
+        "value": "timeout",
+        "description": "Shared worker collection status",
+        "risk": "LOW"
+      },
+      "sharedWorkerStatusReason": {
+        "value": "Shared worker timed out",
+        "description": "Shared worker failure reason (if any)",
+        "risk": "LOW"
+      },
+      "serviceWorkerStatus": {
+        "value": "ok",
+        "description": "Service worker collection status",
+        "risk": "N/A"
+      },
+      "serviceWorkerStatusReason": {
+        "value": "None",
+        "description": "Service worker failure reason (if any)",
+        "risk": "N/A"
+      },
+      "workerMatchUserAgent": {
+        "value": true,
+        "description": "User Agent match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchPlatform": {
+        "value": true,
+        "description": "Platform match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchLanguage": {
+        "value": true,
+        "description": "Language match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchLanguages": {
+        "value": true,
+        "description": "Languages match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchTimezoneOffset": {
+        "value": true,
+        "description": "Timezone Offset match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchIntlTimeZone": {
+        "value": true,
+        "description": "Intl Time Zone match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchHardwareConcurrency": {
+        "value": true,
+        "description": "Hardware Concurrency match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchDeviceMemory": {
+        "value": true,
+        "description": "Device Memory match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchErrorStackSupport": {
+        "value": true,
+        "description": "Error Stack Support match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchPerformance.nowSupport": {
+        "value": true,
+        "description": "Performance.now Support match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchWebGLVendor": {
+        "value": true,
+        "description": "WebGL Vendor match between window and dedicated worker",
+        "risk": "N/A"
+      },
+      "workerMatchWebGLRenderer": {
+        "value": true,
+        "description": "WebGL Renderer match between window and dedicated worker",
+        "risk": "N/A"
+      }
+    },
+    "fonts": {
+      "fontsSupported": {
+        "value": true,
+        "description": "Font detection API availability (FontFace.load)",
+        "risk": "N/A"
+      },
+      "fontsCount": {
+        "value": 216,
+        "description": "Number of installed fonts detected",
+        "risk": "N/A"
+      },
+      "fontHash": {
+        "value": "f49a2bc4",
+        "description": "FNV-1a hash of installed font list",
+        "risk": "N/A"
+      },
+      "fontsPlatformOS": {
+        "value": "Windows",
+        "description": "Detected OS from font signatures (CreepJS method)",
+        "risk": "N/A"
+      },
+      "fontsPlatformVersion": {
+        "value": "7",
+        "description": "Detected OS version from font signatures",
+        "risk": "N/A"
+      },
+      "fontsPlatformConfidence": {
+        "value": "100.0%",
+        "description": "Platform detection confidence level",
+        "risk": "N/A"
+      },
+      "fontsApplicationsDetected": {
+        "value": 1,
+        "description": "Number of desktop applications detected from fonts",
+        "risk": "N/A"
+      },
+      "fontsApplicationsList": {
+        "value": "Microsoft Office (100.0%)",
+        "description": "Detected desktop applications (Office, Adobe, etc.)",
+        "risk": "N/A"
+      },
+      "fontsEmojiSupported": {
+        "value": true,
+        "description": "Emoji rendering measurement support",
+        "risk": "N/A"
+      },
+      "fontsEmojiAvgPixels": {
+        "value": "535.35",
+        "description": "Average filled pixels in emoji rendering",
+        "risk": "N/A"
+      },
+      "fontsEmojiRunningHash": {
+        "value": "0cba5e07",
+        "description": "Running hash of emoji dimensions (BrowserLeaks method)",
+        "risk": "N/A"
+      },
+      "fontsEmojiHash": {
+        "value": "767ed838",
+        "description": "FNV-1a hash of emoji rendering measurements",
+        "risk": "N/A"
+      },
+      "fontsOSMismatch": {
+        "value": false,
+        "description": "Whether detected OS mismatches reported userAgent (suspicious)",
+        "risk": "N/A"
+      },
+      "fontsError": {
+        "value": "None",
+        "description": "Font detection error (if any)",
+        "risk": "N/A"
+      }
+    },
+    "webgl": {
+      "webglSupported": {
+        "value": false,
+        "description": "WebGL 1.0 support status",
+        "risk": "NONE"
+      },
+      "webgl2Supported": {
+        "value": true,
+        "description": "WebGL 2.0 support status",
+        "risk": "NONE"
+      },
+      "supportedContexts": {
+        "value": "webgl2",
+        "description": "Supported WebGL context names",
+        "risk": "NONE"
+      },
+      "reportHash": {
+        "value": "13b325566b1f1157ce1cde9dbda2f861",
+        "description": "MD5 hash of WebGL parameters report",
+        "risk": "NONE"
+      },
+      "imageHash": {
+        "value": "006d1f6b17904e2bf7fae580f8d63685",
+        "description": "MD5 hash of rendered WebGL scene",
+        "risk": "NONE"
+      },
+      "imageDataUrl": {
+        "value": "data:image/png;base64,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",
+        "description": "Rendered WebGL scene as data URL",
+        "risk": "NONE"
+      },
+      "vendor": {
+        "value": "WebKit",
+        "description": "WebGL vendor string",
+        "risk": "NONE"
+      },
+      "renderer": {
+        "value": "WebKit WebGL",
+        "description": "WebGL renderer string",
+        "risk": "NONE"
+      },
+      "version": {
+        "value": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "description": "WebGL version string",
+        "risk": "NONE"
+      },
+      "shadingLanguageVersion": {
+        "value": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+        "description": "GLSL version string",
+        "risk": "NONE"
+      },
+      "alphaBuffer": {
+        "value": true,
+        "description": "Alpha Buffer (Context Attribute)",
+        "risk": "NONE"
+      },
+      "depthBuffer": {
+        "value": true,
+        "description": "Depth Buffer (Context Attribute)",
+        "risk": "NONE"
+      },
+      "stencilBuffer": {
+        "value": false,
+        "description": "Stencil Buffer (Context Attribute)",
+        "risk": "NONE"
+      },
+      "antiAliasing": {
+        "value": true,
+        "description": "Anti-Aliasing (Context Attribute)",
+        "risk": "NONE"
+      },
+      "desynchronized": {
+        "value": false,
+        "description": "Desynchronized (Context Attribute)",
+        "risk": "NONE"
+      },
+      "performanceCaveat": {
+        "value": false,
+        "description": "Major Performance Caveat (Context Attribute)",
+        "risk": "NONE"
+      },
+      "powerPreference": {
+        "value": "default",
+        "description": "Power Preference (Context Attribute)",
+        "risk": "NONE"
+      },
+      "premultipliedAlpha": {
+        "value": true,
+        "description": "Pre-multiplied Alpha (Context Attribute)",
+        "risk": "NONE"
+      },
+      "preserveDrawingBuffer": {
+        "value": false,
+        "description": "Preserve Drawing Buffer (Context Attribute)",
+        "risk": "NONE"
+      },
+      "xrCompatible": {
+        "value": false,
+        "description": "XR Compatible (Context Attribute)",
+        "risk": "NONE"
+      },
+      "drawingBufferColorSpace": {
+        "value": "srgb",
+        "description": "Drawing Buffer Color Space",
+        "risk": "NONE"
+      },
+      "unpackColorSpace": {
+        "value": "srgb",
+        "description": "Unpack Color Space",
+        "risk": "NONE"
+      },
+      "maxVertexAttribs": {
+        "value": 16,
+        "description": "Max Vertex Attributes",
+        "risk": "NONE"
+      },
+      "maxVertexUniformVectors": {
+        "value": 4096,
+        "description": "Max Vertex Uniform Vectors",
+        "risk": "NONE"
+      },
+      "maxVertexTextureImageUnits": {
+        "value": 16,
+        "description": "Max Vertex Texture Image Units",
+        "risk": "NONE"
+      },
+      "maxVaryingVectors": {
+        "value": 30,
+        "description": "Max Varying Vectors",
+        "risk": "NONE"
+      },
+      "vertexShaderPrecision": {
+        "value": "[-2^127,2^127](23)",
+        "description": "Vertex Shader Best Float Precision",
+        "risk": "NONE"
+      },
+      "maxVertexUniformComponents": {
+        "value": 16384,
+        "description": "Max Vertex Uniform Components",
+        "risk": "NONE"
+      },
+      "maxVertexUniformBlocks": {
+        "value": 12,
+        "description": "Max Vertex Uniform Blocks",
+        "risk": "NONE"
+      },
+      "maxVertexOutputComponents": {
+        "value": 120,
+        "description": "Max Vertex Output Components",
+        "risk": "NONE"
+      },
+      "maxFragmentUniformVectors": {
+        "value": 1024,
+        "description": "Max Fragment Uniform Vectors",
+        "risk": "NONE"
+      },
+      "maxTextureImageUnits": {
+        "value": 16,
+        "description": "Max Texture Image Units",
+        "risk": "NONE"
+      },
+      "fragmentPrecision": {
+        "value": "highp/highp",
+        "description": "Fragment Shader Float/Int Precision",
+        "risk": "NONE"
+      },
+      "fragmentShaderPrecision": {
+        "value": "[-2^127,2^127](23)",
+        "description": "Fragment Shader Best Float Precision",
+        "risk": "NONE"
+      },
+      "maxFragmentUniformComponents": {
+        "value": 4096,
+        "description": "Max Fragment Uniform Components",
+        "risk": "NONE"
+      },
+      "aliasedLineWidthRange": {
+        "value": "[1,1]",
+        "description": "Aliased Line Width Range",
+        "risk": "NONE"
+      },
+      "aliasedPointSizeRange": {
+        "value": "[1,1024]",
+        "description": "Aliased Point Size Range",
+        "risk": "NONE"
+      },
+      "maxDrawBuffers": {
+        "value": 8,
+        "description": "Max Draw Buffers",
+        "risk": "NONE"
+      },
+      "maxColorAttachments": {
+        "value": 8,
+        "description": "Max Color Attachments",
+        "risk": "NONE"
+      },
+      "maxSamples": {
+        "value": 8,
+        "description": "Max Samples",
+        "risk": "NONE"
+      },
+      "maxRenderBufferSize": {
+        "value": 16384,
+        "description": "Max Render Buffer Size",
+        "risk": "NONE"
+      },
+      "maxViewportDims": {
+        "value": "[32767,32767]",
+        "description": "Max Viewport Dimensions",
+        "risk": "NONE"
+      },
+      "redBits": {
+        "value": 8,
+        "description": "Red Bits",
+        "risk": "NONE"
+      },
+      "greenBits": {
+        "value": 8,
+        "description": "Green Bits",
+        "risk": "NONE"
+      },
+      "blueBits": {
+        "value": 8,
+        "description": "Blue Bits",
+        "risk": "NONE"
+      },
+      "alphaBits": {
+        "value": 8,
+        "description": "Alpha Bits",
+        "risk": "NONE"
+      },
+      "depthBits": {
+        "value": 24,
+        "description": "Depth Bits",
+        "risk": "NONE"
+      },
+      "stencilBits": {
+        "value": 0,
+        "description": "Stencil Bits",
+        "risk": "NONE"
+      },
+      "maxTextureSize": {
+        "value": 16384,
+        "description": "Max Texture Size",
+        "risk": "NONE"
+      },
+      "maxCubeMapTextureSize": {
+        "value": 16384,
+        "description": "Max Cube Map Texture Size",
+        "risk": "NONE"
+      },
+      "maxCombinedTextureImageUnits": {
+        "value": 32,
+        "description": "Max Combined Texture Image Units",
+        "risk": "NONE"
+      },
+      "maxAnisotropy": {
+        "value": 16,
+        "description": "Max Anisotropy",
+        "risk": "NONE"
+      },
+      "max3DTextureSize": {
+        "value": 2048,
+        "description": "Max 3D Texture Size",
+        "risk": "NONE"
+      },
+      "maxArrayTextureLayers": {
+        "value": 2048,
+        "description": "Max Array Texture Layers",
+        "risk": "NONE"
+      },
+      "maxTextureLodBias": {
+        "value": 2,
+        "description": "Max Texture LOD Bias",
+        "risk": "NONE"
+      },
+      "maxUniformBufferBindings": {
+        "value": 24,
+        "description": "Max Uniform Buffer Bindings",
+        "risk": "NONE"
+      },
+      "maxUniformBlockSize": {
+        "value": 65536,
+        "description": "Max Uniform Block Size",
+        "risk": "NONE"
+      },
+      "uniformBufferOffsetAlignment": {
+        "value": 256,
+        "description": "Uniform Buffer Offset Alignment",
+        "risk": "NONE"
+      },
+      "maxCombinedUniformBlocks": {
+        "value": 24,
+        "description": "Max Combined Uniform Blocks",
+        "risk": "NONE"
+      },
+      "maxCombinedVertexUniformComponents": {
+        "value": 212992,
+        "description": "Max Combined Vertex Uniform Components",
+        "risk": "NONE"
+      },
+      "maxCombinedFragmentUniformComponents": {
+        "value": 200704,
+        "description": "Max Combined Fragment Uniform Components",
+        "risk": "NONE"
+      },
+      "extensionsCount": {
+        "value": 32,
+        "description": "Number of supported WebGL extensions",
+        "risk": "NONE"
+      },
+      "extensionsList": {
+        "value": "EXT_clip_control, EXT_color_buffer_float, EXT_color_buffer_half_float, EXT_conservative_depth, EXT_depth_clamp, EXT_disjoint_timer_query_webgl2, EXT_float_blend, EXT_polygon_offset_clamp, EXT_render_snorm, EXT_texture_compression_bptc, EXT_texture_compression_rgtc, EXT_texture_filter_anisotropic, EXT_texture_mirror_clamp_to_edge, EXT_texture_norm16, KHR_parallel_shader_compile, NV_shader_noperspective_interpolation, OES_draw_buffers_indexed, OES_sample_variables, OES_shader_multisample_interpolation, OES_texture_float_linear, OVR_multiview2, WEBGL_blend_func_extended, WEBGL_clip_cull_distance, WEBGL_compressed_texture_s3tc, WEBGL_compressed_texture_s3tc_srgb, WEBGL_debug_renderer_info, WEBGL_debug_shaders, WEBGL_lose_context, WEBGL_multi_draw, WEBGL_polygon_mode, WEBGL_provoking_vertex, WEBGL_stencil_texturing",
+        "description": "Supported WebGL extensions (full list)",
+        "risk": "NONE"
+      }
+    },
+    "mediaDevices": {
+      "available": {
+        "value": true,
+        "description": "MediaDevices.enumerateDevices API availability"
+      },
+      "totalDevices": {
+        "value": 3,
+        "description": "Total number of media devices detected"
+      },
+      "audioInputCount": {
+        "value": 1,
+        "description": "Number of audio input devices (microphones)",
+        "risk": "LOW"
+      },
+      "audioOutputCount": {
+        "value": 1,
+        "description": "Number of audio output devices (speakers/headphones)",
+        "risk": "LOW"
+      },
+      "videoInputCount": {
+        "value": 1,
+        "description": "Number of video input devices (cameras)",
+        "risk": "LOW"
+      },
+      "suspiciousPattern": {
+        "value": false,
+        "description": "Suspicious media device pattern detected (may indicate headless/VM)",
+        "risk": "LOW",
+        "details": "Normal device configuration"
+      },
+      "labelsAvailable": {
+        "value": false,
+        "description": "Device labels available (indicates media permissions granted)"
+      },
+      "deviceDetails": {
+        "value": "[\n  {\n    \"kind\": \"audioinput\",\n    \"label\": \"[Permission required]\",\n    \"deviceId\": \"N/A\",\n    \"groupId\": \"N/A\"\n  },\n  {\n    \"kind\": \"videoinput\",\n    \"label\": \"[Permission required]\",\n    \"deviceId\": \"N/A\",\n    \"groupId\": \"N/A\"\n  },\n  {\n    \"kind\": \"audiooutput\",\n    \"label\": \"[Permission required]\",\n    \"deviceId\": \"N/A\",\n    \"groupId\": \"N/A\"\n  }\n]",
+        "description": "Detailed list of enumerated media devices (JSON)"
+      },
+      "device_0": {
+        "value": "audioinput: [Permission required] (ID: N/A)",
+        "description": "Media device #1"
+      },
+      "device_1": {
+        "value": "videoinput: [Permission required] (ID: N/A)",
+        "description": "Media device #2"
+      },
+      "device_2": {
+        "value": "audiooutput: [Permission required] (ID: N/A)",
+        "description": "Media device #3"
+      },
+      "deviceHash": {
+        "value": "40d5f599",
+        "description": "Hash of media device configuration (fingerprinting value)"
+      }
+    },
+    "activeMeasurements": {
+      "measuredRtt": {
+        "value": 5,
+        "description": "Measured round-trip time in milliseconds (via fetch timing)",
+        "risk": "LOW"
+      },
+      "measuredRttSamples": {
+        "value": [
+          4,
+          7,
+          3
+        ],
+        "description": "Individual RTT measurement samples",
+        "risk": "N/A"
+      },
+      "measuredRttMin": {
+        "value": 3,
+        "description": "Minimum observed RTT",
+        "risk": "N/A"
+      },
+      "measuredRttMax": {
+        "value": 7,
+        "description": "Maximum observed RTT",
+        "risk": "N/A"
+      },
+      "measuredRttJitter": {
+        "value": 4,
+        "description": "RTT jitter (difference between max and min)",
+        "risk": "N/A"
+      },
+      "rttMeasurementMethod": {
+        "value": "fetch",
+        "description": "Method used for RTT measurement",
+        "risk": "N/A"
+      },
+      "rttMeasurementError": {
+        "value": null,
+        "description": "Error during RTT measurement if any",
+        "risk": "N/A"
+      },
+      "measuredDownlink": {
+        "value": 2062.77,
+        "description": "Measured download speed in Mbps",
+        "risk": "LOW"
+      },
+      "measuredDownlinkBytes": {
+        "value": 3145728,
+        "description": "Bytes downloaded during test",
+        "risk": "N/A"
+      },
+      "measuredDownlinkDuration": {
+        "value": 12,
+        "description": "Download test duration in milliseconds",
+        "risk": "N/A"
+      },
+      "measuredDownlinkBytesPerSecond": {
+        "value": 262144000,
+        "description": "Download speed in bytes per second",
+        "risk": "N/A"
+      },
+      "downlinkMeasurementMethod": {
+        "value": "fetch",
+        "description": "Method used for download measurement",
+        "risk": "N/A"
+      },
+      "downlinkMeasurementError": {
+        "value": null,
+        "description": "Error during download measurement if any",
+        "risk": "N/A"
+      },
+      "measuredUplink": {
+        "value": 79.53,
+        "description": "Measured/estimated upload speed in Mbps",
+        "risk": "N/A"
+      },
+      "measuredUplinkBytes": {
+        "value": 102400,
+        "description": "Bytes uploaded during test",
+        "risk": "N/A"
+      },
+      "measuredUplinkDuration": {
+        "value": 10,
+        "description": "Upload test duration in milliseconds",
+        "risk": "N/A"
+      },
+      "measuredUplinkBytesPerSecond": {
+        "value": 10240000,
+        "description": "Upload speed in bytes per second",
+        "risk": "N/A"
+      },
+      "uplinkMeasurementMethod": {
+        "value": "fetch",
+        "description": "Method used for upload measurement",
+        "risk": "N/A"
+      },
+      "uplinkMeasurementError": {
+        "value": null,
+        "description": "Error during upload measurement if any",
+        "risk": "N/A"
+      },
+      "measurementDuration": {
+        "value": 14,
+        "description": "Total time for all active measurements (ms)",
+        "risk": "N/A"
+      },
+      "measurementTimestamp": {
+        "value": 1767194850036,
+        "description": "Timestamp when measurements were taken",
+        "risk": "N/A"
+      }
+    },
+    "networkComparison": {
+      "rttComparison": {
+        "apiValue": 0,
+        "measuredValue": 5,
+        "difference": 5,
+        "ratio": "N/A",
+        "consistent": true,
+        "description": "Comparison between API-reported and measured RTT"
+      },
+      "downlinkComparison": {
+        "apiValue": 4.8,
+        "measuredValue": 2062.77,
+        "ratio": "429.74",
+        "consistent": false,
+        "description": "Comparison between API-reported and measured downlink"
+      }
+    },
+    "aiAgentDetection": {
+      "permissionsQuery": {
+        "value": "function query() { [native code] }",
+        "description": "Signature of navigator.permissions.query function",
+        "risk": "low"
+      },
+      "dateNow": {
+        "value": "function now() { [native code] }",
+        "description": "Signature of Date.now function",
+        "risk": "low"
+      },
+      "mathRandom": {
+        "value": "function random() { [native code] }",
+        "description": "Signature of Math.random function",
+        "risk": "low"
+      },
+      "performanceNow": {
+        "value": "function now() { [native code] }",
+        "description": "Signature of performance.now function",
+        "risk": "low"
+      },
+      "jsonStringify": {
+        "value": "function stringify() { [native code] }",
+        "description": "Signature of JSON.stringify function",
+        "risk": "low"
+      },
+      "objectDefineProperty": {
+        "value": "function defineProperty() { [native code] }",
+        "description": "Signature of Object.defineProperty function",
+        "risk": "low"
+      },
+      "setTimeoutOverride": {
+        "value": "function setTimeout() { [native code] }",
+        "description": "Signature of setTimeout function",
+        "risk": "low"
+      },
+      "setIntervalOverride": {
+        "value": "function setInterval() { [native code] }",
+        "description": "Signature of setInterval function",
+        "risk": "low"
+      },
+      "funcToString": {
+        "value": "function toString() { [native code] }",
+        "description": "Signature of Function.prototype.toString",
+        "risk": "low"
+      },
+      "errorToString": {
+        "value": "function toString() { [native code] }",
+        "description": "Signature of Error.prototype.toString",
+        "risk": "low"
+      },
+      "addEventListener": {
+        "value": "function addEventListener() { [native code] }",
+        "description": "Signature of EventTarget.prototype.addEventListener",
+        "risk": "low"
+      },
+      "dispatchEvent": {
+        "value": "function dispatchEvent() { [native code] }",
+        "description": "Signature of EventTarget.prototype.dispatchEvent",
+        "risk": "low"
+      },
+      "querySelector": {
+        "value": "function querySelector() { [native code] }",
+        "description": "Signature of Document.prototype.querySelector",
+        "risk": "low"
+      },
+      "querySelectorAll": {
+        "value": "function querySelectorAll() { [native code] }",
+        "description": "Signature of Document.prototype.querySelectorAll",
+        "risk": "low"
+      },
+      "getComputedStyle": {
+        "value": "function getComputedStyle() { [native code] }",
+        "description": "Signature of getComputedStyle function",
+        "risk": "low"
+      },
+      "createElement": {
+        "value": "function createElement() { [native code] }",
+        "description": "Signature of Document.prototype.createElement",
+        "risk": "low"
+      },
+      "appendChild": {
+        "value": "function appendChild() { [native code] }",
+        "description": "Signature of Node.prototype.appendChild",
+        "risk": "low"
+      },
+      "removeChild": {
+        "value": "function removeChild() { [native code] }",
+        "description": "Signature of Node.prototype.removeChild",
+        "risk": "low"
+      },
+      "canvasToDataURL": {
+        "value": "function toDataURL() { [native code] }",
+        "description": "Signature of HTMLCanvasElement.prototype.toDataURL",
+        "risk": "low"
+      },
+      "canvasGetContext": {
+        "value": "function getContext() { [native code] }",
+        "description": "Signature of HTMLCanvasElement.prototype.getContext",
+        "risk": "low"
+      },
+      "webglGetParameter": {
+        "value": "function getParameter() { [native code] }",
+        "description": "Signature of WebGL getParameter method",
+        "risk": "low"
+      },
+      "fetchSig": {
+        "value": "function fetch() { [native code] }",
+        "description": "Signature of fetch function",
+        "risk": "low"
+      },
+      "xmlHttpRequest": {
+        "value": "function XMLHttpRequest() { [native code] }",
+        "description": "Signature of XMLHttpRequest constructor",
+        "risk": "low"
+      },
+      "websocketSig": {
+        "value": "function WebSocket() { [native code] }",
+        "description": "Signature of WebSocket constructor",
+        "risk": "low"
+      },
+      "requestAnimationFrame": {
+        "value": "function requestAnimationFrame() { [native code] }",
+        "description": "Signature of requestAnimationFrame function",
+        "risk": "low"
+      },
+      "cancelAnimationFrame": {
+        "value": "function cancelAnimationFrame() { [native code] }",
+        "description": "Signature of cancelAnimationFrame function",
+        "risk": "low"
+      },
+      "navigatorUAGetter": {
+        "value": "function get userAgent() { [native code] }",
+        "description": "Signature of Navigator.userAgent getter",
+        "risk": "low"
+      },
+      "navigatorLangGetter": {
+        "value": "function get languages() { [native code] }",
+        "description": "Signature of Navigator.languages getter",
+        "risk": "low"
+      },
+      "navigatorPlatformGetter": {
+        "value": "function get platform() { [native code] }",
+        "description": "Signature of Navigator.platform getter",
+        "risk": "low"
+      },
+      "navigatorVendorGetter": {
+        "value": "function get vendor() { [native code] }",
+        "description": "Signature of Navigator.vendor getter",
+        "risk": "low"
+      },
+      "navigatorWebdriverGetter": {
+        "value": "function get webdriver() { [native code] }",
+        "description": "Signature of Navigator.webdriver getter",
+        "risk": "low"
+      },
+      "geolocationGetCurrentPosition": {
+        "value": "function getCurrentPosition() { [native code] }",
+        "description": "Signature of Geolocation.getCurrentPosition",
+        "risk": "low"
+      },
+      "geolocationWatchPosition": {
+        "value": "function watchPosition() { [native code] }",
+        "description": "Signature of Geolocation.watchPosition",
+        "risk": "low"
+      },
+      "clipboardRead": {
+        "value": "function read() { [native code] }",
+        "description": "Signature of Clipboard.read method",
+        "risk": "low"
+      },
+      "clipboardWrite": {
+        "value": "function write() { [native code] }",
+        "description": "Signature of Clipboard.write method",
+        "risk": "low"
+      },
+      "localStorageSetItem": {
+        "value": "function setItem() { [native code] }",
+        "description": "Signature of Storage.setItem method",
+        "risk": "low"
+      },
+      "localStorageGetItem": {
+        "value": "function getItem() { [native code] }",
+        "description": "Signature of Storage.getItem method",
+        "risk": "low"
+      },
+      "getUserMedia": {
+        "value": "function getUserMedia() { [native code] }",
+        "description": "Signature of MediaDevices.getUserMedia",
+        "risk": "low"
+      },
+      "cryptoGetRandomValues": {
+        "value": "function getRandomValues() { [native code] }",
+        "description": "Signature of Crypto.getRandomValues",
+        "risk": "low"
+      },
+      "cryptoRandomUUID": {
+        "value": "function randomUUID() { [native code] }",
+        "description": "Signature of Crypto.randomUUID",
+        "risk": "low"
+      },
+      "proxyConstructor": {
+        "value": "function Proxy() { [native code] }",
+        "description": "Signature of Proxy constructor",
+        "risk": "low"
+      },
+      "reflectGet": {
+        "value": "function get() { [native code] }",
+        "description": "Signature of Reflect.get method",
+        "risk": "low"
+      },
+      "reflectSet": {
+        "value": "function set() { [native code] }",
+        "description": "Signature of Reflect.set method",
+        "risk": "low"
+      },
+      "objectGetOwnPropertyDescriptor": {
+        "value": "function getOwnPropertyDescriptor() { [native code] }",
+        "description": "Signature of Object.getOwnPropertyDescriptor method",
+        "risk": "low"
+      },
+      "promiseConstructor": {
+        "value": "function Promise() { [native code] }",
+        "description": "Signature of Promise constructor",
+        "risk": "low"
+      },
+      "promiseThen": {
+        "value": "function then() { [native code] }",
+        "description": "Signature of Promise.prototype.then method",
+        "risk": "low"
+      },
+      "promiseCatch": {
+        "value": "function catch() { [native code] }",
+        "description": "Signature of Promise.prototype.catch method",
+        "risk": "low"
+      },
+      "asyncFunctionConstructor": {
+        "value": "function AsyncFunction() { [native code] }",
+        "description": "Signature of AsyncFunction constructor",
+        "risk": "low"
+      },
+      "evalFunc": {
+        "value": "function eval() { [native code] }",
+        "description": "Signature of eval function",
+        "risk": "low"
+      },
+      "functionConstructor": {
+        "value": "function Function() { [native code] }",
+        "description": "Signature of Function constructor",
+        "risk": "low"
+      },
+      "asyncFunctionStringTag": {
+        "value": "function toString() { [native code] }",
+        "description": "Signature of AsyncFunction toString method",
+        "risk": "low"
+      },
+      "mouseEventConstructor": {
+        "value": "function MouseEvent() { [native code] }",
+        "description": "Signature of MouseEvent constructor",
+        "risk": "low"
+      },
+      "keyboardEventConstructor": {
+        "value": "function KeyboardEvent() { [native code] }",
+        "description": "Signature of KeyboardEvent constructor",
+        "risk": "low"
+      },
+      "touchEventConstructor": {
+        "value": "function TouchEvent() { [native code] }",
+        "description": "Signature of TouchEvent constructor",
+        "risk": "low"
+      },
+      "pointerEventConstructor": {
+        "value": "function PointerEvent() { [native code] }",
+        "description": "Signature of PointerEvent constructor",
+        "risk": "low"
+      },
+      "inputEventConstructor": {
+        "value": "function InputEvent() { [native code] }",
+        "description": "Signature of InputEvent constructor",
+        "risk": "low"
+      },
+      "mutationObserver": {
+        "value": "function MutationObserver() { [native code] }",
+        "description": "Signature of MutationObserver constructor",
+        "risk": "low"
+      },
+      "intersectionObserver": {
+        "value": "function IntersectionObserver() { [native code] }",
+        "description": "Signature of IntersectionObserver constructor",
+        "risk": "low"
+      },
+      "resizeObserver": {
+        "value": "function ResizeObserver() { [native code] }",
+        "description": "Signature of ResizeObserver constructor",
+        "risk": "low"
+      },
+      "notificationConstructor": {
+        "value": "function Notification() { [native code] }",
+        "description": "Signature of Notification constructor",
+        "risk": "low"
+      },
+      "permissionStatusOnchange": {
+        "value": "get:function get onchange() { [native code] }|set:function set onchange() { [native code] }",
+        "description": "Signature of PermissionStatus.prototype.onchange",
+        "risk": "low"
+      },
+      "navigatorPluginsGetter": {
+        "value": "function get plugins() { [native code] }",
+        "description": "Signature of Navigator.plugins getter",
+        "risk": "low"
+      },
+      "navigatorMimeTypesGetter": {
+        "value": "function get mimeTypes() { [native code] }",
+        "description": "Signature of Navigator.mimeTypes getter",
+        "risk": "low"
+      },
+      "navigatorDeviceMemoryGetter": {
+        "value": "function get deviceMemory() { [native code] }",
+        "description": "Signature of Navigator.deviceMemory getter",
+        "risk": "low"
+      },
+      "navigatorHardwareConcurrencyGetter": {
+        "value": "function get hardwareConcurrency() { [native code] }",
+        "description": "Signature of Navigator.hardwareConcurrency getter",
+        "risk": "low"
+      },
+      "navigatorMaxTouchPointsGetter": {
+        "value": "function get maxTouchPoints() { [native code] }",
+        "description": "Signature of Navigator.maxTouchPoints getter",
+        "risk": "low"
+      },
+      "screenWidthGetter": {
+        "value": "function get width() { [native code] }",
+        "description": "Signature of Screen.width getter",
+        "risk": "low"
+      },
+      "screenHeightGetter": {
+        "value": "function get height() { [native code] }",
+        "description": "Signature of Screen.height getter",
+        "risk": "low"
+      },
+      "screenColorDepthGetter": {
+        "value": "function get colorDepth() { [native code] }",
+        "description": "Signature of Screen.colorDepth getter",
+        "risk": "low"
+      },
+      "batteryManager": {
+        "value": "function getBattery() { [native code] }",
+        "description": "Signature of navigator.getBattery function",
+        "risk": "low"
+      },
+      "messageChannel": {
+        "value": "function MessageChannel() { [native code] }",
+        "description": "Signature of MessageChannel constructor",
+        "risk": "low"
+      },
+      "postMessage": {
+        "value": "function postMessage() { [native code] }",
+        "description": "Signature of Window.prototype.postMessage method",
+        "risk": "low"
+      },
+      "workerConstructor": {
+        "value": "function Worker() { [native code] }",
+        "description": "Signature of Worker constructor",
+        "risk": "low"
+      },
+      "sharedWorkerConstructor": {
+        "value": "function SharedWorker() { [native code] }",
+        "description": "Signature of SharedWorker constructor",
+        "risk": "low"
+      },
+      "serviceWorkerRegister": {
+        "value": "function register() { [native code] }",
+        "description": "Signature of ServiceWorker.register method",
+        "risk": "low"
+      },
+      "toStringIntegrity": {
+        "value": "likely-native",
+        "description": "Integrity check for Function.prototype.toString (critical security check)",
+        "risk": "high"
+      },
+      "crossRealm_funcToString_diff": {
+        "value": false,
+        "description": "Cross-realm check: funcToString_diff",
+        "risk": "low"
+      },
+      "crossRealm_JSON_stringify_diff": {
+        "value": false,
+        "description": "Cross-realm check: JSON_stringify_diff",
+        "risk": "low"
+      },
+      "crossRealm_Object_defineProperty_diff": {
+        "value": false,
+        "description": "Cross-realm check: Object_defineProperty_diff",
+        "risk": "low"
+      },
+      "crossRealm_setTimeout_diff": {
+        "value": false,
+        "description": "Cross-realm check: setTimeout_diff",
+        "risk": "low"
+      },
+      "crossRealm_setInterval_diff": {
+        "value": false,
+        "description": "Cross-realm check: setInterval_diff",
+        "risk": "low"
+      },
+      "crossRealm_navigator_userAgent_getter_diff": {
+        "value": false,
+        "description": "Cross-realm check: navigator_userAgent_getter_diff",
+        "risk": "low"
+      },
+      "crossRealm_Date_now_diff": {
+        "value": false,
+        "description": "Cross-realm check: Date_now_diff",
+        "risk": "low"
+      },
+      "crossRealm_Math_random_diff": {
+        "value": false,
+        "description": "Cross-realm check: Math_random_diff",
+        "risk": "low"
+      },
+      "crossRealm_Proxy_constructor_diff": {
+        "value": false,
+        "description": "Cross-realm check: Proxy_constructor_diff",
+        "risk": "low"
+      },
+      "crossRealm_Reflect_get_diff": {
+        "value": false,
+        "description": "Cross-realm check: Reflect_get_diff",
+        "risk": "low"
+      },
+      "crossRealm_Reflect_set_diff": {
+        "value": false,
+        "description": "Cross-realm check: Reflect_set_diff",
+        "risk": "low"
+      },
+      "crossRealm_Object_getOwnPropertyDescriptor_diff": {
+        "value": false,
+        "description": "Cross-realm check: Object_getOwnPropertyDescriptor_diff",
+        "risk": "low"
+      },
+      "crossRealm_Promise_constructor_diff": {
+        "value": false,
+        "description": "Cross-realm check: Promise_constructor_diff",
+        "risk": "low"
+      },
+      "crossRealm_Promise_then_diff": {
+        "value": false,
+        "description": "Cross-realm check: Promise_then_diff",
+        "risk": "low"
+      },
+      "crossRealm_Promise_catch_diff": {
+        "value": false,
+        "description": "Cross-realm check: Promise_catch_diff",
+        "risk": "low"
+      },
+      "crossRealm_AsyncFunction_constructor_diff": {
+        "value": false,
+        "description": "Cross-realm check: AsyncFunction_constructor_diff",
+        "risk": "low"
+      },
+      "crossRealm_eval_diff": {
+        "value": false,
+        "description": "Cross-realm check: eval_diff",
+        "risk": "low"
+      },
+      "crossRealm_Function_constructor_diff": {
+        "value": false,
+        "description": "Cross-realm check: Function_constructor_diff",
+        "risk": "low"
+      },
+      "crossRealm_navigator_plugins_getter_diff": {
+        "value": false,
+        "description": "Cross-realm check: navigator_plugins_getter_diff",
+        "risk": "low"
+      },
+      "crossRealm_navigator_mimeTypes_getter_diff": {
+        "value": false,
+        "description": "Cross-realm check: navigator_mimeTypes_getter_diff",
+        "risk": "low"
+      },
+      "crossRealm_screen_width_getter_diff": {
+        "value": false,
+        "description": "Cross-realm check: screen_width_getter_diff",
+        "risk": "low"
+      },
+      "crossRealm_screen_height_getter_diff": {
+        "value": false,
+        "description": "Cross-realm check: screen_height_getter_diff",
+        "risk": "low"
+      },
+      "crossRealm_postMessage_diff": {
+        "value": false,
+        "description": "Cross-realm check: postMessage_diff",
+        "risk": "low"
+      },
+      "crossRealm_Worker_constructor_diff": {
+        "value": false,
+        "description": "Cross-realm check: Worker_constructor_diff",
+        "risk": "low"
+      },
+      "crossRealm_MessageChannel_diff": {
+        "value": false,
+        "description": "Cross-realm check: MessageChannel_diff",
+        "risk": "low"
+      },
+      "crossRealm_toString_integrity_diff": {
+        "value": false,
+        "description": "Cross-realm check: toString_integrity_diff",
+        "risk": "low"
+      },
+      "proxy_permissionsQuery_proxied": {
+        "value": false,
+        "description": "Proxy detection: permissionsQuery_proxied",
+        "risk": "low"
+      },
+      "proxy_setTimeout_proxied": {
+        "value": false,
+        "description": "Proxy detection: setTimeout_proxied",
+        "risk": "low"
+      },
+      "proxy_funcToString_proxied": {
+        "value": false,
+        "description": "Proxy detection: funcToString_proxied",
+        "risk": "low"
+      },
+      "proxy_fetch_proxied": {
+        "value": false,
+        "description": "Proxy detection: fetch_proxied",
+        "risk": "low"
+      },
+      "proxy_JSON_stringify_proxied": {
+        "value": false,
+        "description": "Proxy detection: JSON_stringify_proxied",
+        "risk": "low"
+      },
+      "proxy_addEventListener_proxied": {
+        "value": false,
+        "description": "Proxy detection: addEventListener_proxied",
+        "risk": "low"
+      },
+      "contextConsistency": {
+        "value": "All contexts appear consistent - no tampering detected",
+        "description": "Advanced cross-context execution consistency analysis",
+        "risk": "low"
+      },
+      "permissionsTests": {
+        "value": "{\"notifications\":\"prompt\",\"geolocation\":\"prompt\",\"camera\":\"prompt\",\"microphone\":\"prompt\"}",
+        "description": "Permissions API behavior analysis",
+        "risk": "low"
+      }
+    },
+    "stringSignatureAutomation": {
+      "setTimeout_signature": {
+        "value": false,
+        "description": "Detects automation by comparing Error.toString vs setTimeout.toString signatures",
+        "rawValue": "f",
+        "risk": "LOW"
+      },
+      "setInterval_signature": {
+        "value": false,
+        "description": "Detects automation by comparing Error.toString vs setInterval.toString signatures",
+        "rawValue": "f",
+        "risk": "LOW"
+      },
+      "function_bind_signature": {
+        "value": false,
+        "description": "Detects automation by comparing Error.toString vs Function.prototype.bind.toString signatures",
+        "rawValue": "f",
+        "risk": "LOW"
+      },
+      "function_toString_signature": {
+        "value": false,
+        "description": "Detects automation by comparing Error.toString vs Function.prototype.toString.toString signatures",
+        "rawValue": "f",
+        "risk": "LOW"
+      },
+      "function_bind_availability": {
+        "value": false,
+        "description": "Checks if Function.prototype.bind is available (should always be true in modern browsers)",
+        "rawValue": "f",
+        "risk": "LOW"
+      },
+      "phantomjs_stack_trace": {
+        "value": false,
+        "description": "Detects PhantomJS by analyzing error stack traces for \"phantomjs\" string",
+        "rawValue": "f",
+        "risk": "LOW"
+      }
+    },
+    "behavioralIndicators": {
+      "centralButtonClicks": {
+        "detected": false,
+        "count": 0,
+        "threshold": 5,
+        "description": "Clicks consistently hitting exact center of buttons",
+        "details": [],
+        "confidence": 0
+      },
+      "clicksWithoutMouseMovement": {
+        "detected": false,
+        "count": 0,
+        "threshold": 3,
+        "description": "Clicks occurring without prior mouse movement",
+        "details": [],
+        "confidence": 0
+      },
+      "nonHumanScrolling": {
+        "detected": false,
+        "count": 0,
+        "threshold": 2,
+        "description": "Scrolling patterns inconsistent with human behavior",
+        "details": [],
+        "confidence": 0
+      },
+      "artificialTiming": {
+        "detected": false,
+        "count": 0,
+        "threshold": 3,
+        "description": "Timing patterns too regular or mechanical",
+        "details": [],
+        "confidence": 0
+      },
+      "missingMouseTrails": {
+        "detected": false,
+        "count": 0,
+        "threshold": 2,
+        "description": "Missing intermediate mouse position data",
+        "details": [],
+        "confidence": 0
+      }
+    },
+    "behavioralTelemetry": {
+      "totalMouseMoves": {
+        "value": 4,
+        "description": "Total number of mouse movement events tracked",
+        "risk": "N/A"
+      },
+      "totalClicks": {
+        "value": 0,
+        "description": "Total number of click events recorded",
+        "risk": "N/A"
+      },
+      "totalScrolls": {
+        "value": 0,
+        "description": "Total number of scroll events recorded",
+        "risk": "N/A"
+      },
+      "totalMouseDistance": {
+        "value": 12,
+        "description": "Total distance traveled by mouse cursor in pixels",
+        "risk": "N/A"
+      },
+      "averageMouseVelocity": {
+        "value": 0.35,
+        "description": "Average mouse movement velocity (pixels/ms)",
+        "risk": "N/A"
+      },
+      "maxMouseVelocity": {
+        "value": 0.47,
+        "description": "Maximum mouse movement velocity (pixels/ms)",
+        "risk": "N/A"
+      },
+      "mouseMovementCount": {
+        "value": 3,
+        "description": "Number of discrete mouse movements tracked",
+        "risk": "N/A"
+      },
+      "averageClickInterval": {
+        "value": 0,
+        "description": "Average time between clicks in milliseconds",
+        "risk": "N/A"
+      },
+      "clickRate": {
+        "value": 0,
+        "description": "Number of clicks per second",
+        "risk": "N/A"
+      },
+      "totalScrollDistance": {
+        "value": 0,
+        "description": "Total scroll distance in pixels",
+        "risk": "N/A"
+      },
+      "averageScrollDistance": {
+        "value": 0,
+        "description": "Average distance per scroll event in pixels",
+        "risk": "N/A"
+      },
+      "averageScrollInterval": {
+        "value": 0,
+        "description": "Average time between scroll events in milliseconds",
+        "risk": "N/A"
+      },
+      "scrollRate": {
+        "value": 0,
+        "description": "Number of scroll events per second",
+        "risk": "N/A"
+      },
+      "collectionDurationMs": {
+        "value": 1006,
+        "description": "Total behavioral data collection duration in milliseconds",
+        "risk": "N/A"
+      },
+      "collectionDurationSec": {
+        "value": 1,
+        "description": "Total behavioral data collection duration in seconds",
+        "risk": "N/A"
+      },
+      "eventsPerSecond": {
+        "value": 3.98,
+        "description": "Total interaction events (mouse + click + scroll) per second",
+        "risk": "N/A"
+      },
+      "mouseToClickRatio": {
+        "value": null,
+        "description": "Ratio of mouse movements to clicks",
+        "risk": "N/A"
+      },
+      "hasMouseActivity": {
+        "value": true,
+        "description": "Whether any mouse movement was detected",
+        "risk": "N/A"
+      },
+      "hasClickActivity": {
+        "value": false,
+        "description": "Whether any click events were detected",
+        "risk": "N/A"
+      },
+      "hasScrollActivity": {
+        "value": false,
+        "description": "Whether any scroll events were detected",
+        "risk": "N/A"
+      }
+    }
+  },
+  "rawResults": {
+    "fonts": {
+      "supported": true,
+      "fonts": [
+        "Agency FB",
+        "Aharoni",
+        "Algerian",
+        "Arial",
+        "Arial Narrow",
+        "Bahnschrift",
+        "Bahnschrift Light",
+        "Bahnschrift SemiBold",
+        "Baskerville Old Face",
+        "Bauhaus 93",
+        "Bell MT",
+        "Berlin Sans FB",
+        "Bernard MT Condensed",
+        "Blackadder ITC",
+        "Bodoni MT",
+        "Bodoni MT Black",
+        "Bodoni MT Condensed",
+        "Book Antiqua",
+        "Bookman Old Style",
+        "Bookshelf Symbol 7",
+        "Bradley Hand ITC",
+        "Broadway",
+        "Brush Script MT",
+        "Calibri",
+        "Californian FB",
+        "Calisto MT",
+        "Cambria",
+        "Cambria Math",
+        "Candara",
+        "Cascadia Code",
+        "Cascadia Mono",
+        "Castellar",
+        "Centaur",
+        "Century",
+        "Century Gothic",
+        "Century Schoolbook",
+        "Chiller",
+        "Colonna MT",
+        "Comic Sans MS",
+        "Consolas",
+        "Constantia",
+        "Cooper Black",
+        "Copperplate Gothic",
+        "Copperplate Gothic Light",
+        "Corbel",
+        "Corbel Light",
+        "Courier",
+        "Courier New",
+        "Curlz MT",
+        "David",
+        "Ebrima",
+        "Edwardian Script ITC",
+        "Elephant",
+        "Engravers MT",
+        "Felix Titling",
+        "Footlight MT Light",
+        "Forte",
+        "FrankRuehl",
+        "Franklin Gothic Book",
+        "Franklin Gothic Heavy",
+        "Franklin Gothic Medium",
+        "Freestyle Script",
+        "French Script MT",
+        "Gabriola",
+        "Gadugi",
+        "Garamond",
+        "Georgia",
+        "Gigi",
+        "Gill Sans MT",
+        "Gill Sans MT Condensed",
+        "Gisha",
+        "Goudy Old Style",
+        "Goudy Stout",
+        "Haettenschweiler",
+        "Harrington",
+        "Helvetica",
+        "High Tower Text",
+        "Impact",
+        "Imprint MT Shadow",
+        "Informal Roman",
+        "Ink Free",
+        "Javanese Text",
+        "Jokerman",
+        "Juice ITC",
+        "Kristen ITC",
+        "Kunstler Script",
+        "Leelawadee UI",
+        "Levenim MT",
+        "Lucida Bright",
+        "Lucida Calligraphy",
+        "Lucida Console",
+        "Lucida Fax",
+        "Lucida Handwriting",
+        "Lucida Sans",
+        "Lucida Sans Typewriter",
+        "Lucida Sans Unicode",
+        "MS Gothic",
+        "MS Outlook",
+        "MS PGothic",
+        "MS Reference Sans Serif",
+        "MS Reference Specialty",
+        "MS Sans Serif",
+        "MS Serif",
+        "MS UI Gothic",
+        "MT Extra",
+        "MV Boli",
+        "Magneto",
+        "Maiandra GD",
+        "Malgun Gothic",
+        "Marlett",
+        "Matura MT Script Capitals",
+        "Microsoft Himalaya",
+        "Microsoft JhengHei",
+        "Microsoft JhengHei Light",
+        "Microsoft JhengHei Regular",
+        "Microsoft JhengHei UI",
+        "Microsoft JhengHei UI Light",
+        "Microsoft JhengHei UI Regular",
+        "Microsoft New Tai Lue",
+        "Microsoft PhagsPa",
+        "Microsoft Sans Serif",
+        "Microsoft Tai Le",
+        "Microsoft YaHei",
+        "Microsoft YaHei Light",
+        "Microsoft YaHei UI",
+        "Microsoft YaHei UI Light",
+        "Microsoft Yi Baiti",
+        "MingLiU-ExtB",
+        "MingLiU_HKSCS-ExtB",
+        "Miriam",
+        "Miriam Fixed",
+        "Mistral",
+        "Modern No. 20",
+        "Mongolian Baiti",
+        "Monotype Corsiva",
+        "Myanmar Text",
+        "NSimSun",
+        "Narkisim",
+        "Niagara Engraved",
+        "Niagara Solid",
+        "Nirmala UI",
+        "Old English Text MT",
+        "Onyx",
+        "PMingLiU-ExtB",
+        "Palace Script MT",
+        "Palatino Linotype",
+        "Papyrus",
+        "Papyrus Condensed",
+        "Parchment",
+        "Perpetua",
+        "Perpetua Titling MT",
+        "Playbill",
+        "Poor Richard",
+        "Pristina",
+        "Ravie",
+        "Rockwell",
+        "Rockwell Condensed",
+        "Rod",
+        "Sans Serif Collection",
+        "Segoe Fluent Icons",
+        "Segoe MDL2 Assets",
+        "Segoe Print",
+        "Segoe Script",
+        "Segoe UI",
+        "Segoe UI Black",
+        "Segoe UI Emoji",
+        "Segoe UI Historic",
+        "Segoe UI Light",
+        "Segoe UI Semibold",
+        "Segoe UI Symbol",
+        "Segoe UI Variable Display",
+        "Segoe UI Variable Small",
+        "Segoe UI Variable Text",
+        "Showcard Gothic",
+        "SimSun",
+        "SimSun-ExtB",
+        "Sitka Banner",
+        "Sitka Display",
+        "Sitka Heading",
+        "Sitka Small",
+        "Sitka Subheading",
+        "Sitka Text",
+        "Snap ITC",
+        "Stencil",
+        "Sylfaen",
+        "Symbol",
+        "Tahoma",
+        "Tempus Sans ITC",
+        "Times",
+        "Times New Roman",
+        "Trebuchet MS",
+        "Tw Cen MT",
+        "Tw Cen MT Condensed",
+        "Verdana",
+        "Viner Hand ITC",
+        "Vivaldi",
+        "Vladimir Script",
+        "Webdings",
+        "Wide Latin",
+        "Wingdings",
+        "Wingdings 2",
+        "Wingdings 3",
+        "Yu Gothic",
+        "Yu Gothic Light",
+        "Yu Gothic Medium",
+        "Yu Gothic Regular",
+        "Yu Gothic UI",
+        "Yu Gothic UI Light",
+        "Yu Gothic UI Regular",
+        "Yu Gothic UI Semibold",
+        "system-ui",
+        "宋体",
+        "微软雅黑",
+        "游ゴシック",
+        "ＭＳ ゴシック",
+        "ＭＳ Ｐゴシック"
+      ],
+      "fontsCount": 216,
+      "fontHash": "f49a2bc4",
+      "platform": {
+        "os": "Windows",
+        "version": "7",
+        "confidence": "100.0",
+        "matchedFonts": [
+          "Calibri",
+          "Cambria",
+          "Consolas",
+          "Corbel",
+          "Candara",
+          "Constantia"
+        ]
+      },
+      "applications": [
+        {
+          "name": "Microsoft Office",
+          "confidence": "100.0",
+          "matchedFonts": [
+            "Cambria Math",
+            "Calibri",
+            "Cambria",
+            "Century Gothic"
+          ],
+          "matchCount": 4
+        }
+      ],
+      "emoji": {
+        "supported": true,
+        "measurements": [
+          {
+            "emoji": "😀",
+            "filledPixels": 1275,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "☺",
+            "filledPixels": 320,
+            "width": 41,
+            "height": 50
+          },
+          {
+            "emoji": "🤵‍♂️",
+            "filledPixels": 872,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "♨",
+            "filledPixels": 469,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "☸",
+            "filledPixels": 562,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "⚧",
+            "filledPixels": 465,
+            "width": 31,
+            "height": 50
+          },
+          {
+            "emoji": "⁉",
+            "filledPixels": 266,
+            "width": 27,
+            "height": 50
+          },
+          {
+            "emoji": "ℹ",
+            "filledPixels": 227,
+            "width": 13,
+            "height": 50
+          },
+          {
+            "emoji": "🏳️‍⚧️",
+            "filledPixels": 1036,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "🥲",
+            "filledPixels": 1275,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "☹",
+            "filledPixels": 509,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "☠",
+            "filledPixels": 636,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "🧑‍🦰",
+            "filledPixels": 1133,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "🧏‍♂️",
+            "filledPixels": 785,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "⛷",
+            "filledPixels": 801,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "🧑‍🤝‍🧑",
+            "filledPixels": 821,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "☘",
+            "filledPixels": 472,
+            "width": 32,
+            "height": 50
+          },
+          {
+            "emoji": "⛰",
+            "filledPixels": 860,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⛩",
+            "filledPixels": 428,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⛴",
+            "filledPixels": 788,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "✈",
+            "filledPixels": 379,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⏱",
+            "filledPixels": 414,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "⛈",
+            "filledPixels": 382,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "☂",
+            "filledPixels": 285,
+            "width": 31,
+            "height": 50
+          },
+          {
+            "emoji": "⛱",
+            "filledPixels": 530,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "☃",
+            "filledPixels": 416,
+            "width": 28,
+            "height": 50
+          },
+          {
+            "emoji": "☄",
+            "filledPixels": 332,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "⛸",
+            "filledPixels": 738,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "♟",
+            "filledPixels": 359,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⛑",
+            "filledPixels": 565,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⌨",
+            "filledPixels": 650,
+            "width": 45,
+            "height": 50
+          },
+          {
+            "emoji": "✉",
+            "filledPixels": 553,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "✏",
+            "filledPixels": 374,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "👩‍❤️‍💋‍👨",
+            "filledPixels": 1152,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "👨‍👩‍👧‍👦",
+            "filledPixels": 1381,
+            "width": 50,
+            "height": 50
+          },
+          {
+            "emoji": "👨‍👩‍👦",
+            "filledPixels": 1392,
+            "width": 50,
+            "height": 50
+          },
+          {
+            "emoji": "😀",
+            "filledPixels": 1275,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "©",
+            "filledPixels": 481,
+            "width": 29,
+            "height": 50
+          },
+          {
+            "emoji": "®",
+            "filledPixels": 489,
+            "width": 29,
+            "height": 50
+          },
+          {
+            "emoji": "™",
+            "filledPixels": 323,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "👁️‍🗨️",
+            "filledPixels": 804,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "✒",
+            "filledPixels": 432,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "✂",
+            "filledPixels": 576,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⛏",
+            "filledPixels": 377,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⚒",
+            "filledPixels": 401,
+            "width": 31,
+            "height": 50
+          },
+          {
+            "emoji": "⚔",
+            "filledPixels": 335,
+            "width": 30,
+            "height": 50
+          },
+          {
+            "emoji": "⚙",
+            "filledPixels": 388,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "⛓",
+            "filledPixels": 622,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⚗",
+            "filledPixels": 374,
+            "width": 30,
+            "height": 50
+          },
+          {
+            "emoji": "⚰",
+            "filledPixels": 263,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⚱",
+            "filledPixels": 277,
+            "width": 22,
+            "height": 50
+          },
+          {
+            "emoji": "⚠",
+            "filledPixels": 473,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "☢",
+            "filledPixels": 565,
+            "width": 33,
+            "height": 50
+          },
+          {
+            "emoji": "☣",
+            "filledPixels": 427,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "⬆",
+            "filledPixels": 241,
+            "width": 22,
+            "height": 50
+          },
+          {
+            "emoji": "↗",
+            "filledPixels": 148,
+            "width": 29,
+            "height": 50
+          },
+          {
+            "emoji": "➡",
+            "filledPixels": 247,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⬅",
+            "filledPixels": 247,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⚛",
+            "filledPixels": 503,
+            "width": 33,
+            "height": 50
+          },
+          {
+            "emoji": "✡",
+            "filledPixels": 308,
+            "width": 28,
+            "height": 50
+          },
+          {
+            "emoji": "✝",
+            "filledPixels": 157,
+            "width": 24,
+            "height": 50
+          },
+          {
+            "emoji": "☦",
+            "filledPixels": 215,
+            "width": 24,
+            "height": 50
+          },
+          {
+            "emoji": "▶",
+            "filledPixels": 533,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "⏭",
+            "filledPixels": 506,
+            "width": 33,
+            "height": 50
+          },
+          {
+            "emoji": "⏯",
+            "filledPixels": 414,
+            "width": 24,
+            "height": 50
+          },
+          {
+            "emoji": "⏏",
+            "filledPixels": 293,
+            "width": 27,
+            "height": 50
+          },
+          {
+            "emoji": "♀",
+            "filledPixels": 226,
+            "width": 30,
+            "height": 50
+          },
+          {
+            "emoji": "♂",
+            "filledPixels": 262,
+            "width": 30,
+            "height": 50
+          },
+          {
+            "emoji": "✖",
+            "filledPixels": 447,
+            "width": 33,
+            "height": 50
+          },
+          {
+            "emoji": "〰",
+            "filledPixels": 357,
+            "width": 40,
+            "height": 50
+          },
+          {
+            "emoji": "⚕",
+            "filledPixels": 242,
+            "width": 19,
+            "height": 50
+          },
+          {
+            "emoji": "⚜",
+            "filledPixels": 448,
+            "width": 35,
+            "height": 50
+          },
+          {
+            "emoji": "✔",
+            "filledPixels": 297,
+            "width": 32,
+            "height": 50
+          },
+          {
+            "emoji": "✳",
+            "filledPixels": 296,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "❇",
+            "filledPixels": 375,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "◼",
+            "filledPixels": 600,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "▪",
+            "filledPixels": 100,
+            "width": 14,
+            "height": 50
+          },
+          {
+            "emoji": "❣",
+            "filledPixels": 311,
+            "width": 20,
+            "height": 50
+          },
+          {
+            "emoji": "❤",
+            "filledPixels": 800,
+            "width": 39,
+            "height": 50
+          },
+          {
+            "emoji": "✌",
+            "filledPixels": 815,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "☝",
+            "filledPixels": 796,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "✍",
+            "filledPixels": 978,
+            "width": 55,
+            "height": 50
+          },
+          {
+            "emoji": "❄",
+            "filledPixels": 439,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "⚖",
+            "filledPixels": 645,
+            "width": 37,
+            "height": 50
+          },
+          {
+            "emoji": "↪",
+            "filledPixels": 361,
+            "width": 35,
+            "height": 50
+          },
+          {
+            "emoji": "☯",
+            "filledPixels": 561,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "☪",
+            "filledPixels": 417,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "☮",
+            "filledPixels": 486,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "☑",
+            "filledPixels": 506,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "✴",
+            "filledPixels": 393,
+            "width": 36,
+            "height": 50
+          },
+          {
+            "emoji": "🅰",
+            "filledPixels": 745,
+            "width": 34,
+            "height": 50
+          },
+          {
+            "emoji": "🅿",
+            "filledPixels": 753,
+            "width": 34,
+            "height": 50
+          }
+        ],
+        "runningHash": "0cba5e07",
+        "avgFilledPixels": "535.35"
+      },
+      "emojiHash": "767ed838",
+      "osMismatch": false,
+      "error": null
+    }
+  },
+  "suspiciousIndicators": [
+    {
+      "category": "network",
+      "name": "zero_rtt",
+      "description": "RTT value is zero, indicating possible mocked Network Information API",
+      "severity": "MEDIUM",
+      "confidence": 0.6,
+      "details": "Network anomaly detected: zero_rtt"
+    },
+    {
+      "category": "active_measurement",
+      "name": "downlink_api_mismatch",
+      "description": "Measured downlink differs significantly from Connection API value",
+      "severity": "LOW",
+      "confidence": 0.4,
+      "details": "API: 4.8Mbps, Measured: 2062.77Mbps"
+    }
+  ],
+  "suspiciousAnalysis": {
+    "indicators": [],
+    "allIndicators": [
+      {
+        "name": "device_pixel_ratio_anomaly",
+        "category": "Display",
+        "description": "Device pixel ratio outside normal range for real devices",
+        "value": 0.8999999761581421,
+        "riskLevel": "MEDIUM",
+        "confidence": 0.7,
+        "importance": "WEAK",
+        "details": "Normal DPR range is 0.95-2.5, detected: 0.8999999761581421. Note: This can occur with custom zoom levels or unusual display setups.",
+        "timestamp": 1767194850058,
+        "id": "display_device_pixel_ratio_anomaly_1767194850058"
+      },
+      {
+        "name": "dpr_float_noise_pattern",
+        "category": "Display",
+        "description": "Device pixel ratio shows suspicious float noise pattern around 0.8",
+        "value": "0.8999999761581421 (noise: 0.100000)",
+        "riskLevel": "HIGH",
+        "confidence": 0.85,
+        "importance": "WEAK",
+        "details": "Float noise around 0.8 can be characteristic of automation frameworks, but may also occur with certain zoom levels.",
+        "timestamp": 1767194850058,
+        "id": "display_dpr_float_noise_pattern_1767194850058"
+      }
+    ],
+    "analysis": {
+      "categorized": {
+        "critical": [],
+        "strong": [],
+        "weak": [
+          {
+            "name": "device_pixel_ratio_anomaly",
+            "category": "Display",
+            "description": "Device pixel ratio outside normal range for real devices",
+            "value": 0.8999999761581421,
+            "riskLevel": "MEDIUM",
+            "confidence": 0.7,
+            "importance": "WEAK",
+            "details": "Normal DPR range is 0.95-2.5, detected: 0.8999999761581421. Note: This can occur with custom zoom levels or unusual display setups.",
+            "timestamp": 1767194850058,
+            "id": "display_device_pixel_ratio_anomaly_1767194850058"
+          },
+          {
+            "name": "dpr_float_noise_pattern",
+            "category": "Display",
+            "description": "Device pixel ratio shows suspicious float noise pattern around 0.8",
+            "value": "0.8999999761581421 (noise: 0.100000)",
+            "riskLevel": "HIGH",
+            "confidence": 0.85,
+            "importance": "WEAK",
+            "details": "Float noise around 0.8 can be characteristic of automation frameworks, but may also occur with certain zoom levels.",
+            "timestamp": 1767194850058,
+            "id": "display_dpr_float_noise_pattern_1767194850058"
+          }
+        ],
+        "unknown": []
+      },
+      "scores": {
+        "critical": 0,
+        "strong": 0,
+        "weak": 0.4649999999999999,
+        "unknown": 0
+      },
+      "totalWeightedScore": 0.4649999999999999,
+      "hasCritical": false,
+      "hasStrong": false,
+      "hasWeak": true,
+      "totalCount": 2
+    },
+    "shouldShow": false,
+    "reasoning": "Insufficient evidence - 2 weak indicator(s) found but below threshold"
+  },
+  "suspiciousSummary": {
+    "totalIndicators": 0,
+    "totalDetectedIndicators": 2,
+    "riskCounts": {
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0
+    },
+    "hasSuspiciousActivity": false,
+    "suspicionScore": 0,
+    "reasoning": "Insufficient evidence - 2 weak indicator(s) found but below threshold"
+  },
+  "aiAgentSummary": {
+    "totalIndicators": 0,
+    "riskCounts": {
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0
+    },
+    "suspicionScore": 0,
+    "hasSuspiciousActivity": false,
+    "reasoning": "No significant AI agent patterns detected"
+  },
+  "summary": {
+    "totalMetrics": 551,
+    "highRiskIndicators": 2,
+    "mediumRiskIndicators": 4,
+    "riskLevel": "HIGH",
+    "automationLikelihood": "Low"
+  },
+  "behavioralSummary": {
+    "detectedCount": 0,
+    "totalIndicators": 5,
+    "detectedTypes": [],
+    "totalEvents": 0,
+    "maxConfidence": 0,
+    "riskLevel": "NONE",
+    "summary": "No clear signs of automated behavior detected"
+  },
+  "behavioralMetadata": {
+    "startTime": 323.5,
+    "endTime": 1329.2000000476837,
+    "storagePrefix": "fp_behavioral_"
+  }
+}

@@ -626,6 +626,9 @@
     <div class="fp-container" id="fp-app">
         <!-- Content will be dynamically rendered by the modular UI system -->
     </div>
+    
+    <!-- Console Container for debugging/progress logs -->
+    <div id="console-container" style="max-width: 1200px; margin: 20px auto; padding: 0 20px;"></div>
 
     <!-- Main Application Script (Using New Modular UI) -->
     <script type="module">
@@ -643,11 +646,30 @@
             createErrorState 
         } from './fingerprint-ui/components/Loading.js';
         
+        // Import console component with error handling
+        let createFingerprintConsole;
+        try {
+            const consoleModule = await import('./fingerprint-ui/components/Console.js');
+            createFingerprintConsole = consoleModule.createFingerprintConsole;
+        } catch (e) {
+            console.warn('Console component not available:', e);
+            // Fallback no-op logger
+            createFingerprintConsole = () => ({ 
+                log: () => {}, 
+                error: () => {}, 
+                warn: () => {},
+                success: () => {},
+                debug: () => {},
+                clear: () => {}
+            });
+        }
+        
         // ============================================================
         // GLOBAL STATE
         // ============================================================
         let fingerprintData = null;
         let uiRenderer = null;
+        let consoleLogger = null;
         
         // ============================================================
         // INITIALIZATION
@@ -655,10 +677,19 @@
         async function initializeAnalysis() {
             const appContainer = document.getElementById('fp-app');
             
+            // Initialize console logger
+            consoleLogger = createFingerprintConsole('console-container', {
+                title: 'Fingerprint Analysis Log',
+                maxLines: 500,
+                showTimestamp: true
+            });
+            consoleLogger.log('Starting fingerprint analysis...');
+            
             try {
                 // ----------------------------------------
                 // Phase 1: Behavioral Data Collection
                 // ----------------------------------------
+                consoleLogger.log('Phase 1: Starting behavioral data collection...');
                 const behavioralLoading = createBehavioralLoadingState();
                 appContainer.innerHTML = '';
                 appContainer.appendChild(behavioralLoading);
@@ -697,10 +728,12 @@
                 const behavioralData = await behavioralTracker.collectBehavioralData();
                 clearInterval(countdownInterval);
                 console.log('✅ Behavioral data collected:', behavioralData);
+                consoleLogger.success('Behavioral data collected successfully');
                 
                 // ----------------------------------------
                 // Phase 2: Fingerprint Analysis with Real-Time Progress
                 // ----------------------------------------
+                consoleLogger.log('Phase 2: Starting fingerprint analysis...');
                 const analysisLoading = createLoadingState({
                     title: 'Analyzing Browser Fingerprint...',
                     subtitle: `Processing ${Object.keys(behavioralData.indicators || {}).length} behavioral indicators...`,
@@ -712,6 +745,18 @@
                 // Progress callback for real-time UI updates
                 const handleProgress = (progress) => {
                     updateLoadingProgress(progress.percentage, progress.message);
+                    
+                    // Log to console based on status
+                    const phaseMsg = `[${progress.phase}] ${progress.message}`;
+                    if (progress.status === 'complete') {
+                        consoleLogger.success(phaseMsg);
+                    } else if (progress.status === 'error') {
+                        consoleLogger.error(phaseMsg);
+                    } else if (progress.status === 'timeout') {
+                        consoleLogger.warn(phaseMsg);
+                    } else {
+                        consoleLogger.log(phaseMsg);
+                    }
                 };
                 
                 // Run fingerprint analysis
@@ -748,10 +793,12 @@
                 }
                 
                 console.log('✅ Complete fingerprint data:', fingerprintData);
+                consoleLogger.success('Fingerprint analysis complete');
                 
                 // ----------------------------------------
                 // Phase 4: Render UI
                 // ----------------------------------------
+                consoleLogger.log('Phase 4: Rendering results...');
                 updateLoadingProgress(100, 'Rendering results...');
                 
                 // Small delay for visual feedback
@@ -762,12 +809,14 @@
                 
                 uiRenderer = new FingerprintUIRenderer(appContainer);
                 uiRenderer.render(fingerprintData);
+                consoleLogger.success('UI rendered successfully');
                 
                 // Scroll to top
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
             } catch (error) {
                 console.error('Error during fingerprint analysis:', error);
+                consoleLogger.error(`Fatal error: ${error.message}`);
                 appContainer.innerHTML = '';
                 appContainer.appendChild(createErrorState(error));
             }

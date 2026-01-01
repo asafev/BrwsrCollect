@@ -196,24 +196,26 @@ function createIndicatorItem(indicator) {
     const riskClass = (indicator.riskLevel || 'high').toLowerCase();
     const importance = IMPORTANCE_LEVELS[indicator.importance] || IMPORTANCE_LEVELS.WEAK;
     
-    const item = document.createElement('div');
+    const item = document.createElement('article');
     item.className = `fp-alert-item fp-alert-item--${riskClass}`;
+    item.setAttribute('role', 'article');
+    item.setAttribute('aria-label', `${indicator.name}: ${riskClass} risk`);
     
     item.innerHTML = `
-        <div class="fp-alert-item__icon">${getRiskIcon(indicator.riskLevel)}</div>
+        <div class="fp-alert-item__icon" aria-hidden="true">${getRiskIcon(indicator.riskLevel)}</div>
         <div class="fp-alert-item__content">
-            <div class="fp-alert-item__name">${escapeHtml(indicator.name)} ${importance.icon}</div>
+            <div class="fp-alert-item__name">${escapeHtml(indicator.name)} <span aria-label="${importance.label}">${importance.icon}</span></div>
             <div class="fp-alert-item__description">${escapeHtml(indicator.description)}</div>
             <div class="fp-alert-item__meta">
                 <span class="fp-alert-tag fp-alert-tag--primary">${escapeHtml(indicator.category)}</span>
-                <span class="fp-alert-tag">Value: ${escapeHtml(String(indicator.value))}</span>
+                <span class="fp-alert-tag">Value: <code>${escapeHtml(String(indicator.value))}</code></span>
                 <span class="fp-alert-tag">Confidence: ${formatPercentage(indicator.confidence)}</span>
                 <span class="fp-alert-tag" style="background: ${importance.color}; color: white; border-color: ${importance.color};">
                     ${importance.label}
                 </span>
             </div>
             ${indicator.details ? `
-                <div style="margin-top: var(--fp-spacing-sm); font-size: 0.8rem; color: var(--fp-gray-500);">
+                <div style="margin-top: var(--fp-space-2, 0.5rem); font-size: var(--fp-font-size-200, 0.75rem); color: var(--fp-neutral-foreground-4, #707070);">
                     ${escapeHtml(indicator.details)}
                 </div>
             ` : ''}
@@ -230,34 +232,37 @@ function createIndicatorItem(indicator) {
  * @returns {HTMLElement} Behavioral item element
  */
 function createBehavioralItem(name, data) {
-    const item = document.createElement('div');
+    const item = document.createElement('article');
     item.className = 'fp-alert-item';
+    item.setAttribute('role', 'article');
+    item.setAttribute('aria-label', `${name}: behavioral anomaly detected`);
     
     const confidenceHigh = data.confidence > 0.7;
+    const confidenceClass = confidenceHigh ? 'high-confidence' : '';
     
     item.innerHTML = `
-        <div class="fp-alert-item__icon">🚨</div>
+        <div class="fp-alert-item__icon" aria-hidden="true">🎯</div>
         <div class="fp-alert-item__content">
             <div class="fp-alert-item__name">${escapeHtml(name)}</div>
-            <div class="fp-alert-item__description">${escapeHtml(data.description || 'Behavioral anomaly detected')}</div>
+            <div class="fp-alert-item__description">${escapeHtml(data.description || 'Behavioral anomaly detected during user interaction analysis')}</div>
             <div class="fp-alert-item__meta">
-                <span class="fp-alert-tag">Count: ${data.count || 0}</span>
+                <span class="fp-alert-tag">Count: <strong>${data.count || 0}</strong></span>
                 <span class="fp-alert-tag">Threshold: ${data.threshold || 0}</span>
-                <span class="fp-alert-tag" style="${confidenceHigh ? 'background: var(--fp-danger-100); color: var(--fp-danger-700); border-color: var(--fp-danger-200);' : ''}">
+                <span class="fp-alert-tag ${confidenceClass}" style="${confidenceHigh ? 'background: var(--fp-status-danger-background, #FDE7E9); color: var(--fp-status-danger-foreground, #B10E1C); border-color: var(--fp-status-danger-border, #F7A6AD);' : ''}">
                     Confidence: ${formatPercentage(data.confidence)}
                 </span>
-                <span class="fp-alert-tag" style="background: var(--fp-danger-100); color: var(--fp-danger-700); border-color: var(--fp-danger-200); font-weight: 600;">
-                    DETECTED
+                <span class="fp-alert-tag" style="background: var(--fp-status-danger-background, #FDE7E9); color: var(--fp-status-danger-foreground, #B10E1C); border-color: var(--fp-status-danger-border, #F7A6AD); font-weight: 600;">
+                    ⚡ DETECTED
                 </span>
             </div>
             ${data.details?.length ? `
-                <details style="margin-top: var(--fp-spacing-sm);">
-                    <summary style="cursor: pointer; color: var(--fp-primary-600); font-size: 0.85rem;">
-                        Recent Examples (${data.details.length})
+                <details style="margin-top: var(--fp-space-3, 0.75rem);">
+                    <summary style="cursor: pointer; color: var(--fp-brand-primary, #0F6CBD); font-size: var(--fp-font-size-300, 0.8125rem); font-weight: 500;">
+                        View Details (${data.details.length} samples)
                     </summary>
-                    <div style="margin-top: var(--fp-spacing-sm); font-size: 0.75rem;">
+                    <div style="margin-top: var(--fp-space-2, 0.5rem); font-size: var(--fp-font-size-200, 0.75rem);">
                         ${data.details.slice(0, 3).map(detail => `
-                            <div style="background: var(--fp-gray-50); padding: var(--fp-spacing-xs) var(--fp-spacing-sm); margin: var(--fp-spacing-xs) 0; border-radius: var(--fp-radius-sm); font-family: var(--fp-font-mono);">
+                            <div style="background: var(--fp-neutral-background-3, #F5F5F5); padding: var(--fp-space-2, 0.5rem); margin: var(--fp-space-1, 0.25rem) 0; border-radius: var(--fp-radius-md, 4px); font-family: var(--fp-font-family-mono, monospace);">
                                 ${escapeHtml(JSON.stringify(detail, null, 2).substring(0, 150))}...
                             </div>
                         `).join('')}
@@ -271,16 +276,16 @@ function createBehavioralItem(name, data) {
 }
 
 /**
- * Get risk icon
+ * Get risk icon based on severity
  * @param {string} riskLevel - Risk level
  * @returns {string} Icon emoji
  */
 function getRiskIcon(riskLevel) {
     switch (String(riskLevel).toUpperCase()) {
-        case 'HIGH': return '🚨';
-        case 'MEDIUM': return '⚠️';
-        case 'LOW': return '💡';
-        default: return '❓';
+        case 'HIGH': return '�';
+        case 'MEDIUM': return '🟡';
+        case 'LOW': return '�';
+        default: return '○';
     }
 }
 

@@ -1,6 +1,7 @@
 /**
  * Fingerprint UI - Loading Component
- * Loading state with progress indicator and live stats
+ * Enterprise-grade loading state with progress indicator and live stats
+ * Following Microsoft Fluent and IBM Carbon design patterns
  */
 
 /**
@@ -23,16 +24,19 @@ export function createLoadingState(options = {}) {
     const container = document.createElement('div');
     container.className = 'fp-loading';
     container.id = 'fp-loading-state';
+    container.setAttribute('role', 'status');
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-busy', 'true');
     
     container.innerHTML = `
-        <div class="fp-loading__spinner"></div>
+        <div class="fp-loading__spinner" aria-hidden="true"></div>
         <h3 class="fp-loading__title">${escapeHtml(title)}</h3>
         <p class="fp-loading__text">${escapeHtml(subtitle)}</p>
         ${showProgress ? `
-            <div class="fp-loading__progress">
+            <div class="fp-loading__progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 <div class="fp-loading__progress-bar" id="fp-progress-bar" style="width: 0%;"></div>
             </div>
-            <p class="fp-loading__text" id="fp-progress-text" style="margin-top: var(--fp-spacing-sm);"></p>
+            <p class="fp-loading__text" id="fp-progress-text" style="margin-top: var(--fp-space-3, 0.75rem); font-size: var(--fp-font-size-300, 0.8125rem);"></p>
         ` : ''}
         ${showStats ? `
             <div class="fp-loading__stats">
@@ -62,7 +66,7 @@ export function createLoadingState(options = {}) {
 export function createBehavioralLoadingState() {
     return createLoadingState({
         title: 'Collecting Behavioral Data...',
-        subtitle: '🖱️ Please interact with the page! Move your mouse, click anywhere, scroll if possible.',
+        subtitle: 'Please interact with the page: move your mouse, click anywhere, and scroll if possible.',
         showProgress: true,
         showStats: true
     });
@@ -76,9 +80,16 @@ export function createBehavioralLoadingState() {
 export function updateLoadingProgress(percentage, text) {
     const progressBar = document.getElementById('fp-progress-bar');
     const progressText = document.getElementById('fp-progress-text');
+    const progressContainer = progressBar?.parentElement;
+    
+    const normalizedPercentage = Math.min(100, Math.max(0, percentage));
     
     if (progressBar) {
-        progressBar.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+        progressBar.style.width = `${normalizedPercentage}%`;
+    }
+    
+    if (progressContainer) {
+        progressContainer.setAttribute('aria-valuenow', String(Math.round(normalizedPercentage)));
     }
     
     if (progressText && text) {
@@ -95,9 +106,20 @@ export function updateBehavioralStats(stats) {
     const clicksEl = document.getElementById('fp-stat-clicks');
     const scrollsEl = document.getElementById('fp-stat-scrolls');
     
-    if (mouseEl) mouseEl.textContent = stats.mouseTrailLength || stats.mouse || 0;
-    if (clicksEl) clicksEl.textContent = stats.clickHistoryLength || stats.clicks || 0;
-    if (scrollsEl) scrollsEl.textContent = stats.scrollHistoryLength || stats.scrolls || 0;
+    if (mouseEl) mouseEl.textContent = formatStatNumber(stats.mouseTrailLength || stats.mouse || 0);
+    if (clicksEl) clicksEl.textContent = formatStatNumber(stats.clickHistoryLength || stats.clicks || 0);
+    if (scrollsEl) scrollsEl.textContent = formatStatNumber(stats.scrollHistoryLength || stats.scrolls || 0);
+}
+
+/**
+ * Format stat number for display
+ * @param {number} num - Number to format
+ * @returns {string} Formatted number
+ */
+function formatStatNumber(num) {
+    if (typeof num !== 'number') return '0';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return String(num);
 }
 
 /**
@@ -126,11 +148,16 @@ export function createErrorState(error) {
     
     const container = document.createElement('div');
     container.className = 'fp-error';
+    container.setAttribute('role', 'alert');
     
     container.innerHTML = `
-        <div class="fp-error__icon">❌</div>
-        <h3 class="fp-error__title">Analysis Failed</h3>
+        <div class="fp-error__icon" aria-hidden="true">⚠️</div>
+        <h3 class="fp-error__title">Analysis Error</h3>
         <p class="fp-error__message">${escapeHtml(message)}</p>
+        <button class="fp-btn fp-btn--primary" onclick="location.reload()" style="margin-top: var(--fp-space-5, 1.25rem);">
+            <span aria-hidden="true">↻</span>
+            <span>Try Again</span>
+        </button>
     `;
     
     return container;

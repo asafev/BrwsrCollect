@@ -215,11 +215,12 @@
         </div>
 
         <pre id="json-output"></pre>
+        <div id="console-container"></div>
     </div>
 
     <script type="module">
         // Import dependencies with error handling
-        let BrowserFingerprintAnalyzer, StandaloneBehavioralTracker;
+        let BrowserFingerprintAnalyzer, StandaloneBehavioralTracker, FingerprintConsole;
         
         try {
             const fpModule = await import('./browserFingerprint.js');
@@ -234,8 +235,16 @@
         } catch (e) {
             console.error('Failed to load behavioralTracker.js:', e);
         }
+        
+        try {
+            const consoleModule = await import('./fingerprint-ui/components/Console.js');
+            FingerprintConsole = consoleModule.FingerprintConsole;
+        } catch (e) {
+            console.error('Failed to load Console.js:', e);
+        }
 
         let fingerprintData = null;
+        let fpConsole = null;
         
         // Helper function to get telemetry metric descriptions
         function getTelemetryDescription(key) {
@@ -363,12 +372,25 @@
                     `;
                 }
                 
+                // Create console for detailed logging
+                const consoleContainer = document.getElementById('console-container');
+                if (FingerprintConsole && consoleContainer) {
+                    fpConsole = new FingerprintConsole({
+                        container: consoleContainer,
+                        title: 'Analysis Log',
+                        expanded: true,
+                        timestamps: true
+                    });
+                    fpConsole.info('Fingerprint analysis initialized');
+                    fpConsole.info(`Behavioral indicators collected: ${Object.keys(behavioralData.indicators || {}).length}`);
+                }
+                
                 // Run fingerprint analysis
                 if (!BrowserFingerprintAnalyzer) {
                     throw new Error('BrowserFingerprintAnalyzer module failed to load');
                 }
                 
-                // Progress callback for real-time UI updates
+                // Progress callback for real-time UI updates AND console logging
                 const handleProgress = (progress) => {
                     const progressBar = document.getElementById('analysis-progress');
                     const statusText = document.getElementById('analysis-status');
@@ -391,6 +413,11 @@
                         const completed = progress.completedPhases.map(p => phaseEmojis[p] || '✓').join(' ');
                         detailText.textContent = `Completed: ${completed} (${progress.completedPhases.length}/${progress.totalPhases})`;
                     }
+                    
+                    // Log to console
+                    if (fpConsole) {
+                        fpConsole.handleProgress(progress);
+                    }
                 };
                 
                 console.log('🔍 Running fingerprint analysis...');
@@ -402,10 +429,16 @@
                         pingCount: 3
                     },
                     networkTimeout: 5000, // 5 second timeout for network tests
+                    detectorTimeout: 3000, // 3 second timeout for individual detectors
                     onProgress: handleProgress
                 });
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
+                
+                // Mark console as complete
+                if (fpConsole) {
+                    fpConsole.complete();
+                }
                 
                 // Ensure metrics object exists
                 fingerprintData.metrics = fingerprintData.metrics || {};
