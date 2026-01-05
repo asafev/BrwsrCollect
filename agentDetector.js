@@ -32,6 +32,7 @@ class AIAgentDetector {
             { name: 'Selenium', detector: this.detectSelenium },
             { name: 'Puppeteer', detector: this.detectPuppeteer },
             { name: 'Playwright', detector: this.detectPlaywright },
+            { name: 'DevTools', detector: this.detectDevTools },
         ];
 
         const detectionPromises = detectors.map(async ({ name, detector }) => {
@@ -81,6 +82,9 @@ class AIAgentDetector {
                             break;
                         case 'Playwright':
                             confidence = 0.92; // Very high confidence - specific framework detection
+                            break;
+                        case 'DevTools':
+                            confidence = 0.90; // High confidence - CDP Runtime detection
                             break;
                         default:
                             confidence = 0.8; // Default high confidence for detected agents
@@ -532,7 +536,6 @@ class AIAgentDetector {
         
         try {
             const signals = {
-                cdp: false,
                 playwrightGlobals: false,
                 webdriver: false,
                 fingerprint: false,
@@ -541,38 +544,7 @@ class AIAgentDetector {
             };
             
             // ========================================
-            // 1. CDP (Chrome DevTools Protocol) Detection
-            // Most reliable signal - used by Cloudflare, DataDome, Castle.io
-            // ========================================
-            try {
-                let cdpDetected = false;
-                const testError = new Error();
-                
-                Object.defineProperty(testError, 'stack', {
-                    configurable: true,
-                    get: function() {
-                        cdpDetected = true;
-                        return '';
-                    }
-                });
-                
-                // Trigger serialization only when CDP Runtime.enable is active
-                console.debug(testError);
-                
-                if (cdpDetected) {
-                    signals.cdp = true;
-                    indicators.push({
-                        name: 'CDP_Runtime_Active',
-                        description: 'Chrome DevTools Protocol Runtime.enable detected via error stack serialization',
-                        value: 'CDP active'
-                    });
-                }
-            } catch (e) {
-                // Silent fail - CDP check failed
-            }
-            
-            // ========================================
-            // 2. Playwright-Specific Global Properties
+            // 1. Playwright-Specific Global Properties
             // Playwright injects these into the window object
             // ========================================
             
@@ -618,7 +590,7 @@ class AIAgentDetector {
             }
             
             // ========================================
-            // 3. Navigator.webdriver Detection
+            // 2. Navigator.webdriver Detection
             // Must be explicitly true, not just truthy
             // ========================================
             if (navigator.webdriver === true) {
@@ -631,7 +603,7 @@ class AIAgentDetector {
             }
             
             // ========================================
-            // 4. Permissions API Inconsistency
+            // 3. Permissions API Inconsistency
             // Playwright often has permission API issues
             // ========================================
             if (navigator.permissions && navigator.permissions.query) {
@@ -660,11 +632,11 @@ class AIAgentDetector {
             }
             
             // ========================================
-            // 5. Fingerprint Inconsistency Detection
+            // 4. Fingerprint Inconsistency Detection
             // Check for common automation fingerprint mismatches
             // ========================================
             
-            // 5a. Chrome Runtime Check (for Chromium-based browsers)
+            // 4a. Chrome Runtime Check (for Chromium-based browsers)
             if (window.chrome && !window.chrome.runtime) {
                 // Legitimate Chrome should have chrome.runtime
                 const isChrome = /Chrome/.test(navigator.userAgent) && 
@@ -679,7 +651,7 @@ class AIAgentDetector {
                 }
             }
             
-            // 5b. WebGL Consistency Check
+            // 4b. WebGL Consistency Check
             try {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || 
@@ -700,7 +672,7 @@ class AIAgentDetector {
                         
                         if (serverGPUs.some(gpu => renderer.includes(gpu))) {
                             // Only flag if combined with other signals
-                            if (signals.cdp || signals.webdriver || signals.playwrightGlobals) {
+                            if (signals.webdriver || signals.playwrightGlobals) {
                                 signals.fingerprint = true;
                                 indicators.push({
                                     name: 'WebGL_Server_GPU',
@@ -716,13 +688,12 @@ class AIAgentDetector {
             }
             
             // ========================================
-            // 6. Decision Logic - Minimize False Positives
+            // 5. Decision Logic - Minimize False Positives
             // ========================================
             
             // High confidence detection (any of these alone is sufficient)
-            if (signals.cdp || signals.playwrightGlobals || signals.initScripts) {
-                const reason = signals.cdp ? 'CDP_Runtime_Active' : 
-                              signals.playwrightGlobals ? 'Playwright_Globals' :
+            if (signals.playwrightGlobals || signals.initScripts) {
+                const reason = signals.playwrightGlobals ? 'Playwright_Globals' :
                               'Playwright_Init_Scripts';
                 
                 return {
@@ -778,6 +749,55 @@ class AIAgentDetector {
         }
     }
 
+    /**
+     * Detect Chrome DevTools being open via CDP Runtime.enable
+     * This detects when DevTools is actively connected and inspecting the page
+     * 
+     * @returns {Object} Detection result with status, confidence, and indicators
+     */
+    async detectDevTools() {
+        const indicators = [];
+        
+        try {
+            let cdpDetected = false;
+            const testError = new Error();
+            
+            Object.defineProperty(testError, 'stack', {
+                configurable: true,
+                get: function() {
+                    cdpDetected = true;
+                    return '';
+                }
+            });
+            
+            // Trigger serialization only when CDP Runtime.enable is active
+            console.debug(testError);
+            
+            if (cdpDetected) {
+                indicators.push({
+                    name: 'CDP_Runtime_Active',
+                    description: 'Chrome DevTools Protocol Runtime.enable detected via error stack serialization',
+                    value: 'CDP active - DevTools open'
+                });
+            }
+            
+            return {
+                detected: cdpDetected,
+                confidence: cdpDetected ? 0.90 : 0.0,
+                indicators,
+                primarySignal: cdpDetected ? 'CDP_Runtime_Active' : null
+            };
+        } catch (error) {
+            console.debug('Error in DevTools detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
 
     /**
      * Get detection method description for an agent
@@ -795,7 +815,8 @@ class AIAgentDetector {
             'Fellou': 'Window Property Detection (__FELLOU_TAB_ID__)',
             'Selenium': 'WebDriver Property & Artifact Detection',
             'Puppeteer': 'Headless Browser & Runtime Analysis',
-            'Playwright': 'CDP Runtime + Framework Signature Detection'
+            'Playwright': 'Framework Signature Detection',
+            'DevTools': 'CDP Runtime.enable Detection via Error Stack Serialization'
         };
         return methods[agentName] || 'Unknown Detection Method';
     }
