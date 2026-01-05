@@ -25,6 +25,9 @@ class AIAgentDetector {
             { name: 'Manus', detector: this.detectManusExtension },
             { name: 'Comet', detector: this.detectCometAIAgent },
             { name: 'Genspark', detector: this.detectGenspark },
+            { name: 'Skyvern', detector: this.detectSkyvern },
+            { name: 'ChatGPTBrowser', detector: this.detectChatGPTBrowser },
+            { name: 'Fellou', detector: this.detectFellouBrowser },
             // Add more detectors here as they're implemented
             { name: 'Selenium', detector: this.detectSelenium },
             { name: 'Puppeteer', detector: this.detectPuppeteer },
@@ -60,6 +63,15 @@ class AIAgentDetector {
                             break;
                         case 'Genspark':
                             confidence = 0.95; // Very high confidence - unique DOM element
+                            break;
+                        case 'Skyvern':
+                            confidence = 0.95; // Very high confidence - unique window property
+                            break;
+                        case 'ChatGPTBrowser':
+                            confidence = 0.95; // Very high confidence - console.log signature analysis
+                            break;
+                        case 'Fellou':
+                            confidence = 0.95; // Very high confidence - unique window property
                             break;
                         case 'Selenium':
                             confidence = 0.95; // Very high confidence - multiple artifact validation
@@ -380,6 +392,138 @@ class AIAgentDetector {
     }
 
     /**
+     * Detect Skyvern AI automation via window properties
+     * Skyvern adds GlobalSkyvernFrameIndex to window object
+     * 
+     * @see PerimeterX module 14 - Skyvern detection via window property
+     * @returns {Object} Detection result with status and indicators
+     */
+    async detectSkyvern() {
+        const indicators = [];
+        const SKYVERN_WINDOW_PROP = 'GlobalSkyvernFrameIndex';
+        
+        try {
+            if (SKYVERN_WINDOW_PROP in window) {
+                indicators.push({
+                    name: 'GlobalSkyvernFrameIndex',
+                    description: 'Skyvern AI automation window property detected',
+                    value: typeof window[SKYVERN_WINDOW_PROP]
+                });
+            }
+            
+            return {
+                detected: indicators.length > 0,
+                confidence: indicators.length > 0 ? 0.95 : 0.0,
+                indicators,
+                primarySignal: indicators.length > 0 ? 'Skyvern_Window_Property' : null
+            };
+        } catch (error) {
+            console.debug('Error in Skyvern detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Detect ChatGPT Browser by checking console.log override
+     * ChatGPT Browser modifies console.log with captureLogArguments function
+     * 
+     * @see PerimeterX module 14 - ChatGPT Browser detection via console.log signature
+     * @returns {Object} Detection result with status and indicators
+     */
+    async detectChatGPTBrowser() {
+        const indicators = [];
+        const CHATGPT_CONSOLE_SIGNATURE_1 = 'captureLogArguments';
+        const CHATGPT_CONSOLE_SIGNATURE_2 = 'NodeList.forEach';
+        
+        try {
+            const logString = console.log.toString();
+            
+            const hasSignature1 = logString.indexOf(CHATGPT_CONSOLE_SIGNATURE_1) > -1;
+            const hasSignature2 = logString.indexOf(CHATGPT_CONSOLE_SIGNATURE_2) > -1;
+            
+            if (hasSignature1 && hasSignature2) {
+                indicators.push({
+                    name: 'console.log_Override',
+                    description: 'ChatGPT Browser console.log override detected with captureLogArguments signature',
+                    value: 'captureLogArguments + NodeList.forEach'
+                });
+            } else if (hasSignature1 || hasSignature2) {
+                // Partial match - lower confidence
+                indicators.push({
+                    name: 'console.log_Partial_Override',
+                    description: `ChatGPT Browser partial signature detected: ${hasSignature1 ? CHATGPT_CONSOLE_SIGNATURE_1 : CHATGPT_CONSOLE_SIGNATURE_2}`,
+                    value: hasSignature1 ? CHATGPT_CONSOLE_SIGNATURE_1 : CHATGPT_CONSOLE_SIGNATURE_2
+                });
+            }
+            
+            // Determine confidence based on match quality
+            let confidence = 0.0;
+            if (hasSignature1 && hasSignature2) {
+                confidence = 0.95; // High confidence - both signatures match
+            } else if (hasSignature1 || hasSignature2) {
+                confidence = 0.65; // Medium confidence - partial match
+            }
+            
+            return {
+                detected: indicators.length > 0,
+                confidence,
+                indicators,
+                primarySignal: indicators.length > 0 ? 'ChatGPT_Console_Override' : null
+            };
+        } catch (error) {
+            console.debug('Error in ChatGPT Browser detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Detect Fellou AI Browser via window property
+     * Fellou adds __FELLOU_TAB_ID__ to window object
+     * 
+     * @see PerimeterX module 14 - Fellou Browser detection via window property
+     * @returns {Object} Detection result with status and indicators
+     */
+    async detectFellouBrowser() {
+        const indicators = [];
+        const FELLOU_WINDOW_PROP = '__FELLOU_TAB_ID__';
+        
+        try {
+            if (FELLOU_WINDOW_PROP in window) {
+                indicators.push({
+                    name: '__FELLOU_TAB_ID__',
+                    description: 'Fellou AI Browser window property detected',
+                    value: typeof window[FELLOU_WINDOW_PROP]
+                });
+            }
+            
+            return {
+                detected: indicators.length > 0,
+                confidence: indicators.length > 0 ? 0.95 : 0.0,
+                indicators,
+                primarySignal: indicators.length > 0 ? 'Fellou_Window_Property' : null
+            };
+        } catch (error) {
+            console.debug('Error in Fellou Browser detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * Detect Playwright automation with comprehensive signal analysis
      * @returns {Object} Detection result with status, confidence, and detailed signals
      */
@@ -646,6 +790,9 @@ class AIAgentDetector {
             'Manus': 'Chrome Extension Resource Fetch',
             'Comet': 'CSS Variable Injection Fingerprinting',
             'Genspark': 'DOM Element Detection',
+            'Skyvern': 'Window Property Detection (GlobalSkyvernFrameIndex)',
+            'ChatGPTBrowser': 'Console.log Override Signature Analysis',
+            'Fellou': 'Window Property Detection (__FELLOU_TAB_ID__)',
             'Selenium': 'WebDriver Property & Artifact Detection',
             'Puppeteer': 'Headless Browser & Runtime Analysis',
             'Playwright': 'CDP Runtime + Framework Signature Detection'

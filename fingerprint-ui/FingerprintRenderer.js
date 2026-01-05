@@ -11,13 +11,19 @@ import {
     createSummaryCards,
     createSuspiciousIndicatorsSection,
     createBehavioralIndicatorsSection,
+    createFakeDevicesSection,
+    createKnownAgentsSection,
+    updateKnownAgentsSection,
     createExportBar,
     exportFingerprintData,
     createDiffToggleBar,
     createDiffSection,
     createDiffOverviewCard,
     createNoDifferencesState,
-    updateDiffSummary
+    updateDiffSummary,
+    createSearchBar,
+    createSearchFilter,
+    createMetricsCustomizer
 } from './components/index.js';
 
 import { sortCategories } from './utils/helpers.js';
@@ -42,6 +48,48 @@ export class FingerprintUIRenderer {
         this.sectionsContainer = null;
         this.diffToggleBar = null;
         this.diffOverviewCard = null;
+        this.searchBar = null;
+        this.metricsCustomizer = null;
+        
+        // Search and customization state
+        this.searchState = null;
+        this.customizationState = {
+            visibleCategories: null, // null = all visible
+            visibleColumns: ['name', 'value', 'description', 'code', 'risk'],
+            visibleMetrics: {}
+        };
+        
+        // Store all metrics for search/filtering
+        this.allMetrics = null;
+        
+        // Load saved preferences on initialization
+        this.loadSavedPreferences();
+    }
+    
+    /**
+     * Load saved preferences from localStorage
+     */
+    loadSavedPreferences() {
+        try {
+            const stored = localStorage.getItem('fp-metrics-preferences');
+            if (stored) {
+                const preferences = JSON.parse(stored);
+                if (preferences.visibleCategories) {
+                    this.customizationState.visibleCategories = preferences.visibleCategories;
+                }
+                if (preferences.visibleColumns) {
+                    this.customizationState.visibleColumns = preferences.visibleColumns;
+                }
+                if (preferences.visibleMetrics) {
+                    this.customizationState.visibleMetrics = Object.fromEntries(
+                        Object.entries(preferences.visibleMetrics).map(([cat, arr]) => [cat, new Set(arr)])
+                    );
+                }
+                console.log('✅ Loaded saved preferences:', preferences);
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to load saved preferences:', error);
+        }
     }
     
     /**
@@ -97,12 +145,45 @@ export class FingerprintUIRenderer {
         }
         
         try {
+            // Store all metrics for search/filtering
+            this.allMetrics = data.metrics || {};
+            
             // Render header
             this.container.appendChild(this.createHeader());
             
             // Render summary cards
-            if (data.summary) {
+            if (false) {
                 this.container.appendChild(createSummaryCards(data.summary));
+            }
+            
+            // Render search bar (not in diff mode)
+            if (!this.diffMode) {
+                this.searchBar = this.createSearchBar();
+                this.container.appendChild(this.searchBar);
+            }
+            
+            // Render metrics customizer button and panel
+            if (!this.diffMode) {
+                this.metricsCustomizer = this.createMetricsCustomizer();
+                document.body.appendChild(this.metricsCustomizer);
+                
+                // Add customizer toggle button to export bar area
+                const customizerToggle = document.createElement('button');
+                customizerToggle.className = 'fp-btn fp-btn--secondary';
+                customizerToggle.id = 'fp-customizer-toggle';
+                customizerToggle.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Customize Display</span>
+                `;
+                customizerToggle.addEventListener('click', () => {
+                    this.metricsCustomizer.toggle();
+                });
+                
+                // Store for later attachment to export bar
+                this.customizerToggle = customizerToggle;
             }
             
             // Render diff toggle bar (if baseline available)
@@ -120,6 +201,16 @@ export class FingerprintUIRenderer {
             if (this.diffMode && this.comparisonResult) {
                 this.diffOverviewCard = createDiffOverviewCard(this.comparisonResult);
                 this.container.appendChild(this.diffOverviewCard);
+            }
+            
+            // Render fake devices alert (if detected and not in diff mode)
+            if (!this.diffMode && data.metrics?.mediaDevices) {
+                const fakeDevicesSection = createFakeDevicesSection(
+                    data.metrics.mediaDevices
+                );
+                if (fakeDevicesSection) {
+                    this.container.appendChild(fakeDevicesSection);
+                }
             }
             
             // Render suspicious indicators alert (if any and not in diff mode)
@@ -143,10 +234,26 @@ export class FingerprintUIRenderer {
                 }
             }
             
+            // Render known agents detection section (if data available and not in diff mode)
+            if (!this.diffMode && data.knownAgentsDetection) {
+                const knownAgentsSection = createKnownAgentsSection(data.knownAgentsDetection);
+                if (knownAgentsSection) {
+                    this.container.appendChild(knownAgentsSection);
+                }
+            }
+            
             // Render export controls
             const exportBar = createExportBar((format) => {
                 exportFingerprintData(this.fingerprintData, format);
             });
+            
+            // Add customizer toggle to export bar if available
+            if (this.customizerToggle) {
+                const actionsGroup = exportBar.querySelector('.fp-export-bar__group:last-child');
+                if (actionsGroup) {
+                    actionsGroup.appendChild(this.customizerToggle);
+                }
+            }
             
             // Add expand/collapse all handlers
             const expandBtn = exportBar.querySelector('#fp-expand-all');
@@ -205,6 +312,212 @@ export class FingerprintUIRenderer {
     }
     
     /**
+     * Create search bar component
+     * @returns {HTMLElement} Search bar element
+     */
+    createSearchBar() {
+        const searchFilter = createSearchFilter(
+            { query: '', searchFields: ['name', 'value', 'description', 'category'], riskFilters: ['high', 'medium', 'low', 'none'], activeQuickFilters: [] },
+            this.allMetrics
+        );
+        
+        const searchBar = createSearchBar((searchState) => {
+            this.searchState = searchState;
+            this.applyFilters();
+            return { count: this.getFilteredMetricCount() };
+        }, {
+            placeholder: 'Search metrics by name, value, description, or category...',
+            showAdvancedFilters: true,
+            showQuickFilters: true
+        });
+        
+        return searchBar;
+    }
+    
+    /**
+     * Create metrics customizer component
+     * @returns {HTMLElement} Customizer element
+     */
+    createMetricsCustomizer() {
+        // Use saved preferences if available
+        const savedPreferences = this.customizationState;
+        const customizer = createMetricsCustomizer(this.allMetrics, (state) => {
+            this.customizationState = state;
+            this.applyFilters();
+        }, {
+            defaultVisibleCategories: savedPreferences.visibleCategories || null,
+            defaultVisibleColumns: savedPreferences.visibleColumns || ['name', 'value', 'description', 'code', 'risk'],
+            showColumnToggles: true,
+            showCategoryToggles: true,
+            showMetricToggles: false
+        });
+        
+        // Apply saved preferences to customizer UI
+        if (savedPreferences.visibleCategories) {
+            setTimeout(() => {
+                const categoryCheckboxes = customizer.querySelectorAll('[data-category-toggle]');
+                categoryCheckboxes.forEach(checkbox => {
+                    const category = checkbox.dataset.categoryToggle;
+                    checkbox.checked = savedPreferences.visibleCategories.includes(category);
+                });
+            }, 100);
+        }
+        
+        if (savedPreferences.visibleColumns) {
+            setTimeout(() => {
+                const columnCheckboxes = customizer.querySelectorAll('[data-column]');
+                columnCheckboxes.forEach(checkbox => {
+                    const column = checkbox.dataset.column;
+                    checkbox.checked = savedPreferences.visibleColumns.includes(column);
+                });
+            }, 100);
+        }
+        
+        return customizer;
+    }
+    
+    /**
+     * Apply search and customization filters
+     */
+    applyFilters() {
+        if (!this.sectionsContainer || !this.allMetrics) return;
+        
+        // Get current filter function
+        let filterFn = null;
+        if (this.searchState && this.searchBar) {
+            const searchState = this.searchBar.getSearchState();
+            filterFn = createSearchFilter(searchState, this.allMetrics);
+        }
+        
+        // Get visible categories - if null, show all
+        const visibleCategories = this.customizationState.visibleCategories === null 
+            ? Object.keys(this.allMetrics) 
+            : (this.customizationState.visibleCategories || Object.keys(this.allMetrics));
+        
+        // Get visible columns
+        const visibleColumns = this.customizationState.visibleColumns || ['name', 'value', 'description', 'code', 'risk'];
+        
+        // Update all sections
+        const sections = this.sectionsContainer.querySelectorAll('.fp-section');
+        let totalVisible = 0;
+        
+        sections.forEach(section => {
+            const categoryKey = section.dataset.category;
+            if (!categoryKey) return;
+            
+            const isCategoryVisible = visibleCategories.includes(categoryKey);
+            
+            // Show/hide entire section based on category visibility
+            if (!isCategoryVisible) {
+                section.style.display = 'none';
+                return; // Skip further processing for hidden categories
+            }
+            
+            // Section is visible, process its content
+            section.style.display = '';
+            
+            // Update table columns
+            const tableWrapper = section.querySelector('.fp-table-wrapper');
+            if (tableWrapper && tableWrapper.updateColumnVisibility) {
+                tableWrapper.updateColumnVisibility(visibleColumns);
+            }
+            
+            // Update table filtering
+            const table = section.querySelector('table');
+            if (table) {
+                const tbody = table.querySelector('tbody');
+                if (tbody) {
+                    const rows = tbody.querySelectorAll('tr');
+                    let visibleInSection = 0;
+                    
+                    if (filterFn) {
+                        // Get category metrics for filtering
+                        const categoryMetrics = this.allMetrics[categoryKey] || {};
+                        
+                        rows.forEach(row => {
+                            const metricName = row.getAttribute('data-metric-name');
+                            if (metricName && categoryMetrics[metricName]) {
+                                const metricData = categoryMetrics[metricName];
+                                if (filterFn(categoryKey, metricName, metricData)) {
+                                    row.style.display = '';
+                                    visibleInSection++;
+                                } else {
+                                    row.style.display = 'none';
+                                }
+                            } else {
+                                // If we can't identify the metric, show the row
+                                row.style.display = '';
+                                visibleInSection++;
+                            }
+                        });
+                    } else {
+                        // No filter, show all rows
+                        rows.forEach(row => row.style.display = '');
+                        visibleInSection = rows.length;
+                    }
+                    
+                    totalVisible += visibleInSection;
+                    
+                    // Update section count badge
+                    const countBadge = section.querySelector('.fp-section__count');
+                    if (countBadge) {
+                        countBadge.textContent = visibleInSection;
+                    }
+                    
+                    // Hide entire section if no metrics are visible (but only if search is active)
+                    // Don't hide based on metric count if category is visible - let category visibility control it
+                    if (filterFn && visibleInSection === 0) {
+                        section.style.display = 'none';
+                    } else {
+                        section.style.display = '';
+                    }
+                }
+            }
+        });
+        
+        // Update search results count if available
+        if (this.searchBar && this.searchBar.querySelector) {
+            const resultsInfo = this.searchBar.querySelector('#fp-search-results-info');
+            const resultsCount = this.searchBar.querySelector('#fp-search-results-count');
+            if (resultsInfo && resultsCount) {
+                resultsCount.textContent = totalVisible.toLocaleString();
+                resultsInfo.style.display = (this.searchState?.query || this.searchState?.activeQuickFilters?.length > 0) ? 'flex' : 'none';
+            }
+        }
+    }
+    
+    /**
+     * Get filtered metric count
+     * @returns {number} Total visible metrics
+     */
+    getFilteredMetricCount() {
+        if (!this.allMetrics) return 0;
+        
+        let count = 0;
+        const visibleCategories = this.customizationState.visibleCategories || Object.keys(this.allMetrics);
+        
+        if (this.searchState && this.searchBar) {
+            const searchState = this.searchBar.getSearchState();
+            const filterFn = createSearchFilter(searchState, this.allMetrics);
+            
+            visibleCategories.forEach(categoryKey => {
+                const categoryMetrics = this.allMetrics[categoryKey] || {};
+                Object.entries(categoryMetrics).forEach(([metricName, metricData]) => {
+                    if (filterFn(categoryKey, metricName, metricData)) {
+                        count++;
+                    }
+                });
+            });
+        } else {
+            visibleCategories.forEach(categoryKey => {
+                count += Object.keys(this.allMetrics[categoryKey] || {}).length;
+            });
+        }
+        
+        return count;
+    }
+    
+    /**
      * Render sections in normal mode (all metrics)
      * @param {object} data - Fingerprint data
      */
@@ -212,7 +525,18 @@ export class FingerprintUIRenderer {
         if (!data.metrics) return;
         
         const categories = sortCategories(Object.keys(data.metrics));
+        const visibleCategories = this.customizationState.visibleCategories || categories;
+        const visibleColumns = this.customizationState.visibleColumns || ['name', 'value', 'description', 'code', 'risk'];
         
+        // Get filter function if search is active
+        let filterFn = null;
+        if (this.searchState && this.searchBar) {
+            const searchState = this.searchBar.getSearchState();
+            filterFn = createSearchFilter(searchState, this.allMetrics);
+        }
+        
+        // Always create ALL sections, but hide them if not in visibleCategories
+        // This allows sections to be shown/hidden dynamically without re-rendering
         categories.forEach((categoryKey, index) => {
             try {
                 const categoryMetrics = data.metrics[categoryKey];
@@ -224,8 +548,11 @@ export class FingerprintUIRenderer {
                 const metricCount = Object.keys(categoryMetrics).length;
                 if (metricCount === 0) return;
                 
-                // Create metrics table for this category
-                const table = createMetricsTable(categoryMetrics, categoryKey);
+                // Create metrics table for this category with filters
+                const table = createMetricsTable(categoryMetrics, categoryKey, null, {
+                    visibleColumns,
+                    filterFn
+                });
                 
                 // Create expandable section
                 // Expand first 3 sections by default, or important ones
@@ -239,6 +566,11 @@ export class FingerprintUIRenderer {
                     expanded: isExpanded
                 });
                 
+                // Hide section if category is not in visibleCategories
+                if (!visibleCategories.includes(categoryKey)) {
+                    section.style.display = 'none';
+                }
+                
                 this.sectionManager.register(categoryKey, section);
                 this.sectionsContainer.appendChild(section);
                 
@@ -247,6 +579,9 @@ export class FingerprintUIRenderer {
                 this.sectionsContainer.appendChild(this.createErrorSection(categoryKey, error));
             }
         });
+        
+        // Apply filters after rendering
+        setTimeout(() => this.applyFilters(), 100);
     }
     
     /**

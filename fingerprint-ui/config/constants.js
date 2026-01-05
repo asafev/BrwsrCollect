@@ -3,159 +3,192 @@
  * Central location for all UI configuration, icons, labels, and mappings
  */
 
+import { getCategoryIcon } from '../utils/icons.js';
+
+// Helper to get icon dynamically
+function getIcon(categoryKey) {
+    return getCategoryIcon(categoryKey);
+}
+
 export const CATEGORY_CONFIG = {
     navigator: {
-        icon: '🧭',
+        get icon() { return getIcon('navigator'); },
+        iconType: 'svg',
         label: 'Navigator Properties',
         description: 'Browser identification and configuration information',
         color: '#3B82F6'
     },
     display: {
-        icon: '🖥️',
+        get icon() { return getIcon('display'); },
+        iconType: 'svg',
         label: 'Display & Screen',
         description: 'Screen resolution, color depth, and display capabilities',
         color: '#10B981'
     },
     window: {
-        icon: '🪟',
+        get icon() { return getIcon('window'); },
+        iconType: 'svg',
         label: 'Window Properties',
         description: 'Browser window dimensions and positioning',
         color: '#06B6D4'
     },
     automation: {
-        icon: '🤖',
+        get icon() { return getIcon('automation'); },
+        iconType: 'svg',
         label: 'Automation Detection',
         description: 'Indicators of browser automation tools',
         color: '#EF4444'
     },
     jsEnvironment: {
-        icon: '⚙️',
+        get icon() { return getIcon('jsEnvironment'); },
+        iconType: 'svg',
         label: 'JavaScript Environment',
         description: 'JavaScript API availability and behavior',
         color: '#F59E0B'
     },
     graphics: {
-        icon: '🎨',
+        get icon() { return getIcon('graphics'); },
+        iconType: 'svg',
         label: 'Graphics & Rendering',
         description: 'Canvas and graphics rendering capabilities',
         color: '#8B5CF6'
     },
     performance: {
-        icon: '⚡',
+        get icon() { return getIcon('performance'); },
+        iconType: 'svg',
         label: 'Performance Metrics',
         description: 'Memory, timing, and performance data',
         color: '#F97316'
     },
     webApis: {
-        icon: '🔌',
+        get icon() { return getIcon('webApis'); },
+        iconType: 'svg',
         label: 'Web APIs',
         description: 'Available web platform APIs',
         color: '#14B8A6'
     },
     document: {
-        icon: '📄',
+        get icon() { return getIcon('document'); },
+        iconType: 'svg',
         label: 'Document Properties',
         description: 'DOM and document characteristics',
         color: '#6B7280'
     },
     security: {
-        icon: '🔒',
+        get icon() { return getIcon('security'); },
+        iconType: 'svg',
         label: 'Security Features',
         description: 'Security context and permissions',
         color: '#EC4899'
     },
     apiOverrides: {
-        icon: '🔍',
+        get icon() { return getIcon('apiOverrides'); },
+        iconType: 'svg',
         label: 'API Override Detection',
         description: 'Detection of modified browser APIs',
         color: '#6366F1'
     },
     aiAgentDetection: {
-        icon: '🕵️',
+        get icon() { return getIcon('aiAgentDetection'); },
+        iconType: 'svg',
         label: 'AI Agent Detection',
         description: 'Signatures indicating AI-controlled browsers',
         color: '#EF4444'
     },
     stringSignatureAutomation: {
-        icon: '🔬',
+        get icon() { return getIcon('stringSignatureAutomation'); },
+        iconType: 'svg',
         label: 'String Signature Analysis',
         description: 'Function signature comparisons for automation detection',
         color: '#3B82F6'
     },
     behavioralIndicators: {
-        icon: '🎯',
+        get icon() { return getIcon('behavioralIndicators'); },
+        iconType: 'svg',
         label: 'Behavioral Indicators',
         description: 'User interaction pattern analysis',
         color: '#8B5CF6'
     },
     behavioralTelemetry: {
-        icon: '📊',
+        get icon() { return getIcon('behavioralTelemetry'); },
+        iconType: 'svg',
         label: 'Behavioral Telemetry',
         description: 'Raw behavioral measurement data',
         color: '#A855F7'
     },
     webRTCLeak: {
-        icon: '📡',
+        get icon() { return getIcon('webRTCLeak'); },
+        iconType: 'svg',
         label: 'WebRTC Leak Detection',
         description: 'IP address and network leak detection via WebRTC',
         color: '#06B6D4'
     },
     webgl: {
-        icon: '🎨',
+        get icon() { return getIcon('webgl'); },
+        iconType: 'svg',
         label: 'WebGL Fingerprint',
         description: 'WebGL rendering and GPU information',
         color: '#8B5CF6'
     },
     speechSynthesis: {
-        icon: '🔊',
+        get icon() { return getIcon('speechSynthesis'); },
+        iconType: 'svg',
         label: 'Speech Synthesis',
         description: 'Text-to-speech voice fingerprinting',
         color: '#F97316'
     },
     language: {
-        icon: '🌐',
+        get icon() { return getIcon('language'); },
+        iconType: 'svg',
         label: 'Language Detection',
         description: 'Language and locale configuration',
         color: '#3B82F6'
     },
     cssComputedStyle: {
-        icon: '🎨',
+        get icon() { return getIcon('cssComputedStyle'); },
+        iconType: 'svg',
         label: 'CSS Computed Styles',
         description: 'CSS rendering characteristics',
         color: '#10B981'
     },
     workerSignals: {
-        icon: '⚙️',
+        get icon() { return getIcon('workerSignals'); },
+        iconType: 'svg',
         label: 'Worker Signals',
         description: 'Web Worker and Service Worker detection',
         color: '#A855F7'
     },
     fonts: {
-        icon: '🔤',
+        get icon() { return getIcon('fonts'); },
+        iconType: 'svg',
         label: 'Font Detection',
         description: 'Installed system fonts fingerprint',
         color: '#F59E0B'
     },
     audio: {
-        icon: '🔈',
+        get icon() { return getIcon('audio'); },
+        iconType: 'svg',
         label: 'Audio Fingerprint',
         description: 'AudioContext and audio processing fingerprint',
         color: '#3B82F6'
     },
     cdpSignals: {
-        icon: '🔧',
+        get icon() { return getIcon('cdpSignals'); },
+        iconType: 'svg',
         label: 'CDP Signals',
         description: 'Chrome DevTools Protocol detection',
         color: '#EF4444'
     },
     battery: {
-        icon: '🔋',
+        get icon() { return getIcon('battery'); },
+        iconType: 'svg',
         label: 'Battery Information',
         description: 'Battery API and power status',
         color: '#10B981'
     },
     network: {
-        icon: '🌐',
+        get icon() { return getIcon('network'); },
+        iconType: 'svg',
         label: 'Network Capabilities',
         description: 'Network connection and bandwidth info',
         color: '#06B6D4'

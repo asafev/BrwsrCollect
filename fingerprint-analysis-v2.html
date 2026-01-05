@@ -252,6 +252,7 @@
                             activeMeasurements: '⚡ Network Speed',
                             aiAgent: '🤖 AI Detection',
                             stringSignature: '🔍 Automation Signatures',
+                            knownAgents: '🕵️ Known Agents',
                             behavioral: '🎯 Behavioral',
                             suspicious: '🚨 Risk Analysis'
                         };
@@ -269,6 +270,39 @@
                     }
                 };
                 
+                // Handler for known agents live updates
+                const handleKnownAgentsUpdate = (updateData) => {
+                    console.log('🕵️ Known agents update:', updateData);
+                    
+                    // Update the fingerprint data
+                    if (fingerprintData) {
+                        fingerprintData.knownAgentsDetection = {
+                            results: updateData.results,
+                            history: updateData.history,
+                            isPeriodicRunning: true,
+                            intervalMs: 60000
+                        };
+                    }
+                    
+                    // Alert on new agents detected
+                    if (updateData.newAgentsDetected?.length > 0) {
+                        console.warn(`⚠️ NEW AGENT(S) DETECTED: ${updateData.newAgentsDetected.join(', ')}`);
+                        // You could add a visual notification here
+                    }
+                    
+                    // Update the UI section
+                    try {
+                        // Dynamic import to avoid circular dependencies
+                        import('./fingerprint-ui/components/AlertSection.js').then(({ updateKnownAgentsSection }) => {
+                            updateKnownAgentsSection(fingerprintData.knownAgentsDetection);
+                        }).catch(e => {
+                            console.warn('Could not update known agents section:', e);
+                        });
+                    } catch (e) {
+                        console.warn('Known agents UI update failed:', e);
+                    }
+                };
+                
                 const analyzer = new BrowserFingerprintAnalyzer({
                     enableActiveMeasurements: true,
                     activeMeasurements: {
@@ -278,8 +312,15 @@
                     },
                     networkTimeout: 5000, // 5 second timeout for network tests
                     detectorTimeout: 3000, // 3 second timeout for individual detectors
-                    onProgress: handleProgress
+                    onProgress: handleProgress,
+                    // Known agents detection options
+                    enablePeriodicAgentDetection: true,
+                    agentDetectionInterval: 60000, // 1 minute
+                    onKnownAgentsUpdate: handleKnownAgentsUpdate
                 });
+                
+                // Store analyzer reference globally for cleanup
+                window._fingerprintAnalyzer = analyzer;
                 
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();

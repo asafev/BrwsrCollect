@@ -38,12 +38,31 @@ export function setRawResults(results) {
  * @param {object} metrics - The metrics object for this category
  * @param {string} categoryKey - The category key
  * @param {object} rawData - Optional raw data for this category (for details)
+ * @param {object} options - Table options
+ * @param {string[]} options.visibleColumns - Array of visible column keys ['name', 'value', 'description', 'code', 'risk']
+ * @param {Function} options.filterFn - Optional filter function (categoryKey, metricName, metricData) => boolean
  * @returns {HTMLElement} Table element
  */
-export function createMetricsTable(metrics, categoryKey, rawData = null) {
+export function createMetricsTable(metrics, categoryKey, rawData = null, options = {}) {
     // Store raw data if provided
     if (rawData) {
         rawResultsStore[categoryKey] = rawData;
+    }
+    
+    const {
+        visibleColumns = ['name', 'value', 'description', 'code', 'risk'],
+        filterFn = null
+    } = options;
+    
+    // Filter metrics if filter function provided
+    let filteredMetrics = metrics;
+    if (filterFn) {
+        filteredMetrics = {};
+        for (const [metricName, metricData] of Object.entries(metrics)) {
+            if (filterFn(categoryKey, metricName, metricData)) {
+                filteredMetrics[metricName] = metricData;
+            }
+        }
     }
     
     // Create wrapper for responsive table
@@ -56,18 +75,35 @@ export function createMetricsTable(metrics, categoryKey, rawData = null) {
     table.setAttribute('role', 'table');
     table.setAttribute('aria-label', `${categoryKey} metrics`);
     
+    // Column definitions
+    const columns = [
+        { key: 'index', label: '#', width: '44px', align: 'center', alwaysVisible: true },
+        { key: 'name', label: 'Metric Name', width: '180px', align: 'left' },
+        { key: 'value', label: 'Current Value', width: '220px', align: 'left' },
+        { key: 'description', label: 'Description', width: '240px', align: 'left' },
+        { key: 'code', label: 'API Reference', width: '200px', align: 'left' },
+        { key: 'risk', label: 'Risk Level', width: '90px', align: 'center' }
+    ];
+    
     // Create header with improved accessibility
     const thead = document.createElement('thead');
-    thead.innerHTML = `
-        <tr role="row">
-            <th role="columnheader" scope="col" style="width: 44px; text-align: center;">#</th>
-            <th role="columnheader" scope="col" style="width: 180px;">Metric Name</th>
-            <th role="columnheader" scope="col" style="width: 220px;">Current Value</th>
-            <th role="columnheader" scope="col" style="width: 240px;">Description</th>
-            <th role="columnheader" scope="col" style="width: 200px;">API Reference</th>
-            <th role="columnheader" scope="col" style="width: 90px; text-align: center;">Risk Level</th>
-        </tr>
-    `;
+    const headerRow = document.createElement('tr');
+    headerRow.setAttribute('role', 'row');
+    
+    columns.forEach(col => {
+        if (col.alwaysVisible || visibleColumns.includes(col.key)) {
+            const th = document.createElement('th');
+            th.setAttribute('role', 'columnheader');
+            th.setAttribute('scope', 'col');
+            th.setAttribute('data-column', col.key);
+            th.style.width = col.width;
+            th.style.textAlign = col.align;
+            th.textContent = col.label;
+            headerRow.appendChild(th);
+        }
+    });
+    
+    thead.appendChild(headerRow);
     table.appendChild(thead);
     
     // Create body
@@ -75,20 +111,66 @@ export function createMetricsTable(metrics, categoryKey, rawData = null) {
     tbody.setAttribute('role', 'rowgroup');
     
     let index = 1;
-    for (const [metricName, metricData] of Object.entries(metrics)) {
+    for (const [metricName, metricData] of Object.entries(filteredMetrics)) {
         try {
-            const row = createMetricRow(index++, metricName, metricData, categoryKey);
+            const row = createMetricRow(index++, metricName, metricData, categoryKey, visibleColumns);
             tbody.appendChild(row);
         } catch (error) {
             console.error(`Error rendering metric "${metricName}":`, error);
-            const errorRow = createErrorRow(index++, metricName, error);
+            const errorRow = createErrorRow(index++, metricName, error, visibleColumns);
             tbody.appendChild(errorRow);
         }
     }
     
     table.appendChild(tbody);
     wrapper.appendChild(table);
+    
+    // Store reference for column visibility updates
+    wrapper.updateColumnVisibility = (newVisibleColumns) => {
+        updateTableColumnVisibility(table, columns, newVisibleColumns);
+    };
+    
     return wrapper;
+}
+
+/**
+ * Update table column visibility
+ * @param {HTMLTableElement} table - Table element
+ * @param {Array} columns - Column definitions
+ * @param {string[]} visibleColumns - New visible columns
+ */
+function updateTableColumnVisibility(table, columns, visibleColumns) {
+    // Update header
+    const headerRow = table.querySelector('thead tr');
+    if (headerRow) {
+        headerRow.innerHTML = '';
+        columns.forEach(col => {
+            if (col.alwaysVisible || visibleColumns.includes(col.key)) {
+                const th = document.createElement('th');
+                th.setAttribute('role', 'columnheader');
+                th.setAttribute('scope', 'col');
+                th.setAttribute('data-column', col.key);
+                th.style.width = col.width;
+                th.style.textAlign = col.align;
+                th.textContent = col.label;
+                headerRow.appendChild(th);
+            }
+        });
+    }
+    
+    // Update body rows
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        cells.forEach((cell, idx) => {
+            const columnKey = cell.dataset.column;
+            if (columnKey) {
+                const shouldShow = columns.find(c => c.key === columnKey)?.alwaysVisible || 
+                                 visibleColumns.includes(columnKey);
+                cell.style.display = shouldShow ? '' : 'none';
+            }
+        });
+    });
 }
 
 /**
@@ -97,10 +179,13 @@ export function createMetricsTable(metrics, categoryKey, rawData = null) {
  * @param {string} metricName - The metric name
  * @param {object} metricData - The metric data
  * @param {string} categoryKey - The category key
+ * @param {string[]} visibleColumns - Visible columns array
  * @returns {HTMLTableRowElement} Table row element
  */
-function createMetricRow(index, metricName, metricData, categoryKey) {
+function createMetricRow(index, metricName, metricData, categoryKey, visibleColumns = ['name', 'value', 'description', 'code', 'risk']) {
     const row = document.createElement('tr');
+    row.setAttribute('data-metric-name', metricName);
+    row.setAttribute('data-category', categoryKey);
     
     // Safely extract values with defaults
     const value = metricData?.value !== undefined ? metricData.value : metricData;
@@ -109,45 +194,60 @@ function createMetricRow(index, metricName, metricData, categoryKey) {
     
     const riskConfig = getRiskConfig(risk);
     
-    // Number cell
+    // Number cell (always visible)
     const numCell = document.createElement('td');
+    numCell.setAttribute('data-column', 'index');
     numCell.style.textAlign = 'center';
     numCell.style.fontWeight = '600';
     numCell.style.color = 'var(--fp-gray-400)';
     numCell.style.fontFamily = 'var(--fp-font-mono)';
     numCell.textContent = index;
+    row.appendChild(numCell);
     
     // Name cell
-    const nameCell = document.createElement('td');
-    nameCell.innerHTML = `<span class="fp-metric-name">${formatMetricName(metricName)}</span>`;
+    if (visibleColumns.includes('name')) {
+        const nameCell = document.createElement('td');
+        nameCell.setAttribute('data-column', 'name');
+        nameCell.innerHTML = `<span class="fp-metric-name">${formatMetricName(metricName)}</span>`;
+        row.appendChild(nameCell);
+    }
     
     // Value cell
-    const valueCell = document.createElement('td');
-    valueCell.appendChild(createValueElement(value, metricName, categoryKey));
+    if (visibleColumns.includes('value')) {
+        const valueCell = document.createElement('td');
+        valueCell.setAttribute('data-column', 'value');
+        valueCell.appendChild(createValueElement(value, metricName, categoryKey));
+        row.appendChild(valueCell);
+    }
     
     // Description cell
-    const descCell = document.createElement('td');
-    descCell.innerHTML = `<span class="fp-metric-description">${escapeHtml(description)}</span>`;
+    if (visibleColumns.includes('description')) {
+        const descCell = document.createElement('td');
+        descCell.setAttribute('data-column', 'description');
+        descCell.innerHTML = `<span class="fp-metric-description">${escapeHtml(description)}</span>`;
+        row.appendChild(descCell);
+    }
     
     // JS Code cell
-    const codeCell = document.createElement('td');
-    const code = getJsCode(metricName, categoryKey);
-    codeCell.innerHTML = `<code class="fp-metric-code">${escapeHtml(code)}</code>`;
+    if (visibleColumns.includes('code')) {
+        const codeCell = document.createElement('td');
+        codeCell.setAttribute('data-column', 'code');
+        const code = getJsCode(metricName, categoryKey);
+        codeCell.innerHTML = `<code class="fp-metric-code">${escapeHtml(code)}</code>`;
+        row.appendChild(codeCell);
+    }
     
     // Risk cell
-    const riskCell = document.createElement('td');
-    riskCell.innerHTML = `
-        <span class="fp-risk-badge fp-risk-badge--${riskConfig.className}">
-            ${riskConfig.icon} ${riskConfig.label}
-        </span>
-    `;
-    
-    row.appendChild(numCell);
-    row.appendChild(nameCell);
-    row.appendChild(valueCell);
-    row.appendChild(descCell);
-    row.appendChild(codeCell);
-    row.appendChild(riskCell);
+    if (visibleColumns.includes('risk')) {
+        const riskCell = document.createElement('td');
+        riskCell.setAttribute('data-column', 'risk');
+        riskCell.innerHTML = `
+            <span class="fp-risk-badge fp-risk-badge--${riskConfig.className}">
+                ${riskConfig.icon} ${riskConfig.label}
+            </span>
+        `;
+        row.appendChild(riskCell);
+    }
     
     return row;
 }
@@ -215,25 +315,30 @@ function createValueElement(value, metricName, categoryKey) {
  * @param {number} index - Row number
  * @param {string} metricName - The metric name
  * @param {Error} error - The error
+ * @param {string[]} visibleColumns - Visible columns array
  * @returns {HTMLTableRowElement} Error row element
  */
-function createErrorRow(index, metricName, error) {
+function createErrorRow(index, metricName, error, visibleColumns = ['name', 'value', 'description', 'code', 'risk']) {
     const row = document.createElement('tr');
     row.style.backgroundColor = 'var(--fp-danger-50)';
     
     const numCell = document.createElement('td');
+    numCell.setAttribute('data-column', 'index');
     numCell.textContent = index;
     numCell.style.textAlign = 'center';
+    row.appendChild(numCell);
     
-    const nameCell = document.createElement('td');
-    nameCell.innerHTML = `<span class="fp-metric-name">${formatMetricName(metricName)}</span>`;
+    if (visibleColumns.includes('name')) {
+        const nameCell = document.createElement('td');
+        nameCell.setAttribute('data-column', 'name');
+        nameCell.innerHTML = `<span class="fp-metric-name">${formatMetricName(metricName)}</span>`;
+        row.appendChild(nameCell);
+    }
     
     const errorCell = document.createElement('td');
-    errorCell.colSpan = 4;
+    errorCell.setAttribute('data-column', 'value');
+    errorCell.colSpan = visibleColumns.length + 1; // +1 for index column
     errorCell.appendChild(createErrorElement(metricName, error));
-    
-    row.appendChild(numCell);
-    row.appendChild(nameCell);
     row.appendChild(errorCell);
     
     return row;

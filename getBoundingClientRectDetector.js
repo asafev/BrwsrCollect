@@ -9,8 +9,6 @@ export class AutomationDetectionSuite {
     constructor() {
         this.detectionCounts = {
             getBoundingClientRect: 0,
-            querySelector: 0,
-            querySelectorAll: 0,
             scrollIntoView: 0,
             scrollTo: 0,
             scrollBy: 0,
@@ -36,7 +34,6 @@ export class AutomationDetectionSuite {
         console.log('🔍 Initializing Automation Detection Suite...');
         
         this.setupGetBoundingClientRectDetection();
-        this.setupQuerySelectorDetection();
         this.setupScrollDetection();
         this.setupElementFromPointDetection();
         this.setupClickDetection();
@@ -68,53 +65,6 @@ export class AutomationDetectionSuite {
                 });
             }
             return self.originals.getBoundingClientRect.call(this);
-        };
-    }
-
-    // ============================================
-    // DETECTION: querySelector / querySelectorAll
-    // ============================================
-    setupQuerySelectorDetection() {
-        this.originals.querySelector = Document.prototype.querySelector;
-        this.originals.querySelectorAll = Document.prototype.querySelectorAll;
-        this.originals.elementQuerySelector = Element.prototype.querySelector;
-        this.originals.elementQuerySelectorAll = Element.prototype.querySelectorAll;
-        const self = this;
-        
-        Document.prototype.querySelector = function(selector) {
-            if (self.isEnabled) {
-                self.recordDetection('querySelector', { selector, context: 'document' });
-            }
-            return self.originals.querySelector.call(this, selector);
-        };
-        
-        Document.prototype.querySelectorAll = function(selector) {
-            if (self.isEnabled) {
-                self.recordDetection('querySelectorAll', { selector, context: 'document' });
-            }
-            return self.originals.querySelectorAll.call(this, selector);
-        };
-        
-        Element.prototype.querySelector = function(selector) {
-            if (self.isEnabled) {
-                self.recordDetection('querySelector', { 
-                    selector, 
-                    context: 'element',
-                    element: this.tagName 
-                });
-            }
-            return self.originals.elementQuerySelector.call(this, selector);
-        };
-        
-        Element.prototype.querySelectorAll = function(selector) {
-            if (self.isEnabled) {
-                self.recordDetection('querySelectorAll', { 
-                    selector, 
-                    context: 'element',
-                    element: this.tagName 
-                });
-            }
-            return self.originals.elementQuerySelectorAll.call(this, selector);
         };
     }
 
@@ -322,8 +272,8 @@ export class AutomationDetectionSuite {
         // Update confidence score
         this.updateConfidence();
         
-        // Log to console
-        if (this.shouldLogToConsole()) {
+        // Log to console (skip high-frequency low-value detections)
+        if (this.shouldLogToConsole(type)) {
             console.log(`[AUTOMATION] ${type} detected:`, details);
         }
         
@@ -358,7 +308,6 @@ export class AutomationDetectionSuite {
         // Medium weight indicators
         if (this.detectionCounts.scrollIntoView > 2) confidence += 10;
         if (this.detectionCounts.directValueSet > 2) confidence += 10;
-        if (this.detectionCounts.querySelector > 10) confidence += 5;
         
         // Low weight indicators
         if (this.detectionCounts.getComputedStyle > 5) confidence += 5;
@@ -475,8 +424,6 @@ export class AutomationDetectionSuite {
         
         const counterLabels = {
             getBoundingClientRect: 'getBoundingClientRect',
-            querySelector: 'querySelector',
-            querySelectorAll: 'querySelectorAll',
             scrollIntoView: 'scrollIntoView',
             scrollTo: 'scrollTo',
             scrollBy: 'scrollBy',
@@ -526,8 +473,29 @@ export class AutomationDetectionSuite {
         return localStorage.getItem('automation-detector-stack') !== 'false';
     }
 
-    shouldLogToConsole() {
-        return localStorage.getItem('automation-detector-console') !== 'false';
+    /**
+     * Determine if a detection type should be logged to console
+     * Filters out high-frequency, low-value detections to reduce noise
+     * @param {string} type - The detection type
+     * @returns {boolean} True if should log to console
+     */
+    shouldLogToConsole(type) {
+        // Check if console logging is globally disabled
+        if (localStorage.getItem('automation-detector-console') === 'false') {
+            return false;
+        }
+        
+        // High-frequency detection types that cause excessive noise (deprecated from console logging)
+        const deprecatedFromConsole = [
+            'getComputedStyle'
+        ];
+        
+        // Skip logging for deprecated types unless explicitly enabled
+        if (deprecatedFromConsole.includes(type)) {
+            return localStorage.getItem('automation-detector-verbose') === 'true';
+        }
+        
+        return true;
     }
 
     // ============================================
@@ -599,12 +567,6 @@ export class AutomationDetectionSuite {
         // Restore all original methods
         if (this.originals.getBoundingClientRect) {
             Element.prototype.getBoundingClientRect = this.originals.getBoundingClientRect;
-        }
-        if (this.originals.querySelector) {
-            Document.prototype.querySelector = this.originals.querySelector;
-            Document.prototype.querySelectorAll = this.originals.querySelectorAll;
-            Element.prototype.querySelector = this.originals.elementQuerySelector;
-            Element.prototype.querySelectorAll = this.originals.elementQuerySelectorAll;
         }
         if (this.originals.scrollIntoView) {
             Element.prototype.scrollIntoView = this.originals.scrollIntoView;

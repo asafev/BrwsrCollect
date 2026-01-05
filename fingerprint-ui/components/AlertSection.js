@@ -300,3 +300,318 @@ function escapeHtml(str) {
     div.textContent = String(str);
     return div.innerHTML;
 }
+
+/**
+ * Create fake devices alert section
+ * @param {Object} mediaDevicesMetrics - Media devices metrics from fingerprint
+ * @returns {HTMLElement|null} Alert section or null if no fake devices
+ */
+export function createFakeDevicesSection(mediaDevicesMetrics) {
+    // Check if fake devices were detected
+    if (!mediaDevicesMetrics?.fakeDevicesDetected?.value) {
+        return null;
+    }
+    
+    const section = document.createElement('div');
+    section.className = 'fp-alert-section fp-alert-section--danger';
+    
+    // Header
+    const header = document.createElement('div');
+    header.className = 'fp-alert-header fp-alert-header--danger';
+    header.innerHTML = `
+        <div class="fp-alert-header__icon">🎭</div>
+        <div class="fp-alert-header__content">
+            <h3 class="fp-alert-header__title">Fake Media Devices Detected</h3>
+            <p class="fp-alert-header__subtitle">This browser is using simulated/fake media devices - strong indicator of AI automation</p>
+            <div class="fp-alert-stats">
+                <div class="fp-alert-stat">
+                    <span class="fp-alert-stat__value">${mediaDevicesMetrics.fakeDeviceCount?.value || 0}</span>
+                    <span class="fp-alert-stat__label">Fake Devices</span>
+                </div>
+                <div class="fp-alert-stat">
+                    <span class="fp-alert-stat__value">HIGH</span>
+                    <span class="fp-alert-stat__label">Risk Level</span>
+                </div>
+                <div class="fp-alert-stat">
+                    <span class="fp-alert-stat__value">95%</span>
+                    <span class="fp-alert-stat__label">Confidence</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Body
+    const body = document.createElement('div');
+    body.className = 'fp-alert-body';
+    
+    const detailsItem = document.createElement('article');
+    detailsItem.className = 'fp-alert-item fp-alert-item--high';
+    detailsItem.innerHTML = `
+        <div class="fp-alert-item__header">
+            <span class="fp-alert-item__icon">🔊</span>
+            <span class="fp-alert-item__title">Fake Device Labels</span>
+            <span class="fp-alert-item__badge fp-alert-item__badge--high">AI Agent Indicator</span>
+        </div>
+        <div class="fp-alert-item__body">
+            <p class="fp-alert-item__description">
+                ${escapeHtml(mediaDevicesMetrics.fakeDevicesDetected?.details || 'Fake media devices detected')}
+            </p>
+            ${mediaDevicesMetrics.fakeDeviceLabels?.value ? `
+                <details class="fp-alert-item__details" open>
+                    <summary>Detected Fake Device Labels</summary>
+                    <pre class="fp-alert-item__code">${escapeHtml(mediaDevicesMetrics.fakeDeviceLabels.value)}</pre>
+                </details>
+            ` : ''}
+            <p style="margin-top: 12px; font-size: 0.85rem; color: var(--fp-gray-500);">
+                <strong>Why this matters:</strong> Real browsers have real media devices with legitimate names. 
+                Fake device labels like "Fake Microphone", "Fake Camera", or "Fake Speaker" are commonly used by 
+                AI automation agents (e.g., browserUse) to simulate media device presence without actual hardware.
+            </p>
+        </div>
+    `;
+    
+    body.appendChild(detailsItem);
+    section.appendChild(header);
+    section.appendChild(body);
+    
+    return section;
+}
+
+/**
+ * Create known agents detection section
+ * Renders detection results for known AI agents (Manus, Comet, Genspark, etc.)
+ * @param {object} knownAgentsData - Known agents detection data from analyzer
+ * @returns {HTMLElement|null} Alert section or null if no data
+ */
+export function createKnownAgentsSection(knownAgentsData) {
+    if (!knownAgentsData || !knownAgentsData.results) {
+        return null;
+    }
+
+    const results = knownAgentsData.results;
+    const detectionResults = results.detectionResults || [];
+    const detectedAgents = results.detectedAgents || [];
+    const hasAnyAgent = results.hasAnyAgent || false;
+    const history = knownAgentsData.history || [];
+    const isPeriodicRunning = knownAgentsData.isPeriodicRunning || false;
+    const intervalMs = knownAgentsData.intervalMs || 60000;
+
+    const section = document.createElement('div');
+    section.className = `fp-alert-section ${hasAnyAgent ? 'fp-alert-section--danger' : 'fp-alert-section--success'}`;
+    section.id = 'fp-known-agents-section';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = `fp-alert-header ${hasAnyAgent ? 'fp-alert-header--danger' : 'fp-alert-header--success'}`;
+    header.innerHTML = `
+        <div class="fp-alert-header__icon">${hasAnyAgent ? '🚨' : '✅'}</div>
+        <div class="fp-alert-header__content">
+            <h3 class="fp-alert-header__title">
+                ${hasAnyAgent ? 'Known AI Agent(s) Detected!' : 'No Known Agents Detected'}
+            </h3>
+            <p class="fp-alert-header__subtitle">
+                Detection for known automation frameworks and AI agents
+                ${isPeriodicRunning ? `<span class="fp-badge fp-badge--info" style="margin-left: 8px;">🔄 Live monitoring (every ${intervalMs / 1000}s)</span>` : ''}
+            </p>
+            <div class="fp-alert-stats">
+                <div class="fp-alert-stat">
+                    <span class="fp-alert-stat__value">${detectedAgents.length}</span>
+                    <span class="fp-alert-stat__label">Agents Detected</span>
+                </div>
+                <div class="fp-alert-stat">
+                    <span class="fp-alert-stat__value">${detectionResults.length}</span>
+                    <span class="fp-alert-stat__label">Agents Checked</span>
+                </div>
+                <div class="fp-alert-stat">
+                    <span class="fp-alert-stat__value">${history.length}</span>
+                    <span class="fp-alert-stat__label">Detection Runs</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Body with detection results
+    const body = document.createElement('div');
+    body.className = 'fp-alert-body';
+    body.id = 'fp-known-agents-body';
+
+    // Show detected agents first (if any)
+    if (hasAnyAgent) {
+        const detectedSection = document.createElement('div');
+        detectedSection.className = 'fp-known-agents-detected';
+        detectedSection.innerHTML = `
+            <h4 style="color: var(--fp-danger-700); margin-bottom: var(--fp-spacing-md); display: flex; align-items: center; gap: 8px;">
+                <span>⚠️</span>
+                <span>Detected Agents</span>
+            </h4>
+        `;
+
+        detectionResults.filter(r => r.detected).forEach(result => {
+            detectedSection.appendChild(createAgentResultItem(result, true));
+        });
+
+        body.appendChild(detectedSection);
+    }
+
+    // Show all agent checks as a grid
+    const allAgentsSection = document.createElement('div');
+    allAgentsSection.className = 'fp-known-agents-grid';
+    allAgentsSection.innerHTML = `
+        <h4 style="color: var(--fp-gray-700); margin: var(--fp-spacing-lg) 0 var(--fp-spacing-md); display: flex; align-items: center; gap: 8px;">
+            <span>🕵️</span>
+            <span>All Agent Checks</span>
+        </h4>
+        <div class="fp-agent-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--fp-spacing-md);">
+            ${detectionResults.map(result => createAgentCardHTML(result)).join('')}
+        </div>
+    `;
+
+    body.appendChild(allAgentsSection);
+
+    // Add last detection timestamp
+    if (results.timestamp) {
+        const timestamp = document.createElement('div');
+        timestamp.className = 'fp-known-agents-timestamp';
+        timestamp.style.cssText = `
+            margin-top: var(--fp-spacing-lg);
+            padding-top: var(--fp-spacing-md);
+            border-top: 1px solid var(--fp-gray-200);
+            font-size: 0.8rem;
+            color: var(--fp-gray-500);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        timestamp.innerHTML = `
+            <span>🕐</span>
+            <span>Last detection: ${new Date(results.timestamp).toLocaleString()}</span>
+            ${isPeriodicRunning ? '<span class="fp-badge fp-badge--success" style="font-size: 0.7rem;">Monitoring Active</span>' : ''}
+        `;
+        body.appendChild(timestamp);
+    }
+
+    section.appendChild(header);
+    section.appendChild(body);
+
+    return section;
+}
+
+/**
+ * Create a detailed agent result item for detected agents
+ * @private
+ */
+function createAgentResultItem(result, isDetected) {
+    const item = document.createElement('article');
+    item.className = `fp-alert-item ${isDetected ? 'fp-alert-item--high' : 'fp-alert-item--low'}`;
+    
+    const confidence = result.confidence ? `${(result.confidence * 100).toFixed(0)}%` : 'N/A';
+    const indicators = result.indicators || [];
+    
+    item.innerHTML = `
+        <div class="fp-alert-item__header">
+            <span class="fp-alert-item__icon">${isDetected ? '🤖' : '✅'}</span>
+            <span class="fp-alert-item__title">${escapeHtml(result.name)}</span>
+            <span class="fp-alert-item__badge ${isDetected ? 'fp-alert-item__badge--high' : 'fp-alert-item__badge--low'}">
+                ${isDetected ? `DETECTED (${confidence})` : 'Not Detected'}
+            </span>
+        </div>
+        <div class="fp-alert-item__body">
+            <p class="fp-alert-item__description">
+                <strong>Detection Method:</strong> ${escapeHtml(result.detectionMethod || 'Unknown')}
+            </p>
+            ${result.primarySignal ? `
+                <p class="fp-alert-item__description">
+                    <strong>Primary Signal:</strong> ${escapeHtml(result.primarySignal)}
+                </p>
+            ` : ''}
+            ${indicators.length > 0 ? `
+                <details class="fp-alert-item__details">
+                    <summary>Detection Indicators (${indicators.length})</summary>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        ${indicators.map(ind => `
+                            <li style="margin: 4px 0; font-size: 0.85rem;">
+                                <strong>${escapeHtml(ind.name || 'Unknown')}</strong>: 
+                                ${escapeHtml(ind.description || ind.value || '')}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </details>
+            ` : ''}
+            ${result.error ? `
+                <p style="color: var(--fp-warning-600); font-size: 0.85rem; margin-top: 8px;">
+                    ⚠️ Detection error: ${escapeHtml(result.error)}
+                </p>
+            ` : ''}
+        </div>
+    `;
+    
+    return item;
+}
+
+/**
+ * Create HTML for agent card in the grid
+ * @private
+ */
+function createAgentCardHTML(result) {
+    const isDetected = result.detected;
+    const confidence = result.confidence ? `${(result.confidence * 100).toFixed(0)}%` : 'N/A';
+    
+    return `
+        <div class="fp-agent-card" style="
+            background: ${isDetected ? 'var(--fp-danger-50)' : 'var(--fp-gray-50)'};
+            border: 1px solid ${isDetected ? 'var(--fp-danger-200)' : 'var(--fp-gray-200)'};
+            border-radius: var(--fp-radius-lg);
+            padding: var(--fp-spacing-md);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        ">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: 600; color: ${isDetected ? 'var(--fp-danger-700)' : 'var(--fp-gray-700)'};">
+                    ${isDetected ? '🤖' : '✅'} ${escapeHtml(result.name)}
+                </span>
+                <span style="
+                    font-size: 0.75rem;
+                    padding: 2px 8px;
+                    border-radius: 999px;
+                    background: ${isDetected ? 'var(--fp-danger-600)' : 'var(--fp-success-600)'};
+                    color: white;
+                ">
+                    ${isDetected ? 'DETECTED' : 'Clear'}
+                </span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--fp-gray-500);">
+                ${escapeHtml(result.detectionMethod || 'Unknown method')}
+            </div>
+            ${isDetected ? `
+                <div style="font-size: 0.85rem; color: var(--fp-danger-600);">
+                    Confidence: <strong>${confidence}</strong>
+                    ${result.primarySignal ? ` • ${escapeHtml(result.primarySignal)}` : ''}
+                </div>
+            ` : ''}
+            ${result.error ? `
+                <div style="font-size: 0.75rem; color: var(--fp-warning-600);">
+                    ⚠️ ${escapeHtml(result.error)}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+/**
+ * Update known agents section with new data (for live updates)
+ * @param {object} knownAgentsData - Updated known agents detection data
+ */
+export function updateKnownAgentsSection(knownAgentsData) {
+    const section = document.getElementById('fp-known-agents-section');
+    if (!section) {
+        console.warn('Known agents section not found, cannot update');
+        return;
+    }
+
+    // Remove old section and create new one
+    const newSection = createKnownAgentsSection(knownAgentsData);
+    if (newSection) {
+        section.replaceWith(newSection);
+    }
+}

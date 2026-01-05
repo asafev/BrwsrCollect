@@ -613,7 +613,7 @@ class ActiveMeasurementsDetector {
         }
 
         // Check for inconsistency with Connection API
-        if (connectionData) {
+        if (false) {
             const comparison = this.compareWithConnectionAPI(connectionData);
             
             if (comparison.rttComparison && !comparison.rttComparison.consistent) {

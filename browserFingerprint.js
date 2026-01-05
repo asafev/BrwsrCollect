@@ -5,6 +5,7 @@
  */
 
 import { AIAgentDetector } from './aiAgentDetector.js';
+import { AIAgentDetector as KnownAgentsDetector } from './agentDetector.js';
 import { ContextAnalyzer } from './contextAnalyzer.js';
 import { BehavioralStorageManager } from './behavioralStorage.js';
 import { StringSignatureDetector } from './stringSignatureDetector.js';
@@ -117,7 +118,9 @@ class SuspiciousIndicatorDetector {
                     'math_random_override',
                     'performance_now_override',
                     'zero_window_dimensions',
-                    'missing_plugins_mimetypes'
+                    'missing_plugins_mimetypes',
+                    'fake_media_devices', // AI automation agents like browserUse
+                    'known_agent_detected' // Known agent signature match
                 ]
             },
             
@@ -127,7 +130,8 @@ class SuspiciousIndicatorDetector {
                 threshold: 0.8,
                 indicators: [
                     'odd_hardware_concurrency',
-                    'navigator_webdriver_true'
+                    'navigator_webdriver_true',
+                    'no_media_devices'
                 ]
             },
             
@@ -659,6 +663,13 @@ class BrowserFingerprintAnalyzer {
         this.stringSignatureDetector = this._safeCreateDetector(() => new StringSignatureDetector(), 'StringSignatureDetector');
         this.suspiciousIndicators = [];
         
+        // Known agents detector (Manus, Comet, Genspark, etc.)
+        this.knownAgentsDetector = this._safeCreateDetector(() => new KnownAgentsDetector(), 'KnownAgentsDetector');
+        this.knownAgentsResults = null;
+        this.knownAgentsDetectionHistory = []; // Track detection history for periodic checks
+        this._knownAgentsIntervalId = null; // Interval ID for periodic detection
+        this._onKnownAgentsUpdate = options.onKnownAgentsUpdate || null; // Callback for live updates
+        
         // New modular detectors - with safe instantiation
         this.networkCapabilitiesDetector = this._safeCreateDetector(() => new NetworkCapabilitiesDetector(), 'NetworkCapabilitiesDetector');
         this.batteryStorageDetector = this._safeCreateDetector(() => new BatteryStorageDetector(), 'BatteryStorageDetector');
@@ -681,7 +692,11 @@ class BrowserFingerprintAnalyzer {
             // Timeout for network measurements (default 5 seconds)
             networkTimeout: options.networkTimeout ?? 5000,
             // Timeout for individual detectors (default 3 seconds)
-            detectorTimeout: options.detectorTimeout ?? 3000
+            detectorTimeout: options.detectorTimeout ?? 3000,
+            // Enable periodic known agents detection (default: true)
+            enablePeriodicAgentDetection: options.enablePeriodicAgentDetection ?? true,
+            // Interval for periodic agent detection in ms (default: 60000 = 1 minute)
+            agentDetectionInterval: options.agentDetectionInterval ?? 60000
         };
     }
 
@@ -699,8 +714,8 @@ class BrowserFingerprintAnalyzer {
                     phase,
                     status, // 'starting', 'complete', 'error', 'skipped'
                     completedPhases: [...this.completedPhases],
-                    totalPhases: 16, // Total number of analysis phases
-                    percentage: Math.round((this.completedPhases.length / 16) * 100),
+                    totalPhases: 17, // Total number of analysis phases (includes knownAgents)
+                    percentage: Math.round((this.completedPhases.length / 17) * 100),
                     ...details
                 });
             } catch (e) {
@@ -1070,6 +1085,17 @@ class BrowserFingerprintAnalyzer {
         }
         this._reportProgress('stringSignature', 'complete', { message: 'Automation signature detection complete' });
 
+        // Run Known Agents Detection (Manus, Comet, Genspark, Selenium, Puppeteer, Playwright, etc.)
+        this._reportProgress('knownAgents', 'starting', { message: 'Running known agents detection...' });
+        console.log('🕵️ Running Known Agents Detection...');
+        await this._runKnownAgentsDetection();
+        this._reportProgress('knownAgents', 'complete', { message: 'Known agents detection complete' });
+
+        // Start periodic known agents detection if enabled
+        if (this.options.enablePeriodicAgentDetection) {
+            this.startPeriodicAgentDetection();
+        }
+
         // Collect Behavioral Indicators from stored data
         this._reportProgress('behavioral', 'starting', { message: 'Analyzing behavioral indicators...' });
         console.log('🎯 Collecting behavioral indicators...');
@@ -1239,6 +1265,21 @@ class BrowserFingerprintAnalyzer {
 
         if (!mediaDevices) return indicators;
 
+        // Check for fake devices - HIGHEST priority indicator for AI agents
+        if (mediaDevices.fakeDevicesDetected?.value === true) {
+            indicators.push({
+                category: 'media_devices',
+                name: 'fake_media_devices',
+                description: 'Fake/simulated media devices detected - strong indicator of AI automation agents (e.g., browserUse)',
+                severity: 'HIGH',
+                confidence: 0.95,
+                details: mediaDevices.fakeDeviceLabels?.value 
+                    ? `Fake devices: ${mediaDevices.fakeDeviceLabels.value}`
+                    : 'Devices with fake/simulated labels detected',
+                importance: 'CRITICAL'
+            });
+        }
+
         // Check for no devices at all
         if (mediaDevices.totalDevices?.value === 0) {
             indicators.push({
@@ -1276,6 +1317,246 @@ class BrowserFingerprintAnalyzer {
         }
 
         return indicators;
+    }
+
+    /**
+     * Run known agents detection (Manus, Comet, Genspark, Selenium, Puppeteer, Playwright, etc.)
+     * @private
+     */
+    async _runKnownAgentsDetection() {
+        if (!this.knownAgentsDetector) {
+            console.warn('⚠️ Known agents detector not available');
+            this.knownAgentsResults = { error: 'Detector not available' };
+            return;
+        }
+
+        try {
+            // Reset the detector state for fresh detection
+            this.knownAgentsDetector.detectedAgents = new Set();
+            this.knownAgentsDetector.detectionResults = [];
+            this.knownAgentsDetector.isRunning = false;
+
+            const results = await this.knownAgentsDetector.runAllDetections();
+            const summary = this.knownAgentsDetector.getSummary();
+            
+            this.knownAgentsResults = {
+                timestamp: Date.now(),
+                detectionResults: results,
+                summary: summary,
+                detectedAgents: summary.detectedAgents,
+                hasAnyAgent: summary.hasAnyAgent,
+                totalDetected: summary.totalDetected
+            };
+
+            // Add to detection history
+            this.knownAgentsDetectionHistory.push({
+                timestamp: Date.now(),
+                detectedAgents: [...summary.detectedAgents],
+                totalDetected: summary.totalDetected
+            });
+
+            // Keep only last 10 detection results in history
+            if (this.knownAgentsDetectionHistory.length > 10) {
+                this.knownAgentsDetectionHistory.shift();
+            }
+
+            // Add to metrics
+            this.metrics.knownAgentsDetection = this._formatKnownAgentsMetrics();
+
+            // Add known agents to suspicious indicators if detected
+            if (summary.hasAnyAgent) {
+                results.forEach(result => {
+                    if (result.detected) {
+                        this.suspiciousIndicators.push({
+                            category: 'known_agent',
+                            name: 'known_agent_detected',
+                            description: `Known AI agent detected: ${result.name}`,
+                            severity: 'HIGH',
+                            confidence: result.confidence || 0.9,
+                            importance: 'CRITICAL',
+                            details: `Detection method: ${result.detectionMethod}`,
+                            agentName: result.name,
+                            primarySignal: result.primarySignal
+                        });
+                    }
+                });
+            }
+
+            console.log('🕵️ Known Agents detection complete:', this.knownAgentsResults);
+        } catch (error) {
+            console.warn('⚠️ Known agents detection failed:', error.message);
+            this.knownAgentsResults = { error: error.message, timestamp: Date.now() };
+        }
+    }
+
+    /**
+     * Format known agents detection results for metrics display
+     * @private
+     */
+    _formatKnownAgentsMetrics() {
+        if (!this.knownAgentsResults || this.knownAgentsResults.error) {
+            return {
+                status: {
+                    value: 'Error',
+                    description: 'Known agents detection status',
+                    risk: 'N/A'
+                },
+                error: {
+                    value: this.knownAgentsResults?.error || 'Unknown error',
+                    description: 'Error message',
+                    risk: 'N/A'
+                }
+            };
+        }
+
+        const metrics = {
+            detectionTimestamp: {
+                value: new Date(this.knownAgentsResults.timestamp).toISOString(),
+                description: 'Last detection timestamp',
+                risk: 'N/A'
+            },
+            totalAgentsChecked: {
+                value: this.knownAgentsResults.detectionResults?.length || 0,
+                description: 'Total number of known agents checked',
+                risk: 'N/A'
+            },
+            agentsDetected: {
+                value: this.knownAgentsResults.totalDetected || 0,
+                description: 'Number of known agents detected',
+                risk: (this.knownAgentsResults.totalDetected || 0) > 0 ? 'HIGH' : 'LOW'
+            },
+            hasAnyAgent: {
+                value: this.knownAgentsResults.hasAnyAgent || false,
+                description: 'Whether any known agent was detected',
+                risk: this.knownAgentsResults.hasAnyAgent ? 'HIGH' : 'LOW'
+            },
+            detectedAgentsList: {
+                value: this.knownAgentsResults.detectedAgents?.join(', ') || 'None',
+                description: 'List of detected agent names',
+                risk: (this.knownAgentsResults.detectedAgents?.length || 0) > 0 ? 'HIGH' : 'LOW'
+            },
+            periodicDetectionEnabled: {
+                value: this.options.enablePeriodicAgentDetection,
+                description: 'Whether periodic agent detection is enabled',
+                risk: 'N/A'
+            },
+            detectionInterval: {
+                value: `${this.options.agentDetectionInterval / 1000}s`,
+                description: 'Interval between periodic detections',
+                risk: 'N/A'
+            },
+            detectionHistoryCount: {
+                value: this.knownAgentsDetectionHistory.length,
+                description: 'Number of detection runs in history',
+                risk: 'N/A'
+            }
+        };
+
+        // Add individual agent detection results
+        if (this.knownAgentsResults.detectionResults) {
+            this.knownAgentsResults.detectionResults.forEach(result => {
+                const agentKey = `agent_${result.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+                metrics[agentKey] = {
+                    value: result.detected ? `DETECTED (${(result.confidence * 100).toFixed(0)}%)` : 'Not detected',
+                    description: `${result.name} agent detection status (${result.detectionMethod})`,
+                    risk: result.detected ? 'HIGH' : 'LOW',
+                    detected: result.detected,
+                    confidence: result.confidence,
+                    indicators: result.indicators || [],
+                    primarySignal: result.primarySignal
+                };
+            });
+        }
+
+        return metrics;
+    }
+
+    /**
+     * Start periodic known agents detection
+     * Runs detection every minute (configurable) to catch late-initializing agents
+     */
+    startPeriodicAgentDetection() {
+        if (this._knownAgentsIntervalId) {
+            console.log('🕵️ Periodic agent detection already running');
+            return;
+        }
+
+        const intervalMs = this.options.agentDetectionInterval;
+        console.log(`🕵️ Starting periodic agent detection (every ${intervalMs / 1000}s)`);
+
+        this._knownAgentsIntervalId = setInterval(async () => {
+            console.log('🕵️ Running periodic agent detection...');
+            const previousAgents = new Set(this.knownAgentsResults?.detectedAgents || []);
+            
+            await this._runKnownAgentsDetection();
+            
+            // Update metrics
+            this.metrics.knownAgentsDetection = this._formatKnownAgentsMetrics();
+            
+            // Check for newly detected agents
+            const currentAgents = new Set(this.knownAgentsResults?.detectedAgents || []);
+            const newAgents = [...currentAgents].filter(agent => !previousAgents.has(agent));
+            
+            if (newAgents.length > 0) {
+                console.warn(`⚠️ NEW AGENT(S) DETECTED: ${newAgents.join(', ')}`);
+            }
+            
+            // Trigger callback if provided (for UI updates)
+            if (this._onKnownAgentsUpdate) {
+                try {
+                    this._onKnownAgentsUpdate({
+                        results: this.knownAgentsResults,
+                        metrics: this.metrics.knownAgentsDetection,
+                        newAgentsDetected: newAgents,
+                        history: this.knownAgentsDetectionHistory
+                    });
+                } catch (e) {
+                    console.warn('⚠️ Known agents update callback failed:', e.message);
+                }
+            }
+        }, intervalMs);
+    }
+
+    /**
+     * Stop periodic known agents detection
+     */
+    stopPeriodicAgentDetection() {
+        if (this._knownAgentsIntervalId) {
+            clearInterval(this._knownAgentsIntervalId);
+            this._knownAgentsIntervalId = null;
+            console.log('🕵️ Periodic agent detection stopped');
+        }
+    }
+
+    /**
+     * Set callback for known agents detection updates
+     * @param {Function} callback - Callback function to receive updates
+     */
+    setKnownAgentsUpdateCallback(callback) {
+        this._onKnownAgentsUpdate = callback;
+    }
+
+    /**
+     * Get known agents detection results
+     * @returns {Object} Known agents detection results
+     */
+    getKnownAgentsResults() {
+        return {
+            results: this.knownAgentsResults,
+            metrics: this.metrics.knownAgentsDetection,
+            history: this.knownAgentsDetectionHistory,
+            isPeriodicRunning: !!this._knownAgentsIntervalId
+        };
+    }
+
+    /**
+     * Manually trigger known agents detection
+     * @returns {Promise<Object>} Detection results
+     */
+    async runKnownAgentsDetection() {
+        await this._runKnownAgentsDetection();
+        this.metrics.knownAgentsDetection = this._formatKnownAgentsMetrics();
+        return this.getKnownAgentsResults();
     }
 
     /**
@@ -2096,13 +2377,47 @@ class BrowserFingerprintAnalyzer {
             const hasNoDevices = devices.length === 0;
             const hasNoAudioDevices = deviceCounts.audioinput === 0 && deviceCounts.audiooutput === 0;
             
+            // Check for fake device labels - strong indicator of AI agents like browserUse
+            const fakeDevicePatterns = /^fake\s|fake-|fake_|simulated|virtual\s*(?:mic|camera|speaker)|dummy/i;
+            const fakeDevices = devices.filter(d => 
+                d.label && fakeDevicePatterns.test(d.label)
+            );
+            const hasFakeDevices = fakeDevices.length > 0;
+            
+            // Store fake device detection results
+            result.fakeDevicesDetected = {
+                value: hasFakeDevices,
+                description: 'Fake/simulated media devices detected - strong indicator of AI automation agents',
+                risk: hasFakeDevices ? 'HIGH' : 'LOW',
+                details: hasFakeDevices 
+                    ? `Detected ${fakeDevices.length} fake device(s): ${fakeDevices.map(d => d.label).join(', ')}`
+                    : 'No fake devices detected'
+            };
+            
+            result.fakeDeviceCount = {
+                value: fakeDevices.length,
+                description: 'Number of devices with fake/simulated labels',
+                risk: fakeDevices.length > 0 ? 'HIGH' : 'LOW'
+            };
+            
+            // List fake device labels if found
+            if (hasFakeDevices) {
+                result.fakeDeviceLabels = {
+                    value: fakeDevices.map(d => d.label).join(', '),
+                    description: 'Labels of detected fake media devices',
+                    risk: 'HIGH'
+                };
+            }
+            
             result.suspiciousPattern = {
-                value: hasNoDevices || hasNoAudioDevices,
-                description: 'Suspicious media device pattern detected (may indicate headless/VM)',
-                risk: hasNoDevices ? 'HIGH' : (hasNoAudioDevices ? 'MEDIUM' : 'LOW'),
-                details: hasNoDevices 
-                    ? 'No media devices detected - common in headless browsers'
-                    : (hasNoAudioDevices ? 'No audio devices detected - unusual for real user environments' : 'Normal device configuration')
+                value: hasNoDevices || hasNoAudioDevices || hasFakeDevices,
+                description: 'Suspicious media device pattern detected (may indicate headless/VM/AI agent)',
+                risk: hasFakeDevices ? 'HIGH' : (hasNoDevices ? 'HIGH' : (hasNoAudioDevices ? 'MEDIUM' : 'LOW')),
+                details: hasFakeDevices
+                    ? `Fake devices detected: ${fakeDevices.map(d => d.label).join(', ')} - common in AI automation agents`
+                    : (hasNoDevices 
+                        ? 'No media devices detected - common in headless browsers'
+                        : (hasNoAudioDevices ? 'No audio devices detected - unusual for real user environments' : 'Normal device configuration'))
             };
 
             // Check if labels are available (indicates permissions granted)
@@ -2454,6 +2769,49 @@ class BrowserFingerprintAnalyzer {
             };
         }
 
+        // Check console.log (commonly overridden by AI agents like ChatGPT Browser)
+        try {
+            const consoleLogString = console.log.toString();
+            const isNative = consoleLogString.includes('[native code]');
+            result.consoleLog = {
+                value: isNative ? '[Native Code]' : consoleLogString,
+                description: 'console.log function signature - commonly patched by AI browser agents',
+                risk: isNative ? 'LOW' : 'HIGH'
+            };
+        } catch (error) {
+            result.consoleLog = {
+                value: `Error: ${error.message}`,
+                description: 'console.log function signature',
+                risk: 'MEDIUM'
+            };
+        }
+
+        // Check Element.prototype.scrollTop getter (patched by some automation tools)
+        try {
+            const scrollTopDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
+            if (scrollTopDescriptor && scrollTopDescriptor.get) {
+                const scrollTopGetterString = scrollTopDescriptor.get.toString();
+                const isNative = scrollTopGetterString.includes('[native code]');
+                result.elementScrollTop = {
+                    value: isNative ? '[Native Code]' : scrollTopGetterString,
+                    description: 'Element.prototype.scrollTop getter - patched by scroll automation tools',
+                    risk: isNative ? 'LOW' : 'HIGH'
+                };
+            } else {
+                result.elementScrollTop = {
+                    value: 'No getter defined',
+                    description: 'Element.prototype.scrollTop getter',
+                    risk: 'LOW'
+                };
+            }
+        } catch (error) {
+            result.elementScrollTop = {
+                value: `Error: ${error.message}`,
+                description: 'Element.prototype.scrollTop getter',
+                risk: 'MEDIUM'
+            };
+        }
+
         return result;
     }
 
@@ -2468,16 +2826,23 @@ class BrowserFingerprintAnalyzer {
         const originalSummary = this.suspiciousIndicatorDetector.getSummary();
         const aiSummary = this.aiAgentDetector.getSummary();
         
+        // Get known agents summary
+        const knownAgentsSummary = this.knownAgentsResults?.summary || {
+            detectedAgents: [],
+            totalDetected: 0,
+            hasAnyAgent: false
+        };
+        
         // Merge the summaries
         const combinedSummary = {
             totalIndicators: originalSummary.totalIndicators + aiSummary.totalIndicators,
             totalDetectedIndicators: originalSummary.totalDetectedIndicators + aiSummary.totalIndicators,
             riskCounts: {
-                HIGH: originalSummary.riskCounts.HIGH + aiSummary.riskCounts.HIGH,
+                HIGH: originalSummary.riskCounts.HIGH + aiSummary.riskCounts.HIGH + (knownAgentsSummary.totalDetected || 0),
                 MEDIUM: originalSummary.riskCounts.MEDIUM + aiSummary.riskCounts.MEDIUM,
                 LOW: originalSummary.riskCounts.LOW + aiSummary.riskCounts.LOW
             },
-            hasSuspiciousActivity: originalSummary.hasSuspiciousActivity || aiSummary.hasSuspiciousActivity,
+            hasSuspiciousActivity: originalSummary.hasSuspiciousActivity || aiSummary.hasSuspiciousActivity || knownAgentsSummary.hasAnyAgent,
             suspicionScore: Math.min((originalSummary.suspicionScore + aiSummary.suspicionScore) / 2, 1.0),
             reasoning: aiSummary.totalIndicators > 0 
                 ? `${originalSummary.reasoning}. AI Agent Detection: ${aiSummary.reasoning}`
@@ -2491,12 +2856,20 @@ class BrowserFingerprintAnalyzer {
             // Raw detector results for detailed drill-down views
             rawResults: {
                 fonts: this.fontsDetector?.result || null,
+                knownAgents: this.knownAgentsResults || null,
                 // Add other detectors as needed
             },
             suspiciousIndicators: combinedSuspiciousIndicators, // Combined indicators
             suspiciousAnalysis: this.suspiciousAnalysis, // Full analysis with reasoning
             suspiciousSummary: combinedSummary, // Combined summary
             aiAgentSummary: aiSummary, // Separate AI agent summary
+            // Known agents detection data
+            knownAgentsDetection: {
+                results: this.knownAgentsResults,
+                history: this.knownAgentsDetectionHistory,
+                isPeriodicRunning: !!this._knownAgentsIntervalId,
+                intervalMs: this.options.agentDetectionInterval
+            },
             summary: this._generateSummary()
         };
     }
@@ -2665,6 +3038,7 @@ export {
     BrowserFingerprintAnalyzer, 
     SuspiciousIndicatorDetector, 
     AIAgentDetector, 
+    KnownAgentsDetector,
     ContextAnalyzer, 
     StringSignatureDetector,
     // New modular detectors

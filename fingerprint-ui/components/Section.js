@@ -59,8 +59,13 @@ export function createSection({ categoryKey, metricCount, content, expanded = fa
         }
     }
     
+    // Handle SVG icons vs emoji
+    const iconHtml = config.iconType === 'svg' 
+        ? `<div class="fp-section__icon fp-section__icon--svg" aria-hidden="true">${config.icon}</div>`
+        : `<div class="fp-section__icon" aria-hidden="true">${config.icon}</div>`;
+    
     header.innerHTML = `
-        <div class="fp-section__icon" aria-hidden="true">${config.icon}</div>
+        ${iconHtml}
         <div class="fp-section__title-group">
             <h3 class="fp-section__title">
                 ${diffStatusHtml}${escapeHtml(config.label)}

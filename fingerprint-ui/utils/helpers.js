@@ -28,8 +28,18 @@ export function formatCategoryName(categoryKey) {
  * @returns {object} Category configuration object
  */
 export function getCategoryConfig(categoryKey) {
-    return CATEGORY_CONFIG[categoryKey] || {
-        icon: '📊',
+    const config = CATEGORY_CONFIG[categoryKey];
+    if (config) {
+        return config;
+    }
+    // Fallback config with SVG icon
+    return {
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>`,
+        iconType: 'svg',
         label: formatCategoryName(categoryKey),
         description: 'Fingerprint metrics',
         color: '#6B7280'
