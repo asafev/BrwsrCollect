@@ -556,7 +556,7 @@ export class FingerprintUIRenderer {
                 
                 // Create expandable section
                 // Expand first 3 sections by default, or important ones
-                const importantCategories = ['automation', 'aiAgentDetection', 'behavioralIndicators', 'security'];
+                const importantCategories = ['automation', 'functionIntegrity', 'behavioralIndicators', 'security'];
                 const isExpanded = index < 2 || importantCategories.includes(categoryKey);
                 
                 const section = createSection({

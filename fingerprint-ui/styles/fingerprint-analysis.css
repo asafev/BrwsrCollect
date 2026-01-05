@@ -367,8 +367,7 @@
 .fp-section--webApis .fp-section__icon { background: #CCFBF1; }
 .fp-section--document .fp-section__icon { background: #F3F4F6; }
 .fp-section--security .fp-section__icon { background: #FCE7F3; }
-.fp-section--apiOverrides .fp-section__icon { background: #E0E7FF; }
-.fp-section--aiAgentDetection .fp-section__icon { background: #FEE2E2; }
+.fp-section--functionIntegrity .fp-section__icon { background: #FEE2E2; }
 .fp-section--stringSignatureAutomation .fp-section__icon { background: #DBEAFE; }
 .fp-section--behavioralIndicators .fp-section__icon { background: #EDE9FE; }
 .fp-section--behavioralTelemetry .fp-section__icon { background: #F3E8FF; }

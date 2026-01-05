@@ -214,7 +214,7 @@ export function formatPercentage(score) {
 export function sortCategories(categories) {
     const priority = [
         'automation',
-        'aiAgentDetection',
+        'functionIntegrity',
         'behavioralIndicators',
         'stringSignatureAutomation',
         'security',
@@ -228,7 +228,6 @@ export function sortCategories(categories) {
         'webRTCLeak',
         'jsEnvironment',
         'document',
-        'apiOverrides',
         'behavioralTelemetry',
         'speechSynthesis',
         'language',

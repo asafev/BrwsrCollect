@@ -4,7 +4,7 @@
  * Based on security research patterns and automation detection techniques
  */
 
-import { AIAgentDetector } from './aiAgentDetector.js';
+import { FunctionIntegrityDetector } from './functionIntegrityDetector.js';
 import { AIAgentDetector as KnownAgentsDetector } from './agentDetector.js';
 import { ContextAnalyzer } from './contextAnalyzer.js';
 import { BehavioralStorageManager } from './behavioralStorage.js';
@@ -659,7 +659,7 @@ class BrowserFingerprintAnalyzer {
         
         // Initialize detectors with safe instantiation
         this.suspiciousIndicatorDetector = this._safeCreateDetector(() => new SuspiciousIndicatorDetector(), 'SuspiciousIndicatorDetector');
-        this.aiAgentDetector = this._safeCreateDetector(() => new AIAgentDetector(), 'AIAgentDetector');
+        this.functionIntegrityDetector = this._safeCreateDetector(() => new FunctionIntegrityDetector(), 'FunctionIntegrityDetector');
         this.stringSignatureDetector = this._safeCreateDetector(() => new StringSignatureDetector(), 'StringSignatureDetector');
         this.suspiciousIndicators = [];
         
@@ -791,10 +791,10 @@ class BrowserFingerprintAnalyzer {
             document: safeAnalysis(() => this._analyzeDocument(), 'Document'),
             
             // Security & Privacy
-            security: safeAnalysis(() => this._analyzeSecurity(), 'Security'),
+            security: safeAnalysis(() => this._analyzeSecurity(), 'Security')
             
-            // API Override Detection
-            apiOverrides: safeAnalysis(() => this._analyzeAPIOverrides(), 'API Overrides')
+            // Note: API Override Detection is now handled by FunctionIntegrityDetector
+            // which provides comprehensive cross-realm checks and only shows violations
         };
         this._reportProgress('core', 'complete', { message: 'Core browser properties analyzed' });
 
@@ -1047,27 +1047,27 @@ class BrowserFingerprintAnalyzer {
             this._reportProgress('activeMeasurements', 'skipped', { message: 'Network speed test disabled' });
         }
 
-        // Run AI Agent Detection
-        this._reportProgress('aiAgent', 'starting', { message: 'Running AI agent detection...' });
-        console.log('🤖 Running AI Agent detection...');
-        let aiAgentResults = { success: false, error: 'Detector not available' };
-        if (this.aiAgentDetector) {
+        // Run Function Integrity Detection
+        this._reportProgress('functionIntegrity', 'starting', { message: 'Running function integrity detection...' });
+        console.log('🔒 Running Function Integrity detection...');
+        let functionIntegrityResults = { success: false, error: 'Detector not available' };
+        if (this.functionIntegrityDetector) {
             try {
-                aiAgentResults = await this.aiAgentDetector.detectAIAgent();
-                if (aiAgentResults && aiAgentResults.success) {
-                    // Add AI agent metrics to the main metrics collection
-                    const aiMetrics = this.aiAgentDetector.getFormattedResults();
-                    this.metrics = { ...this.metrics, ...aiMetrics };
-                    console.log('🤖 AI Agent detection complete:', aiAgentResults);
+                functionIntegrityResults = await this.functionIntegrityDetector.detectIntegrityViolations();
+                if (functionIntegrityResults && functionIntegrityResults.success) {
+                    // Add function integrity metrics to the main metrics collection
+                    const integrityMetrics = this.functionIntegrityDetector.getFormattedResults();
+                    this.metrics = { ...this.metrics, ...integrityMetrics };
+                    console.log('🔒 Function Integrity detection complete:', functionIntegrityResults);
                 } else {
-                    console.warn('⚠️ AI Agent detection returned no results');
+                    console.warn('⚠️ Function Integrity detection returned no results');
                 }
             } catch (error) {
-                console.warn('⚠️ AI Agent detection failed:', error.message);
-                aiAgentResults = { success: false, error: error.message };
+                console.warn('⚠️ Function Integrity detection failed:', error.message);
+                functionIntegrityResults = { success: false, error: error.message };
             }
         }
-        this._reportProgress('aiAgent', 'complete', { message: 'AI agent detection complete' });
+        this._reportProgress('functionIntegrity', 'complete', { message: 'Function integrity detection complete' });
 
         // Run String Signature Automation Detection
         this._reportProgress('stringSignature', 'starting', { message: 'Running automation signature detection...' });
@@ -1115,13 +1115,13 @@ class BrowserFingerprintAnalyzer {
             }
         }
         
-        // Add AI agent indicators to the suspicious indicators
-        if (aiAgentResults && aiAgentResults.success && this.aiAgentDetector) {
+        // Add function integrity indicators to the suspicious indicators
+        if (functionIntegrityResults && functionIntegrityResults.success && this.functionIntegrityDetector) {
             try {
-                const aiIndicators = this.aiAgentDetector.getSuspiciousIndicators();
-                this.suspiciousIndicators = [...this.suspiciousIndicators, ...aiIndicators];
+                const integrityIndicators = this.functionIntegrityDetector.getSuspiciousIndicators();
+                this.suspiciousIndicators = [...this.suspiciousIndicators, ...integrityIndicators];
             } catch (error) {
-                console.warn('⚠️ Failed to get AI agent indicators:', error.message);
+                console.warn('⚠️ Failed to get function integrity indicators:', error.message);
             }
         }
         
@@ -1155,9 +1155,9 @@ class BrowserFingerprintAnalyzer {
         this.analysisComplete = true;
         console.log('✅ Browser fingerprint analysis complete:', this.metrics);
         console.log('🚨 Suspicious indicators analysis:', suspiciousResults);
-        if (aiAgentResults && aiAgentResults.success && this.aiAgentDetector) {
+        if (functionIntegrityResults && functionIntegrityResults.success && this.functionIntegrityDetector) {
             try {
-                console.log('🤖 AI Agent indicators:', this.aiAgentDetector.getSuspiciousIndicators());
+                console.log('🔒 Function Integrity indicators:', this.functionIntegrityDetector.getSuspiciousIndicators());
             } catch (e) { /* ignore */ }
         }
         if (stringSignatureResults && stringSignatureResults.totalDetected > 0) {
@@ -2824,7 +2824,7 @@ class BrowserFingerprintAnalyzer {
         
         // Calculate combined summary
         const originalSummary = this.suspiciousIndicatorDetector.getSummary();
-        const aiSummary = this.aiAgentDetector.getSummary();
+        const integritySum = this.functionIntegrityDetector?.getSummary() || { totalIndicators: 0, riskCounts: { HIGH: 0, MEDIUM: 0, LOW: 0 }, suspicionScore: 0, hasSuspiciousActivity: false, reasoning: '' };
         
         // Get known agents summary
         const knownAgentsSummary = this.knownAgentsResults?.summary || {
@@ -2835,17 +2835,17 @@ class BrowserFingerprintAnalyzer {
         
         // Merge the summaries
         const combinedSummary = {
-            totalIndicators: originalSummary.totalIndicators + aiSummary.totalIndicators,
-            totalDetectedIndicators: originalSummary.totalDetectedIndicators + aiSummary.totalIndicators,
+            totalIndicators: originalSummary.totalIndicators + integritySum.totalIndicators,
+            totalDetectedIndicators: originalSummary.totalDetectedIndicators + integritySum.totalIndicators,
             riskCounts: {
-                HIGH: originalSummary.riskCounts.HIGH + aiSummary.riskCounts.HIGH + (knownAgentsSummary.totalDetected || 0),
-                MEDIUM: originalSummary.riskCounts.MEDIUM + aiSummary.riskCounts.MEDIUM,
-                LOW: originalSummary.riskCounts.LOW + aiSummary.riskCounts.LOW
+                HIGH: originalSummary.riskCounts.HIGH + integritySum.riskCounts.HIGH + (knownAgentsSummary.totalDetected || 0),
+                MEDIUM: originalSummary.riskCounts.MEDIUM + integritySum.riskCounts.MEDIUM,
+                LOW: originalSummary.riskCounts.LOW + integritySum.riskCounts.LOW
             },
-            hasSuspiciousActivity: originalSummary.hasSuspiciousActivity || aiSummary.hasSuspiciousActivity || knownAgentsSummary.hasAnyAgent,
-            suspicionScore: Math.min((originalSummary.suspicionScore + aiSummary.suspicionScore) / 2, 1.0),
-            reasoning: aiSummary.totalIndicators > 0 
-                ? `${originalSummary.reasoning}. AI Agent Detection: ${aiSummary.reasoning}`
+            hasSuspiciousActivity: originalSummary.hasSuspiciousActivity || integritySum.hasSuspiciousActivity || knownAgentsSummary.hasAnyAgent,
+            suspicionScore: Math.min((originalSummary.suspicionScore + integritySum.suspicionScore) / 2, 1.0),
+            reasoning: integritySum.totalIndicators > 0 
+                ? `${originalSummary.reasoning}. Function Integrity: ${integritySum.reasoning}`
                 : originalSummary.reasoning
         };
 
@@ -2862,7 +2862,7 @@ class BrowserFingerprintAnalyzer {
             suspiciousIndicators: combinedSuspiciousIndicators, // Combined indicators
             suspiciousAnalysis: this.suspiciousAnalysis, // Full analysis with reasoning
             suspiciousSummary: combinedSummary, // Combined summary
-            aiAgentSummary: aiSummary, // Separate AI agent summary
+            functionIntegritySummary: integritySum, // Separate function integrity summary
             // Known agents detection data
             knownAgentsDetection: {
                 results: this.knownAgentsResults,
@@ -3037,7 +3037,7 @@ class BrowserFingerprintAnalyzer {
 export { 
     BrowserFingerprintAnalyzer, 
     SuspiciousIndicatorDetector, 
-    AIAgentDetector, 
+    FunctionIntegrityDetector, 
     KnownAgentsDetector,
     ContextAnalyzer, 
     StringSignatureDetector,

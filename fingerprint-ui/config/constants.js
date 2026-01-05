@@ -81,18 +81,11 @@ export const CATEGORY_CONFIG = {
         description: 'Security context and permissions',
         color: '#EC4899'
     },
-    apiOverrides: {
-        get icon() { return getIcon('apiOverrides'); },
+    functionIntegrity: {
+        get icon() { return getIcon('functionIntegrity'); },
         iconType: 'svg',
-        label: 'API Override Detection',
-        description: 'Detection of modified browser APIs',
-        color: '#6366F1'
-    },
-    aiAgentDetection: {
-        get icon() { return getIcon('aiAgentDetection'); },
-        iconType: 'svg',
-        label: 'AI Agent Detection',
-        description: 'Signatures indicating AI-controlled browsers',
+        label: 'Function Integrity',
+        description: 'Detection of modified native browser functions (only showing violations)',
         color: '#EF4444'
     },
     stringSignatureAutomation: {
