@@ -262,7 +262,7 @@ class NetworkCapabilitiesDetector {
 
         // Check for suspiciously perfect values (often mocked)
         if (this.connection.rtt === 50 && this.connection.downlink === 10) {
-            anomalies.push('default_mock_values');
+            anomalies.push('nqe_default_or_clamped_values');
         }
 
         // Check for impossible combinations
