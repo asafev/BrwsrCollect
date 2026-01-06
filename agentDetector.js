@@ -5,6 +5,122 @@
 
 import { isNativeFunction } from './utils/functionUtils.js';
 
+// ============================================================
+// EARLY CONSOLE HOOK FOR BROWSER-USE DETECTION
+// This must run immediately at module load to capture console
+// messages before any agent detection runs.
+// 
+// IMPORTANT: We store original native console methods BEFORE hooking
+// so that FunctionIntegrityDetector can access them and not
+// flag our own hooks as tampering.
+// ============================================================
+(function installBrowserUseConsoleHookEarly() {
+    if (typeof window === 'undefined') return;
+    if (window.__browserUseDetectorInstalled) return;
+    
+    try {
+        // Store ORIGINAL native console methods before any modification
+        const orig = {
+            log: console.log,
+            info: console.info,
+            warn: console.warn,
+            error: console.error,
+            debug: console.debug,
+            trace: console.trace,
+        };
+        
+        // Expose original methods for FunctionIntegrityDetector
+        window.__nativeConsoleMethods = orig;
+        
+        // Signature marker to identify our own hook
+        const OUR_HOOK_SIGNATURE = '__agentDetectorConsoleHook__';
+
+        const capture = (kind, args) => {
+            // Skip if already detected to avoid spam
+            if (window.__browserUseAlreadyDetected) return;
+            
+            let stack = "";
+            try {
+                stack = new Error().stack || "";
+            } catch {}
+
+            const text = args.map(a => {
+                try { 
+                    return typeof a === "string" ? a : JSON.stringify(a); 
+                } catch { 
+                    return String(a); 
+                }
+            }).join(" ");
+
+            // Heuristics for browser-use detection
+            const looksLikeBrowserUse =
+                /browser-use highlight/i.test(text) ||
+                /browser-use-debug-highlights/i.test(text) ||
+                /\bRemoving\b.*\bbrowser-use\b/i.test(text);
+
+            const looksLikeEvaluatedCode =
+                /\bVM\d+:\d+\b/.test(stack) ||
+                /<anonymous>/.test(stack) ||
+                /eval/.test(stack);
+
+            if (looksLikeBrowserUse && looksLikeEvaluatedCode) {
+                // Mark as detected to prevent duplicate events
+                window.__browserUseAlreadyDetected = true;
+                
+                // Build detection result in same format as other detectors
+                const detectionResult = {
+                    name: 'BrowserUse',
+                    detected: true,
+                    timestamp: Date.now(),
+                    confidence: 0.95,
+                    detectionMethod: 'Console Message + Stack Classification (browser-use highlight)',
+                    primarySignal: 'BrowserUse_Console_Hook',
+                    indicators: [
+                        {
+                            name: 'BrowserUse_Console_Signal',
+                            description: 'browser-use console message captured',
+                            value: text.substring(0, 100) + (text.length > 100 ? '...' : '')
+                        },
+                        {
+                            name: 'BrowserUse_Eval_Stack',
+                            description: 'Console message from evaluated/VM code',
+                            value: /\bVM\d+:\d+\b/.test(stack) ? 'VM context' : 
+                                   (/eval/.test(stack) ? 'eval context' : 'anonymous context')
+                        }
+                    ]
+                };
+                
+                // Store for later access
+                window.__botSignals = window.__botSignals || {};
+                window.__botSignals.browserUseDetection = detectionResult;
+                
+                // Dispatch event with full detection result
+                try {
+                    window.dispatchEvent(new CustomEvent('agentDetected', {
+                        detail: detectionResult
+                    }));
+                } catch {}
+            }
+        };
+
+        // Install hooks
+        for (const kind of ["log", "info", "warn", "error"]) {
+            const hookedFn = function (...args) {
+                try { capture(kind, args); } catch {}
+                return orig[kind].apply(this, args);
+            };
+            hookedFn[OUR_HOOK_SIGNATURE] = true;
+            hookedFn.__originalNativeMethod = orig[kind];
+            console[kind] = hookedFn;
+        }
+        
+        window.__browserUseDetectorInstalled = true;
+        window.__agentDetectorHookSignature = OUR_HOOK_SIGNATURE;
+    } catch (error) {
+        // Silent fail
+    }
+})();
+
 class AIAgentDetector {
     constructor() {
         this.detectedAgents = new Set();
@@ -29,6 +145,7 @@ class AIAgentDetector {
             { name: 'ChatGPTBrowser', detector: this.detectChatGPTBrowser },
             { name: 'Fellou', detector: this.detectFellouBrowser },
             { name: 'HyperBrowser', detector: this.detectHyperBrowser },
+            { name: 'BrowserUse', detector: this.detectBrowserUse },
             // Add more detectors here as they're implemented
             { name: 'Selenium', detector: this.detectSelenium },
             { name: 'Puppeteer', detector: this.detectPuppeteer },
@@ -78,6 +195,9 @@ class AIAgentDetector {
                         case 'HyperBrowser':
                             confidence = 0.90; // High confidence - console.log wrapper signature
                             break;
+                        case 'BrowserUse':
+                            confidence = 0.92; // High confidence - console message + stack analysis
+                            break;
                         case 'Selenium':
                             confidence = 0.95; // Very high confidence - multiple artifact validation
                             break;
@@ -110,6 +230,15 @@ class AIAgentDetector {
                     const indicatorNames = indicators.map(ind => ind.name).join(', ');
                     const signalInfo = primarySignal ? ` [${primarySignal}]` : '';
                     console.log(`✅ ${name} agent detected with ${(confidence * 100).toFixed(1)}% confidence${signalInfo}${indicatorNames ? ` (indicators: ${indicatorNames})` : ''}`);
+                    
+                    // Dispatch agentDetected event for the overlay and UI updates
+                    try {
+                        window.dispatchEvent(new CustomEvent('agentDetected', {
+                            detail: result
+                        }));
+                    } catch (e) {
+                        // Silent fail if event dispatch fails
+                    }
                 } else {
                     console.log(`❌ ${name} agent not detected`);
                 }
@@ -449,10 +578,22 @@ class AIAgentDetector {
         const CHATGPT_CONSOLE_SIGNATURE_2 = 'NodeList.forEach';
         
         try {
-            const logString = console.log.toString();
+            // Check both current console.log and any wrapped method
+            // This handles the case where our browser-use hook wraps the agent's hook
+            const logStrings = [console.log.toString()];
             
-            const hasSignature1 = logString.indexOf(CHATGPT_CONSOLE_SIGNATURE_1) > -1;
-            const hasSignature2 = logString.indexOf(CHATGPT_CONSOLE_SIGNATURE_2) > -1;
+            // If our hook is installed, also check what we wrapped
+            if (console.log.__agentDetectorConsoleHook__ && console.log.__originalNativeMethod) {
+                logStrings.push(console.log.__originalNativeMethod.toString());
+            }
+            
+            let hasSignature1 = false;
+            let hasSignature2 = false;
+            
+            for (const logString of logStrings) {
+                if (logString.indexOf(CHATGPT_CONSOLE_SIGNATURE_1) > -1) hasSignature1 = true;
+                if (logString.indexOf(CHATGPT_CONSOLE_SIGNATURE_2) > -1) hasSignature2 = true;
+            }
             
             if (hasSignature1 && hasSignature2) {
                 indicators.push({
@@ -460,13 +601,13 @@ class AIAgentDetector {
                     description: 'ChatGPT Browser console.log override detected with captureLogArguments signature',
                     value: 'captureLogArguments + NodeList.forEach'
                 });
-            } else if (hasSignature1 || hasSignature2) {
-                // Partial match - lower confidence
-                indicators.push({
-                    name: 'console.log_Partial_Override',
-                    description: `ChatGPT Browser partial signature detected: ${hasSignature1 ? CHATGPT_CONSOLE_SIGNATURE_1 : CHATGPT_CONSOLE_SIGNATURE_2}`,
-                    value: hasSignature1 ? CHATGPT_CONSOLE_SIGNATURE_1 : CHATGPT_CONSOLE_SIGNATURE_2
-                });
+            // } else if (hasSignature1 || hasSignature2) {
+            //     // Partial match - lower confidence
+            //     indicators.push({
+            //         name: 'console.log_Partial_Override',
+            //         description: `ChatGPT Browser partial signature detected: ${hasSignature1 ? CHATGPT_CONSOLE_SIGNATURE_1 : CHATGPT_CONSOLE_SIGNATURE_2}`,
+            //         value: hasSignature1 ? CHATGPT_CONSOLE_SIGNATURE_1 : CHATGPT_CONSOLE_SIGNATURE_2
+            //     });
             }
             
             // Determine confidence based on match quality
@@ -551,10 +692,17 @@ class AIAgentDetector {
         const indicators = [];
         
         try {
-            const consoleLogString = Function.prototype.toString.call(console.log);
+            // Get console.log strings to check - both current and any wrapped method
+            const consoleLogStrings = [Function.prototype.toString.call(console.log)];
             
-            // Check if console.log is native (not wrapped)
-            if (/\{\s*\[native code\]\s*\}/.test(consoleLogString)) {
+            // If our hook is installed, also check what we wrapped
+            if (console.log.__agentDetectorConsoleHook__ && console.log.__originalNativeMethod) {
+                consoleLogStrings.push(Function.prototype.toString.call(console.log.__originalNativeMethod));
+            }
+            
+            // Check if ALL versions are native (not wrapped by any agent)
+            const allNative = consoleLogStrings.every(s => /\{\s*\[native code\]\s*\}/.test(s));
+            if (allNative) {
                 return {
                     detected: false,
                     confidence: 0.0,
@@ -563,8 +711,11 @@ class AIAgentDetector {
                 };
             }
             
+            // Combine all strings for pattern matching (check both current and wrapped)
+            const combinedString = consoleLogStrings.join(' ');
+            
             // Normalize whitespace for pattern matching
-            const normalizedString = consoleLogString.replace(/\s+/g, ' ');
+            const normalizedString = combinedString.replace(/\s+/g, ' ');
             const detectedReasons = [];
             
             // ========================================
@@ -704,6 +855,73 @@ class AIAgentDetector {
                 error: error.message
             };
         }
+    }
+
+    /**
+     * Detect browser-use automation framework
+     * Uses early console-hook (installed at module load) + stack classification
+     * 
+     * @returns {Object} Detection result with status, confidence, and indicators
+     */
+    async detectBrowserUse() {
+        try {
+            // Check if console hook already captured browser-use
+            if (window.__botSignals?.browserUseDetection) {
+                return window.__botSignals.browserUseDetection;
+            }
+            
+            // Check for browser-use specific DOM elements
+            const indicators = [];
+            const browserUseHighlights = document.querySelectorAll(
+                '[class*="browser-use"], [id*="browser-use"], [data-browser-use]'
+            );
+            
+            if (browserUseHighlights.length > 0) {
+                indicators.push({
+                    name: 'BrowserUse_DOM_Elements',
+                    description: 'browser-use related DOM elements detected',
+                    value: `${browserUseHighlights.length} element(s) found`
+                });
+            }
+            
+            // Check for browser-use specific window properties
+            const browserUseProps = ['__browser_use__', '__browserUse__', 'browserUse', '__bu_context__'];
+            for (const prop of browserUseProps) {
+                if (typeof window[prop] !== 'undefined') {
+                    indicators.push({
+                        name: 'BrowserUse_Window_Property',
+                        description: `browser-use window property detected: ${prop}`,
+                        value: typeof window[prop]
+                    });
+                    break;
+                }
+            }
+            
+            const isDetected = indicators.length > 0;
+            return {
+                detected: isDetected,
+                confidence: isDetected ? 0.85 : 0.0,
+                indicators,
+                primarySignal: isDetected ? 'BrowserUse_Detection' : null
+            };
+        } catch (error) {
+            console.debug('Error in browser-use detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Install console hook to capture browser-use specific log messages
+     * Note: Hook is already installed at module load time (IIFE at top).
+     * @private
+     */
+    _installBrowserUseConsoleHook() {
+        // Already installed at module load
     }
 
     /**
@@ -993,6 +1211,7 @@ class AIAgentDetector {
             'ChatGPTBrowser': 'Console.log Override Signature Analysis',
             'Fellou': 'Window Property Detection (__FELLOU_TAB_ID__)',
             'HyperBrowser': 'Console.log Wrapper Signature Detection (rand251plus50)',
+            'BrowserUse': 'Console Message + Stack Classification (browser-use highlight)',
             'Selenium': 'WebDriver Property & Artifact Detection',
             'Puppeteer': 'Headless Browser & Runtime Analysis',
             'Playwright': 'Framework Signature Detection',

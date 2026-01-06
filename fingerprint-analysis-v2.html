@@ -40,6 +40,7 @@
         let FingerprintUIRenderer, getTelemetryDescription;
         let createBehavioralLoadingState, createLoadingState, updateLoadingProgress, updateBehavioralStats, updateLoadingContent, createErrorState;
         let FingerprintConsole;
+        let AgentDetectionOverlay, createAgentDetectionOverlay;
         
         try {
             const fpModule = await import('./browserFingerprint.js');
@@ -81,6 +82,50 @@
         } catch (e) {
             console.error('Failed to load Console.js:', e);
         }
+        
+        // Import Agent Detection Overlay
+        try {
+            const overlayModule = await import('./fingerprint-ui/components/AgentDetectionOverlay.js');
+            AgentDetectionOverlay = overlayModule.AgentDetectionOverlay;
+            createAgentDetectionOverlay = overlayModule.createAgentDetectionOverlay;
+        } catch (e) {
+            console.error('Failed to load AgentDetectionOverlay.js:', e);
+        }
+        
+        // Initialize Agent Detection Overlay immediately
+        // It listens for 'agentDetected' events dispatched by the console hook
+        let agentOverlay = null;
+        if (createAgentDetectionOverlay) {
+            agentOverlay = createAgentDetectionOverlay({
+                autoDismissMs: 0, // Don't auto-dismiss
+                showDetails: true,
+                onDismiss: (agents) => {
+                    console.log('Agent detection overlay dismissed. Detected agents:', agents);
+                }
+            });
+        }
+        
+        // Listen for agent detection events to update the Known Agents UI section
+        window.addEventListener('agentDetected', async (event) => {
+            const detection = event.detail || {};
+            const { name, detectionMethod, indicators = [], primarySignal } = detection;
+            console.log(`🤖 Agent detected event: ${name} (${detectionMethod})`);
+            
+            // Update Known Agents section in UI if it exists
+            try {
+                const { updateKnownAgentsSection } = await import('./fingerprint-ui/components/AlertSection.js');
+                const indicatorNames = indicators.map(i => i?.name || i?.description || String(i));
+                updateKnownAgentsSection({
+                    detected: true,
+                    agents: [name],
+                    indicators: indicatorNames.length ? indicatorNames : [primarySignal || detectionMethod],
+                    message: `Detected: ${name}`,
+                    details: { method: detectionMethod, timestamp: new Date().toISOString() }
+                });
+            } catch (e) {
+                console.warn('Could not update Known Agents UI section:', e);
+            }
+        });
         
         // Fallback for createErrorState if not loaded
         if (!createErrorState) {
@@ -284,15 +329,22 @@
                         };
                     }
                     
+                    // Show overlay for newly detected agents
+                    if (updateData.results && agentOverlay) {
+                        for (const result of updateData.results) {
+                            if (result.detected) {
+                                agentOverlay.addDetection(result);
+                            }
+                        }
+                    }
+                    
                     // Alert on new agents detected
                     if (updateData.newAgentsDetected?.length > 0) {
                         console.warn(`⚠️ NEW AGENT(S) DETECTED: ${updateData.newAgentsDetected.join(', ')}`);
-                        // You could add a visual notification here
                     }
                     
                     // Update the UI section
                     try {
-                        // Dynamic import to avoid circular dependencies
                         import('./fingerprint-ui/components/AlertSection.js').then(({ updateKnownAgentsSection }) => {
                             updateKnownAgentsSection(fingerprintData.knownAgentsDetection);
                         }).catch(e => {
@@ -321,6 +373,23 @@
                 
                 // Store analyzer reference globally for cleanup
                 window._fingerprintAnalyzer = analyzer;
+                
+                // Check if browser-use was detected before we started
+                // (the console hook runs immediately at module load)
+                if (window.__botSignals?.browserUseDetection) {
+                    console.log('� Found pre-existing browser-use detection');
+                    // The agentDetected event was already dispatched, overlay should show it
+                    // But also update fingerprint data when available
+                    setTimeout(() => {
+                        if (fingerprintData && agentOverlay) {
+                            handleKnownAgentsUpdate({
+                                results: agentOverlay.getDetectedAgents(),
+                                history: [],
+                                newAgentsDetected: ['BrowserUse']
+                            });
+                        }
+                    }, 500);
+                }
                 
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
@@ -374,6 +443,20 @@
                     // Fallback: render basic JSON view
                     console.warn('⚠️ FingerprintUIRenderer not available, showing fallback view');
                     renderFallbackView(appContainer, fingerprintData);
+                }
+                
+                // Check for any browser-use signals that were captured before UI was ready
+                // This handles the case where browser-use logged before our event listener was set up
+                if (window.__botSignals?.browserUseConsole) {
+                    console.log('🔍 Found pre-existing browser-use signal, triggering overlay...');
+                    // Short delay to ensure UI is fully rendered
+                    setTimeout(() => {
+                        const signal = window.__botSignals.browserUseConsole;
+                        handleKnownAgentsUpdate({
+                            agents: ['Browser-Use'],
+                            indicators: [signal.indicator || 'Console hook detection']
+                        });
+                    }, 100);
                 }
                 
                 // Scroll to top

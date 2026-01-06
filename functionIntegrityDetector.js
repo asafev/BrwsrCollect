@@ -212,12 +212,65 @@ export class FunctionIntegrityDetector {
             cryptoRandomUUID: () => crypto?.randomUUID ? safeToString(crypto.randomUUID) : 'not-supported',
             
             // ===== CONSOLE FUNCTIONS =====
-            consoleLog: () => safeToString(console.log),
-            consoleWarn: () => safeToString(console.warn),
-            consoleError: () => safeToString(console.error),
-            consoleDebug: () => safeToString(console.debug),
-            consoleInfo: () => safeToString(console.info),
-            consoleTrace: () => safeToString(console.trace),
+            // IMPORTANT: Use original native console methods if available
+            // Our agentDetector.js hooks console for browser-use detection,
+            // so we need to check the original methods to avoid false positives
+            consoleLog: () => {
+                // Check if our hook is installed and get original method
+                if (window.__nativeConsoleMethods?.log) {
+                    return safeToString(window.__nativeConsoleMethods.log);
+                }
+                // Check if current console.log is our own hook (has our signature)
+                if (console.log.__agentDetectorConsoleHook__ && console.log.__originalNativeMethod) {
+                    return safeToString(console.log.__originalNativeMethod);
+                }
+                return safeToString(console.log);
+            },
+            consoleWarn: () => {
+                if (window.__nativeConsoleMethods?.warn) {
+                    return safeToString(window.__nativeConsoleMethods.warn);
+                }
+                if (console.warn.__agentDetectorConsoleHook__ && console.warn.__originalNativeMethod) {
+                    return safeToString(console.warn.__originalNativeMethod);
+                }
+                return safeToString(console.warn);
+            },
+            consoleError: () => {
+                if (window.__nativeConsoleMethods?.error) {
+                    return safeToString(window.__nativeConsoleMethods.error);
+                }
+                if (console.error.__agentDetectorConsoleHook__ && console.error.__originalNativeMethod) {
+                    return safeToString(console.error.__originalNativeMethod);
+                }
+                return safeToString(console.error);
+            },
+            consoleDebug: () => {
+                if (window.__nativeConsoleMethods?.debug) {
+                    return safeToString(window.__nativeConsoleMethods.debug);
+                }
+                if (console.debug.__agentDetectorConsoleHook__ && console.debug.__originalNativeMethod) {
+                    return safeToString(console.debug.__originalNativeMethod);
+                }
+                return safeToString(console.debug);
+            },
+            consoleInfo: () => {
+                if (window.__nativeConsoleMethods?.info) {
+                    return safeToString(window.__nativeConsoleMethods.info);
+                }
+                if (console.info.__agentDetectorConsoleHook__ && console.info.__originalNativeMethod) {
+                    return safeToString(console.info.__originalNativeMethod);
+                }
+                return safeToString(console.info);
+            },
+            consoleTrace: () => {
+                if (window.__nativeConsoleMethods?.trace) {
+                    return safeToString(window.__nativeConsoleMethods.trace);
+                }
+                if (console.trace.__agentDetectorConsoleHook__ && console.trace.__originalNativeMethod) {
+                    return safeToString(console.trace.__originalNativeMethod);
+                }
+                return safeToString(console.trace);
+            },
             
             // ===== DOM MANIPULATION =====
             createElement: () => safeToString(Document.prototype.createElement),
@@ -393,7 +446,12 @@ export class FunctionIntegrityDetector {
                 pToString.call(P.Object.getOwnPropertyDescriptor(P.Navigator.prototype, 'userAgent')?.get);
             crossRealm.Date_now_diff = safeToString(Date.now) !== pToString.call(P.Date.now);
             crossRealm.Math_random_diff = safeToString(Math.random) !== pToString.call(P.Math.random);
-            crossRealm.console_log_diff = safeToString(console.log) !== pToString.call(P.console.log);
+            
+            // Console.log cross-realm check - use original native method if our hook is installed
+            const consoleLogToCheck = window.__nativeConsoleMethods?.log || 
+                (console.log.__agentDetectorConsoleHook__ ? console.log.__originalNativeMethod : console.log);
+            crossRealm.console_log_diff = safeToString(consoleLogToCheck) !== pToString.call(P.console.log);
+            
             crossRealm.Proxy_constructor_diff = safeToString(Proxy) !== pToString.call(P.Proxy);
             crossRealm.Reflect_get_diff = safeToString(Reflect.get) !== pToString.call(P.Reflect.get);
             crossRealm.fetch_diff = safeToString(fetch) !== pToString.call(P.fetch);
@@ -420,7 +478,16 @@ export class FunctionIntegrityDetector {
             descChecks.Navigator_platform_desc_unchanged = sameDescriptor(Navigator.prototype, 'platform', P.Navigator.prototype);
             descChecks.Function_toString_desc_unchanged = sameDescriptor(Function.prototype, 'toString', P.Function.prototype);
             descChecks.JSON_stringify_desc_unchanged = sameDescriptor(JSON, 'stringify', P.JSON);
-            descChecks.console_log_desc_unchanged = sameDescriptor(console, 'log', P.console);
+            
+            // For console.log descriptor check, we skip if our own hook is installed
+            // since we know we modified it intentionally for browser-use detection
+            if (window.__browserUseDetectorInstalled && console.log.__agentDetectorConsoleHook__) {
+                // Our hook is installed - mark as unchanged (not a violation)
+                descChecks.console_log_desc_unchanged = true;
+            } else {
+                descChecks.console_log_desc_unchanged = sameDescriptor(console, 'log', P.console);
+            }
+            
             descChecks.Date_now_desc_unchanged = sameDescriptor(Date, 'now', P.Date);
             descChecks.Math_random_desc_unchanged = sameDescriptor(Math, 'random', P.Math);
         } catch (e) {
@@ -431,6 +498,10 @@ export class FunctionIntegrityDetector {
         // --- 5) Proxy suspicion checks (focused on high-value targets)
         const proxySuspicions = {};
         try {
+            // Get original console.log if our hook is installed
+            const consoleLogForProxyCheck = window.__nativeConsoleMethods?.log || 
+                (console.log.__agentDetectorConsoleHook__ ? console.log.__originalNativeMethod : console.log);
+            
             const criticalFunctions = {
                 'setTimeout_proxied': setTimeout,
                 'setInterval_proxied': setInterval,
@@ -438,7 +509,7 @@ export class FunctionIntegrityDetector {
                 'fetch_proxied': fetch,
                 'JSON_stringify_proxied': JSON.stringify,
                 'addEventListener_proxied': EventTarget.prototype.addEventListener,
-                'console_log_proxied': console.log
+                'console_log_proxied': consoleLogForProxyCheck
             };
             
             Object.entries(criticalFunctions).forEach(([key, func]) => {
@@ -524,6 +595,10 @@ export class FunctionIntegrityDetector {
             }
         };
 
+        // Get original console.log for main context comparison (avoid our own hook)
+        const mainContextConsoleLog = window.__nativeConsoleMethods?.log || 
+            (console.log.__agentDetectorConsoleHook__ ? console.log.__originalNativeMethod : console.log);
+
         const mainContext = {
             ua: navigator.userAgent,
             plat: navigator.platform,
@@ -533,7 +608,7 @@ export class FunctionIntegrityDetector {
             JSONStringify: JSON.stringify.toString(),
             mathRandom: Math.random.toString(),
             dateNow: Date.now.toString(),
-            consoleLog: console.log.toString(),
+            consoleLog: mainContextConsoleLog.toString(),
             fetch: fetch.toString(),
         };
 

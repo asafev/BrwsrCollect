@@ -32,3 +32,6 @@ export {
 // Search and Customization Components
 export { createSearchBar, createSearchFilter } from './SearchBar.js';
 export { createMetricsCustomizer } from './MetricsCustomizer.js';
+
+// Agent Detection Overlay
+export { AgentDetectionOverlay } from './AgentDetectionOverlay.js';
