@@ -2857,7 +2857,10 @@ class BrowserFingerprintAnalyzer {
             rawResults: {
                 fonts: this.fontsDetector?.result || null,
                 knownAgents: this.knownAgentsResults || null,
-                // Add other detectors as needed
+                // WebRTC raw result including full SDP offering string
+                webRTC: this.webRTCLeakDetector?.getResult() || null,
+                // Function integrity raw results including overridden functions and error stack
+                functionIntegrity: this.functionIntegrityDetector?.results?.functionIntegrity || null,
             },
             suspiciousIndicators: combinedSuspiciousIndicators, // Combined indicators
             suspiciousAnalysis: this.suspiciousAnalysis, // Full analysis with reasoning

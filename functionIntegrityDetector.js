@@ -342,18 +342,43 @@ export class FunctionIntegrityDetector {
             },
         };
 
-        // Execute all checks
+        // Execute all checks and collect full toString for overridden (non-native) functions
+        const overriddenFunctions = {};
         for (const [k, fn] of Object.entries(integrityChecks)) {
             try {
                 const val = fn();
                 T(k, val);
                 // Native-ness bit for quick scoring
-                T(`${k}_native`, isNativeSignature(String(val)));
+                const isNative = isNativeSignature(String(val));
+                T(`${k}_native`, isNative);
+                
+                // Store full toString for non-native functions (for analysis)
+                if (!isNative && typeof val === 'string' && val.length > 0 &&
+                    !val.startsWith('error:') &&
+                    val !== 'not-supported' && val !== 'not-available' && 
+                    val !== 'no-webgl' && val !== 'webgl-error' &&
+                    val !== 'native' && val !== 'MODIFIED') {
+                    overriddenFunctions[k] = val;
+                }
             } catch (e) {
                 T(k, `error:${e?.message || e}`);
                 T(`${k}_native`, false);
             }
         }
+        
+        // Store overridden functions with full toString for analysis
+        T('overriddenFunctions', overriddenFunctions);
+
+        // --- Error Stack Trace Analysis ---
+        // Capture Error stack to detect modified Error constructors or stack manipulation
+        let errorStackTrace = null;
+        try {
+            const err = new Error();
+            errorStackTrace = err.stack || '';
+        } catch (e) {
+            errorStackTrace = `error:${e?.message || e}`;
+        }
+        T('errorStackTrace', errorStackTrace);
 
         // --- 3) Cross-realm integrity checks
         const crossRealm = {};
@@ -760,9 +785,105 @@ export class FunctionIntegrityDetector {
                     }
                 });
             }
+
+            // Error stack trace - only show if non-trivial (not just a simple anonymous stack)
+            if (this.results.functionIntegrity.errorStackTrace) {
+                const stack = this.results.functionIntegrity.errorStackTrace;
+                const isTrivialStack = this._isTrivialErrorStack(stack);
+                
+                if (!isTrivialStack && typeof stack === 'string' && !stack.startsWith('error:')) {
+                    metrics.functionIntegrity.errorStackTrace = {
+                        value: stack,
+                        description: 'Error stack trace - may indicate modified Error constructor or execution context',
+                        risk: 'medium'
+                    };
+                }
+            }
+
+            // Overridden functions with full toString - for detailed analysis
+            if (this.results.functionIntegrity.overriddenFunctions) {
+                const overridden = this.results.functionIntegrity.overriddenFunctions;
+                const count = Object.keys(overridden).length;
+                
+                if (count > 0) {
+                    metrics.functionIntegrity.overriddenFunctionsCount = {
+                        value: count,
+                        description: `Number of overridden (non-native) functions detected`,
+                        risk: count > 5 ? 'high' : count > 0 ? 'medium' : 'low'
+                    };
+                    
+                    // Store individual overridden function details
+                    Object.entries(overridden).forEach(([funcName, fullToString]) => {
+                        metrics.functionIntegrity[`override_${funcName}`] = {
+                            value: fullToString.length > 200 ? fullToString.substring(0, 200) + '...[truncated]' : fullToString,
+                            fullValue: fullToString, // Store full value for export/raw access
+                            description: `Full toString() of overridden function: ${funcName}`,
+                            risk: 'high'
+                        };
+                    });
+                }
+            }
         }
 
         return metrics;
+    }
+
+    /**
+     * Check if an error stack trace is trivial (standard browser-generated stack)
+     * Trivial stacks are those generated in normal execution contexts without modification
+     * @param {string} stack - The error stack string
+     * @returns {boolean} True if the stack is trivial and should be hidden
+     */
+    _isTrivialErrorStack(stack) {
+        if (!stack || typeof stack !== 'string') return true;
+        
+        // Normalize the stack for comparison
+        const normalizedStack = stack.trim();
+        
+        // Pattern 1: Simple anonymous stack (e.g., "Error\n    at <anonymous>:1:13")
+        if (/^Error\s*\n\s*at\s+<anonymous>:\d+:\d+\s*$/i.test(normalizedStack)) {
+            return true;
+        }
+        
+        // Pattern 2: Chrome-style eval stack (trivial eval context)
+        if (/^Error\s*\n\s*at\s+eval\s+\(eval\s+at\s+/i.test(normalizedStack)) {
+            // Check if it's just a single-frame eval stack
+            const lines = normalizedStack.split('\n').filter(l => l.trim().length > 0);
+            if (lines.length <= 2) {
+                return true;
+            }
+        }
+        
+        // Pattern 3: Firefox-style trivial stack (@:line:col or @debugger eval code:line:col)
+        if (/^@(debugger\s+eval\s+code)?:\d+:\d+\s*$/i.test(normalizedStack)) {
+            return true;
+        }
+        
+        // Pattern 4: Very short stacks (just "Error" or similar)
+        if (normalizedStack.length < 30 && !normalizedStack.includes('\n')) {
+            return true;
+        }
+        
+        // Pattern 5: Stack with only our own function integrity detector frames (self-generated)
+        if (normalizedStack.includes('functionIntegrityDetector') && 
+            !normalizedStack.includes('Proxy') && 
+            normalizedStack.split('\n').length <= 5) {
+            // Could be trivial internal stack - check if it has suspicious frames
+            const suspiciousPatterns = [
+                'puppeteer', 'playwright', 'selenium', 'webdriver',
+                'ghost', 'phantom', 'zombie', 'nightmare',
+                'cypress', 'testcafe', 'protractor'
+            ];
+            const hasNonSuspiciousStack = !suspiciousPatterns.some(p => 
+                normalizedStack.toLowerCase().includes(p)
+            );
+            if (hasNonSuspiciousStack) {
+                return true;
+            }
+        }
+        
+        // Not trivial - stack is interesting and should be shown
+        return false;
     }
 
     /**
@@ -881,7 +1002,11 @@ export class FunctionIntegrityDetector {
             resizeObserver: 'ResizeObserver constructor',
             notificationConstructor: 'Notification constructor',
             batteryManager: 'navigator.getBattery',
-            toStringIntegrity: 'Function.prototype.toString integrity check'
+            toStringIntegrity: 'Function.prototype.toString integrity check',
+            
+            // Error stack and overridden functions
+            errorStackTrace: 'Error stack trace - reveals execution context and potential modifications',
+            overriddenFunctionsCount: 'Count of overridden (non-native) functions detected'
         };
         
         return descriptions[key] || `Integrity check for ${key}`;

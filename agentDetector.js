@@ -28,6 +28,7 @@ class AIAgentDetector {
             { name: 'Skyvern', detector: this.detectSkyvern },
             { name: 'ChatGPTBrowser', detector: this.detectChatGPTBrowser },
             { name: 'Fellou', detector: this.detectFellouBrowser },
+            { name: 'HyperBrowser', detector: this.detectHyperBrowser },
             // Add more detectors here as they're implemented
             { name: 'Selenium', detector: this.detectSelenium },
             { name: 'Puppeteer', detector: this.detectPuppeteer },
@@ -73,6 +74,9 @@ class AIAgentDetector {
                             break;
                         case 'Fellou':
                             confidence = 0.95; // Very high confidence - unique window property
+                            break;
+                        case 'HyperBrowser':
+                            confidence = 0.90; // High confidence - console.log wrapper signature
                             break;
                         case 'Selenium':
                             confidence = 0.95; // Very high confidence - multiple artifact validation
@@ -528,6 +532,181 @@ class AIAgentDetector {
     }
 
     /**
+     * Detect HyperBrowser AI Agent via console.log wrapper signature
+     * HyperBrowser wraps console.log with a specific pattern including:
+     * - captureLogArguments function
+     * - logBuffer.push calls  
+     * - Math.floor(Math.random() * 251) + 50 pattern (unique magic numbers)
+     * - flushTimeoutId with setTimeout
+     * - flushBuffer function
+     * - randomBatchSize variable
+     * - pageId variable
+     * - Reflect.apply with originalMethod
+     * 
+     * Detection requires rand251plus50 (highly unique) AND at least 3 other signals
+     * 
+     * @returns {Object} Detection result with status, confidence, and indicators
+     */
+    async detectHyperBrowser() {
+        const indicators = [];
+        
+        try {
+            const consoleLogString = Function.prototype.toString.call(console.log);
+            
+            // Check if console.log is native (not wrapped)
+            if (/\{\s*\[native code\]\s*\}/.test(consoleLogString)) {
+                return {
+                    detected: false,
+                    confidence: 0.0,
+                    indicators: [],
+                    primarySignal: null
+                };
+            }
+            
+            // Normalize whitespace for pattern matching
+            const normalizedString = consoleLogString.replace(/\s+/g, ' ');
+            const detectedReasons = [];
+            
+            // ========================================
+            // Primary Signal (Required for detection)
+            // ========================================
+            
+            // Check for the specific random pattern: Math.floor(Math.random() * 251) + 50
+            // This is the most unique identifier - magic numbers 251 and 50
+            if (/Math\.floor\(\s*Math\.random\(\)\s*\*\s*251\s*\)\s*\+\s*50/.test(normalizedString)) {
+                detectedReasons.push('rand251plus50');
+                indicators.push({
+                    name: 'rand251plus50',
+                    description: 'HyperBrowser specific random pattern (251+50) detected - unique magic numbers',
+                    value: 'Math.floor(Math.random() * 251) + 50'
+                });
+            }
+            
+            // ========================================
+            // Secondary Signals (Supporting evidence)
+            // ========================================
+            
+            // Check for captureLogArguments signature
+            if (normalizedString.includes('captureLogArguments')) {
+                detectedReasons.push('captureLogArguments');
+                indicators.push({
+                    name: 'captureLogArguments',
+                    description: 'HyperBrowser captureLogArguments function detected in console.log',
+                    value: 'present'
+                });
+            }
+            
+            // Check for logBuffer.push pattern
+            if (normalizedString.includes('logBuffer.push')) {
+                detectedReasons.push('logBuffer');
+                indicators.push({
+                    name: 'logBuffer',
+                    description: 'HyperBrowser logBuffer.push pattern detected',
+                    value: 'present'
+                });
+            }
+            
+            // Check for flushBuffer function
+            if (normalizedString.includes('flushBuffer')) {
+                detectedReasons.push('flushBuffer');
+                indicators.push({
+                    name: 'flushBuffer',
+                    description: 'HyperBrowser flushBuffer function detected',
+                    value: 'present'
+                });
+            }
+            
+            // Check for flushTimeoutId with setTimeout pattern
+            if (normalizedString.includes('flushTimeoutId') && normalizedString.includes('setTimeout')) {
+                detectedReasons.push('flushTimeout');
+                indicators.push({
+                    name: 'flushTimeout',
+                    description: 'HyperBrowser flush timeout pattern detected',
+                    value: 'flushTimeoutId + setTimeout'
+                });
+            }
+            
+            // Check for randomBatchSize variable
+            if (normalizedString.includes('randomBatchSize')) {
+                detectedReasons.push('randomBatchSize');
+                indicators.push({
+                    name: 'randomBatchSize',
+                    description: 'HyperBrowser randomBatchSize batch control detected',
+                    value: 'present'
+                });
+            }
+            
+            // Check for pageId variable (HyperBrowser tracks page context)
+            if (normalizedString.includes('pageId')) {
+                detectedReasons.push('pageId');
+                indicators.push({
+                    name: 'pageId',
+                    description: 'HyperBrowser pageId context tracking detected',
+                    value: 'present'
+                });
+            }
+            
+            // Check for Reflect.apply with originalMethod (proxy pattern)
+            if (normalizedString.includes('Reflect.apply') && normalizedString.includes('originalMethod')) {
+                detectedReasons.push('reflectApplyOriginal');
+                indicators.push({
+                    name: 'reflectApplyOriginal',
+                    description: 'HyperBrowser Reflect.apply with originalMethod proxy pattern detected',
+                    value: 'Reflect.apply + originalMethod'
+                });
+            } else if (normalizedString.includes('Reflect.apply')) {
+                // Partial match - just Reflect.apply
+                detectedReasons.push('reflectApply');
+                indicators.push({
+                    name: 'reflectApply',
+                    description: 'Reflect.apply usage detected in console.log wrapper',
+                    value: 'present'
+                });
+            }
+            
+            // ========================================
+            // Detection Logic - Minimize False Positives
+            // ========================================
+            
+            // HyperBrowser is detected if rand251plus50 (unique) is present AND at least 3 other signals
+            const hasRequiredSignal = detectedReasons.includes('rand251plus50');
+            const supportingSignals = detectedReasons.filter(r => r !== 'rand251plus50').length;
+            const isDetected = hasRequiredSignal && supportingSignals >= 3;
+            
+            // Calculate confidence based on number of matched patterns
+            let confidence = 0.0;
+            if (isDetected) {
+                const totalSignals = detectedReasons.length;
+                if (totalSignals >= 8) {
+                    confidence = 0.99; // All patterns matched
+                } else if (totalSignals >= 6) {
+                    confidence = 0.97; // Strong match
+                } else if (totalSignals >= 5) {
+                    confidence = 0.95; // Good match
+                } else {
+                    confidence = 0.90; // Minimum threshold met
+                }
+            }
+            
+            return {
+                detected: isDetected,
+                confidence,
+                indicators,
+                primarySignal: isDetected ? 'HyperBrowser_Console_Wrapper' : null,
+                detectedReasons // Include for debugging
+            };
+        } catch (error) {
+            console.debug('Error in HyperBrowser detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * Detect Playwright automation with comprehensive signal analysis
      * @returns {Object} Detection result with status, confidence, and detailed signals
      */
@@ -813,6 +992,7 @@ class AIAgentDetector {
             'Skyvern': 'Window Property Detection (GlobalSkyvernFrameIndex)',
             'ChatGPTBrowser': 'Console.log Override Signature Analysis',
             'Fellou': 'Window Property Detection (__FELLOU_TAB_ID__)',
+            'HyperBrowser': 'Console.log Wrapper Signature Detection (rand251plus50)',
             'Selenium': 'WebDriver Property & Artifact Detection',
             'Puppeteer': 'Headless Browser & Runtime Analysis',
             'Playwright': 'Framework Signature Detection',

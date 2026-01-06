@@ -602,6 +602,12 @@ class WebRTCLeakDetector {
                 description: 'SDP content length in characters',
                 risk: 'N/A'
             },
+            sdpOffering: {
+                value: result.sessionDescription.sdp || 'Not available',
+                description: 'Full SDP (Session Description Protocol) offering string for analysis',
+                risk: 'N/A',
+                isLargeValue: true // Flag to indicate this is a large value that may need special UI handling
+            },
             
             // Media devices
             mediaDevicesApiSupported: {
