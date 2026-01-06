@@ -20,7 +20,7 @@ export function createSection({ categoryKey, metricCount, content, expanded = fa
     const config = getCategoryConfig(categoryKey);
     
     const section = document.createElement('section');
-    section.className = `fp-section fp-section--${categoryKey}${expanded ? ' fp-section--expanded' : ''}`;
+    section.className = `fp-section premium-section premium-section--${categoryKey}${expanded ? ' premium-section--expanded' : ''}`;
     section.dataset.category = categoryKey;
     section.setAttribute('aria-label', config.label);
     
@@ -30,7 +30,7 @@ export function createSection({ categoryKey, metricCount, content, expanded = fa
     
     // Create header
     const header = document.createElement('div');
-    header.className = 'fp-section__header';
+    header.className = 'fp-section__header premium-section__header';
     header.setAttribute('role', 'button');
     header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     header.setAttribute('aria-controls', contentId);
@@ -61,22 +61,22 @@ export function createSection({ categoryKey, metricCount, content, expanded = fa
     
     // Handle SVG icons vs emoji
     const iconHtml = config.iconType === 'svg' 
-        ? `<div class="fp-section__icon fp-section__icon--svg" aria-hidden="true">${config.icon}</div>`
-        : `<div class="fp-section__icon" aria-hidden="true">${config.icon}</div>`;
+        ? `<div class="fp-section__icon premium-section__icon fp-section__icon--svg" aria-hidden="true">${config.icon}</div>`
+        : `<div class="fp-section__icon premium-section__icon" aria-hidden="true">${config.icon}</div>`;
     
     header.innerHTML = `
         ${iconHtml}
-        <div class="fp-section__title-group">
-            <h3 class="fp-section__title">
+        <div class="fp-section__title-group premium-section__title-group">
+            <h3 class="fp-section__title premium-section__title">
                 ${diffStatusHtml}${escapeHtml(config.label)}
             </h3>
-            <p class="fp-section__subtitle">${escapeHtml(config.description)}</p>
+            <p class="fp-section__subtitle premium-section__subtitle">${escapeHtml(config.description)}</p>
         </div>
-        <div class="fp-section__meta">
+        <div class="fp-section__meta premium-section__meta">
             ${countBadgesHtml}
-            <span class="fp-section__count" title="${metricCount} metrics" aria-label="${metricCount} metrics">${metricCount}</span>
-            <div class="fp-section__toggle" aria-hidden="true">
-                <svg class="fp-section__toggle-icon fp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <span class="fp-section__count premium-section__count" title="${metricCount} metrics" aria-label="${metricCount} metrics">${metricCount}</span>
+            <div class="fp-section__toggle premium-section__toggle" aria-hidden="true">
+                <svg class="fp-section__toggle-icon premium-section__toggle-icon fp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
             </div>
@@ -85,13 +85,13 @@ export function createSection({ categoryKey, metricCount, content, expanded = fa
     
     // Create content wrapper
     const contentWrapper = document.createElement('div');
-    contentWrapper.className = 'fp-section__content';
+    contentWrapper.className = 'fp-section__content premium-section__content';
     contentWrapper.id = contentId;
     contentWrapper.setAttribute('role', 'region');
     contentWrapper.setAttribute('aria-labelledby', sectionId);
     
     const contentInner = document.createElement('div');
-    contentInner.className = 'fp-section__inner';
+    contentInner.className = 'fp-section__inner premium-section__inner';
     contentInner.appendChild(content);
     
     contentWrapper.appendChild(contentInner);
@@ -99,6 +99,7 @@ export function createSection({ categoryKey, metricCount, content, expanded = fa
     // Toggle functionality
     const toggleSection = () => {
         const isExpanded = section.classList.toggle('fp-section--expanded');
+        section.classList.toggle('premium-section--expanded', isExpanded);
         header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
         
         // Announce state change to screen readers
@@ -142,7 +143,7 @@ export function createSectionManager() {
          */
         expandAll() {
             sections.forEach((element) => {
-                element.classList.add('fp-section--expanded');
+                element.classList.add('fp-section--expanded', 'premium-section--expanded');
                 const header = element.querySelector('.fp-section__header');
                 if (header) header.setAttribute('aria-expanded', 'true');
             });
@@ -154,7 +155,7 @@ export function createSectionManager() {
          */
         collapseAll() {
             sections.forEach((element) => {
-                element.classList.remove('fp-section--expanded');
+                element.classList.remove('fp-section--expanded', 'premium-section--expanded');
                 const header = element.querySelector('.fp-section__header');
                 if (header) header.setAttribute('aria-expanded', 'false');
             });
@@ -169,6 +170,7 @@ export function createSectionManager() {
             const element = sections.get(categoryKey);
             if (element) {
                 const isExpanded = element.classList.toggle('fp-section--expanded');
+                element.classList.toggle('premium-section--expanded', isExpanded);
                 const header = element.querySelector('.fp-section__header');
                 if (header) header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
             }

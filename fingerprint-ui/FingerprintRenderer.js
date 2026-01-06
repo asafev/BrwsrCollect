@@ -647,7 +647,7 @@ export class FingerprintUIRenderer {
      */
     createHeader() {
         const header = document.createElement('header');
-        header.className = 'fp-header';
+        header.className = 'fp-header premium-header';
         header.setAttribute('role', 'banner');
         
         const now = new Date();
@@ -667,28 +667,50 @@ export class FingerprintUIRenderer {
         const categoriesCount = Object.keys(this.fingerprintData?.metrics || {}).length;
         
         header.innerHTML = `
-            <h1 class="fp-header__title">
-                <span class="fp-header__title-icon" aria-hidden="true">🔍</span>
+            <h1 class="fp-header__title premium-header__title">
+                <span class="fp-header__title-icon premium-header__title-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </span>
                 Browser Fingerprint Analysis
             </h1>
-            <p class="fp-header__subtitle">
+            <p class="fp-header__subtitle premium-header__subtitle">
                 Enterprise security assessment analyzing ${totalMetrics.toLocaleString()} data points across ${categoriesCount} categories to identify browser characteristics, automation patterns, and security signals.
             </p>
-            <div class="fp-header__meta">
-                <div class="fp-header__meta-item">
-                    <span aria-hidden="true">📅</span>
+            <div class="fp-header__meta premium-header__meta">
+                <div class="fp-header__meta-item premium-header__meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
                     <span>${formattedDate}</span>
                 </div>
-                <div class="fp-header__meta-item">
-                    <span aria-hidden="true">🕐</span>
+                <div class="fp-header__meta-item premium-header__meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
                     <span>${formattedTime}</span>
                 </div>
-                <div class="fp-header__meta-item">
-                    <span aria-hidden="true">🌐</span>
+                <div class="fp-header__meta-item premium-header__meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
                     <span>${window.location.hostname || 'localhost'}</span>
                 </div>
-                <div class="fp-header__meta-item">
-                    <span aria-hidden="true">📊</span>
+                <div class="fp-header__meta-item premium-header__meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
                     <span>${totalMetrics} metrics</span>
                 </div>
             </div>

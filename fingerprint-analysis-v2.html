@@ -12,20 +12,23 @@
     <!-- Modern fonts for enterprise look - Segoe UI fallback to system fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <!-- Enterprise Design System Styles (Primary - takes precedence) -->
+    <!-- Enterprise Design System (base) -->
     <link rel="stylesheet" href="fingerprint-ui/styles/enterprise-design-system.css">
     <link rel="stylesheet" href="fingerprint-ui/styles/enterprise-components.css">
+    <!-- Premium 2026 CWAF Design System (loads last for precedence) -->
+    <link rel="stylesheet" href="fingerprint-ui/styles/premium-design-system.css">
+    <link rel="stylesheet" href="fingerprint-ui/styles/premium-components.css">
     
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <!-- Favicon - Professional SVG -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230066FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2L2 7l10 5 10-5-10-5z'/><path d='M2 17l10 5 10-5'/><path d='M2 12l10 5 10-5'/></svg>">
 </head>
-<body class="fp-page">
+<body class="fp-page premium-page">
     <!-- Back Navigation -->
-    <button class="fp-back-btn" onclick="window.history.back()" aria-label="Go back">
+    <button class="fp-back-btn premium-back-btn" onclick="window.history.back()" aria-label="Go back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
-        <span>Back to Lab</span>
+        <span>Back</span>
     </button>
 
     <!-- Main Container -->
@@ -131,13 +134,17 @@
         if (!createErrorState) {
             createErrorState = (error) => {
                 const div = document.createElement('div');
-                div.style.cssText = 'padding: 40px; text-align: center; background: #fff3f3; border-radius: 12px; margin: 20px;';
+                div.className = 'premium-card';
+                div.style.cssText = 'padding: var(--premium-space-10); text-align: center; background: var(--premium-danger-bg); border-color: var(--premium-danger);';
                 div.innerHTML = `
-                    <h2 style="color: #d32f2f; margin-bottom: 16px;">⚠️ Analysis Error</h2>
-                    <p style="color: #666; margin-bottom: 20px;">${error.message || 'An error occurred during fingerprint analysis'}</p>
-                    <button onclick="location.reload()" style="padding: 10px 24px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        Try Again
-                    </button>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--premium-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto var(--premium-space-4);">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h2 style="color: var(--premium-danger); margin-bottom: var(--premium-space-4); font-size: var(--premium-font-size-xl); font-weight: var(--premium-font-weight-semibold);">Analysis Error</h2>
+                    <p style="color: var(--premium-neutral-700); margin-bottom: var(--premium-space-6);">${error.message || 'An error occurred during fingerprint analysis'}</p>
+                    <button onclick="location.reload()" class="premium-btn premium-btn--primary">Try Again</button>
                 `;
                 return div;
             };
@@ -168,7 +175,7 @@
             const appContainer = document.getElementById('fp-app');
             
             // Show initial loading state
-            appContainer.innerHTML = '<div style="padding: 40px; text-align: center;"><h2>🔍 Initializing Analysis...</h2></div>';
+            appContainer.innerHTML = '<div style="padding: 40px; text-align: center;"><h2 style="color: var(--premium-neutral-700); font-weight: 600;">Initializing Analysis...</h2></div>';
             
             try {
                 // ----------------------------------------
@@ -221,15 +228,15 @@
                         }, 100);
                         
                         // Collect behavioral data
-                        console.log('🎯 Starting behavioral data collection...');
+                        console.log('Starting behavioral data collection...');
                         behavioralData = await behavioralTracker.collectBehavioralData();
                         clearInterval(countdownInterval);
-                        console.log('✅ Behavioral data collected:', behavioralData);
+                        console.log('Behavioral data collected:', behavioralData);
                     } catch (e) {
-                        console.warn('⚠️ Behavioral collection failed, continuing with fingerprint:', e.message);
+                        console.warn('Behavioral collection failed, continuing with fingerprint:', e.message);
                     }
                 } else {
-                    console.warn('⚠️ Behavioral tracker not available, skipping behavioral collection');
+                    console.warn('Behavioral tracker not available, skipping behavioral collection');
                 }
                 
                 // ----------------------------------------
@@ -249,8 +256,12 @@
                     appContainer.appendChild(analysisLoading);
                 } else {
                     const loadingDiv = document.createElement('div');
-                    loadingDiv.style.cssText = 'padding: 40px; text-align: center;';
-                    loadingDiv.innerHTML = '<h2>🔍 Analyzing Browser Fingerprint...</h2>';
+                    loadingDiv.className = 'premium-loading';
+                    loadingDiv.innerHTML = `
+                        <div class="premium-loading__spinner"></div>
+                        <h2 class="premium-loading__title">Analyzing Browser Fingerprint...</h2>
+                        <p class="premium-loading__text">Collecting comprehensive browser and network data</p>
+                    `;
                     appContainer.appendChild(loadingDiv);
                 }
                 
@@ -282,30 +293,30 @@
                     // Update subtitle with completed phases info
                     if (updateLoadingContent && progress.completedPhases) {
                         const phaseNames = {
-                            core: '📊 Core Properties',
-                            network: '📡 Network',
-                            battery: '🔋 Battery/Storage',
-                            audio: '🔊 Audio',
-                            speech: '🗣️ Speech',
-                            language: '🌐 Language',
-                            css: '🎨 CSS Styles',
-                            webrtc: '📡 WebRTC',
-                            workers: '🔄 Workers',
-                            fonts: '🔤 Fonts',
-                            webgl: '🎨 WebGL',
-                            media: '🎤 Media Devices',
-                            activeMeasurements: '⚡ Network Speed',
-                            functionIntegrity: '🔒 Function Integrity',
-                            stringSignature: '🔍 Automation Signatures',
-                            knownAgents: '🕵️ Known Agents',
-                            behavioral: '🎯 Behavioral',
-                            suspicious: '🚨 Risk Analysis'
+                            core: 'Core Properties',
+                            network: 'Network',
+                            battery: 'Battery/Storage',
+                            audio: 'Audio',
+                            speech: 'Speech',
+                            language: 'Language',
+                            css: 'CSS Styles',
+                            webrtc: 'WebRTC',
+                            workers: 'Workers',
+                            fonts: 'Fonts',
+                            webgl: 'WebGL',
+                            media: 'Media Devices',
+                            activeMeasurements: 'Network Speed',
+                            functionIntegrity: 'Function Integrity',
+                            stringSignature: 'Automation Signatures',
+                            knownAgents: 'Known Agents',
+                            behavioral: 'Behavioral',
+                            suspicious: 'Risk Analysis'
                         };
                         const completedNames = progress.completedPhases
                             .map(p => phaseNames[p] || p)
                             .slice(-3) // Show last 3 completed
                             .join(' → ');
-                        const subtitle = completedNames ? `✅ ${completedNames}` : progress.message;
+                        const subtitle = completedNames ? completedNames : progress.message;
                         updateLoadingContent('Analyzing Browser Fingerprint...', subtitle);
                     }
                     
@@ -317,7 +328,7 @@
                 
                 // Handler for known agents live updates
                 const handleKnownAgentsUpdate = (updateData) => {
-                    console.log('🕵️ Known agents update:', updateData);
+                    console.log('Known agents update:', updateData);
                     
                     // Update the fingerprint data
                     if (fingerprintData) {
@@ -340,7 +351,7 @@
                     
                     // Alert on new agents detected
                     if (updateData.newAgentsDetected?.length > 0) {
-                        console.warn(`⚠️ NEW AGENT(S) DETECTED: ${updateData.newAgentsDetected.join(', ')}`);
+                        console.warn(`NEW AGENT(S) DETECTED: ${updateData.newAgentsDetected.join(', ')}`);
                     }
                     
                     // Update the UI section
@@ -418,7 +429,7 @@
                     };
                 }
                 
-                console.log('✅ Complete fingerprint data:', fingerprintData);
+                console.log('Complete fingerprint data:', fingerprintData);
                 
                 // ----------------------------------------
                 // Phase 4: Render UI
@@ -441,14 +452,14 @@
                     await uiRenderer.render(fingerprintData);
                 } else {
                     // Fallback: render basic JSON view
-                    console.warn('⚠️ FingerprintUIRenderer not available, showing fallback view');
+                    console.warn('FingerprintUIRenderer not available, showing fallback view');
                     renderFallbackView(appContainer, fingerprintData);
                 }
                 
                 // Check for any browser-use signals that were captured before UI was ready
                 // This handles the case where browser-use logged before our event listener was set up
                 if (window.__botSignals?.browserUseConsole) {
-                    console.log('🔍 Found pre-existing browser-use signal, triggering overlay...');
+                    console.log('Found pre-existing browser-use signal, triggering overlay...');
                     // Short delay to ensure UI is fully rendered
                     setTimeout(() => {
                         const signal = window.__botSignals.browserUseConsole;
@@ -476,29 +487,29 @@
             const metricsCount = Object.values(data.metrics || {}).reduce((sum, cat) => sum + Object.keys(cat || {}).length, 0);
             
             container.innerHTML = `
-                <div style="padding: 30px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-                    <h1 style="color: #333; margin-bottom: 20px;">✅ Fingerprint Analysis Complete</h1>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 32px; font-weight: bold; color: #667eea;">${metricsCount}</div>
-                            <div style="color: #666; font-size: 12px; text-transform: uppercase;">Total Metrics</div>
+                <div class="premium-card" style="padding: var(--premium-space-8);">
+                    <h1 style="color: var(--premium-neutral-900); margin-bottom: var(--premium-space-6); font-size: var(--premium-font-size-3xl); font-weight: var(--premium-font-weight-bold);">Fingerprint Analysis Complete</h1>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--premium-space-5); margin-bottom: var(--premium-space-8);">
+                        <div class="premium-card" style="padding: var(--premium-space-6); text-align: center;">
+                            <div style="font-size: var(--premium-font-size-4xl); font-weight: var(--premium-font-weight-bold); color: var(--premium-primary); font-variant-numeric: tabular-nums;">${metricsCount}</div>
+                            <div style="color: var(--premium-neutral-600); font-size: var(--premium-font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-top: var(--premium-space-2);">Total Metrics</div>
                         </div>
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 32px; font-weight: bold; color: #667eea;">${Object.keys(data.metrics || {}).length}</div>
-                            <div style="color: #666; font-size: 12px; text-transform: uppercase;">Categories</div>
+                        <div class="premium-card" style="padding: var(--premium-space-6); text-align: center;">
+                            <div style="font-size: var(--premium-font-size-4xl); font-weight: var(--premium-font-weight-bold); color: var(--premium-primary); font-variant-numeric: tabular-nums;">${Object.keys(data.metrics || {}).length}</div>
+                            <div style="color: var(--premium-neutral-600); font-size: var(--premium-font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-top: var(--premium-space-2);">Categories</div>
                         </div>
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 32px; font-weight: bold; color: #667eea;">${(data.suspiciousIndicators || []).length}</div>
-                            <div style="color: #666; font-size: 12px; text-transform: uppercase;">Suspicious Indicators</div>
+                        <div class="premium-card" style="padding: var(--premium-space-6); text-align: center;">
+                            <div style="font-size: var(--premium-font-size-4xl); font-weight: var(--premium-font-weight-bold); color: var(--premium-primary); font-variant-numeric: tabular-nums;">${(data.suspiciousIndicators || []).length}</div>
+                            <div style="color: var(--premium-neutral-600); font-size: var(--premium-font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-top: var(--premium-space-2);">Suspicious Indicators</div>
                         </div>
                     </div>
-                    <details style="margin-bottom: 20px;">
-                        <summary style="cursor: pointer; font-weight: bold; padding: 10px; background: #f0f0f0; border-radius: 6px;">View Raw JSON Data</summary>
-                        <pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow: auto; max-height: 400px; margin-top: 10px; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>
+                    <details class="premium-card" style="margin-bottom: var(--premium-space-6); padding: var(--premium-space-4);">
+                        <summary style="cursor: pointer; font-weight: var(--premium-font-weight-semibold); padding: var(--premium-space-3); color: var(--premium-neutral-700); user-select: none;">View Raw JSON Data</summary>
+                        <pre style="background: var(--premium-neutral-900); color: var(--premium-neutral-100); padding: var(--premium-space-5); border-radius: var(--premium-radius-lg); overflow: auto; max-height: 400px; margin-top: var(--premium-space-4); font-size: var(--premium-font-size-sm); font-family: var(--premium-font-mono); line-height: 1.6;">${JSON.stringify(data, null, 2)}</pre>
                     </details>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="copyData()" style="padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">📋 Copy JSON</button>
-                        <button onclick="downloadData()" style="padding: 12px 24px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">💾 Download JSON</button>
+                    <div style="display: flex; gap: var(--premium-space-3);">
+                        <button onclick="copyData()" class="premium-btn premium-btn--primary">Copy JSON</button>
+                        <button onclick="downloadData()" class="premium-btn premium-btn--secondary">Download JSON</button>
                     </div>
                 </div>
             `;
@@ -506,8 +517,20 @@
             // Add copy/download functions to window
             window.copyData = () => {
                 navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-                    .then(() => alert('✅ Copied to clipboard!'))
-                    .catch(err => alert('Failed to copy: ' + err));
+                    .then(() => {
+                        // Show subtle notification instead of alert
+                        const btn = document.querySelector('button[onclick="copyData()"]');
+                        if (btn) {
+                            const originalText = btn.textContent;
+                            btn.textContent = 'Copied!';
+                            btn.style.background = 'var(--premium-success)';
+                            setTimeout(() => {
+                                btn.textContent = originalText;
+                                btn.style.background = '';
+                            }, 2000);
+                        }
+                    })
+                    .catch(err => console.error('Failed to copy:', err));
             };
             
             window.downloadData = () => {

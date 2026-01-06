@@ -1,7 +1,7 @@
 /**
- * Fingerprint UI - SVG Icon System
- * Professional enterprise-grade SVG icons for category headers
- * Designed with Meta/Facebook design principles
+ * Fingerprint UI - Premium SVG Icon System
+ * Enterprise-grade icons for 2026 CWAF design system
+ * Minimalistic, professional, security-focused
  */
 
 /**
@@ -107,9 +107,11 @@ export function getCategoryIcon(categoryKey) {
         </svg>`,
         
         webgl: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-            <polyline points="2 17 12 22 22 17"></polyline>
-            <polyline points="2 12 12 17 22 12"></polyline>
+            <rect x="2" y="2" width="20" height="20" rx="2"></rect>
+            <path d="M7 7h10v10H7z"></path>
+            <path d="M7 7l5 5M12 12l5-5"></path>
+            <circle cx="9" cy="9" r="1"></circle>
+            <circle cx="15" cy="15" r="1"></circle>
         </svg>`,
         
         speechSynthesis: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -137,11 +139,12 @@ export function getCategoryIcon(categoryKey) {
         </svg>`,
         
         fonts: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 7V4h16v3"></path>
-            <line x1="5" y1="20" x2="19" y2="20"></line>
-            <line x1="5" y1="4" x2="5" y2="20"></line>
-            <line x1="9" y1="4" x2="9" y2="20"></line>
-            <path d="M19 4l-2 16"></path>
+            <path d="M4 20h16"></path>
+            <path d="M6 4v16"></path>
+            <path d="M10 4v16"></path>
+            <path d="M14 4v16"></path>
+            <path d="M18 4v16"></path>
+            <path d="M4 4h16"></path>
         </svg>`,
         
         audio: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -163,9 +166,35 @@ export function getCategoryIcon(categoryKey) {
         </svg>`,
         
         network: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            <path d="M2 12h20"></path>
+        </svg>`,
+        
+        networkCapabilities: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>`,
+        
+        activeMeasurements: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+            <circle cx="20" cy="4" r="1"></circle>
+        </svg>`,
+        
+        batteryStorage: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="6" width="18" height="12" rx="2" ry="2"></rect>
+            <line x1="23" y1="13" x2="23" y2="11"></line>
+            <path d="M6 10v4"></path>
+        </svg>`,
+        
+        knownAgents: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
         </svg>`
     };
     

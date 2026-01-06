@@ -17,13 +17,37 @@ const OVERLAY_STYLES = `
 }
 
 .agent-detection-banner {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-    border-bottom: 2px solid #e74c3c;
-    box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3), 0 0 40px rgba(231, 76, 60, 0.1);
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%) 1;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.25), 
+                0 0 0 1px rgba(99, 102, 241, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 0;
     transform: translateY(-100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-detection-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(99, 102, 241, 0.1) 50%, 
+        transparent 100%);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 .agent-detection-banner.visible {
@@ -51,20 +75,51 @@ const OVERLAY_STYLES = `
 }
 
 .threat-icon {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    border-radius: 12px;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%);
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-    animation: pulse-glow 2s ease-in-out infinite;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: ai-pulse 2.5s ease-in-out infinite;
+    position: relative;
 }
 
-@keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4); }
-    50% { box-shadow: 0 4px 20px rgba(231, 76, 60, 0.7), 0 0 30px rgba(231, 76, 60, 0.3); }
+.threat-icon::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    padding: 2px;
+    background: linear-gradient(135deg, #6366F1, #8B5CF6, #EC4899);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.6;
+    animation: ai-rotate 3s linear infinite;
+}
+
+@keyframes ai-pulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4),
+                    0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 12px 32px rgba(99, 102, 241, 0.6),
+                    0 0 0 1px rgba(255, 255, 255, 0.2),
+                    0 0 40px rgba(236, 72, 153, 0.3);
+    }
+}
+
+@keyframes ai-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .threat-icon svg {
@@ -80,32 +135,64 @@ const OVERLAY_STYLES = `
 }
 
 .banner-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     color: #ffffff;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.02em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .banner-title .status-dot {
-    width: 8px;
-    height: 8px;
-    background: #e74c3c;
+    width: 10px;
+    height: 10px;
+    background: linear-gradient(135deg, #6366F1, #EC4899);
     border-radius: 50%;
-    animation: blink 1s ease-in-out infinite;
+    animation: ai-blink 1.5s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.8),
+                0 0 24px rgba(236, 72, 153, 0.4);
+    position: relative;
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+.banner-title .status-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366F1, #EC4899);
+    opacity: 0.3;
+    animation: ai-ripple 2s ease-out infinite;
+}
+
+@keyframes ai-blink {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.6;
+        transform: scale(0.95);
+    }
+}
+
+@keyframes ai-ripple {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
 }
 
 .banner-subtitle {
     font-size: 13px;
-    color: #a0aec0;
+    color: #94A3B8;
     font-weight: 400;
+    letter-spacing: 0.01em;
 }
 
 .banner-center {
@@ -116,34 +203,63 @@ const OVERLAY_STYLES = `
 }
 
 .agent-badge {
-    background: rgba(231, 76, 60, 0.15);
-    border: 1px solid rgba(231, 76, 60, 0.4);
-    border-radius: 20px;
-    padding: 6px 14px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    padding: 8px 16px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        transparent 100%);
+    transition: left 0.5s;
 }
 
 .agent-badge:hover {
-    background: rgba(231, 76, 60, 0.25);
-    border-color: rgba(231, 76, 60, 0.6);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%);
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.agent-badge:hover::before {
+    left: 100%;
 }
 
 .agent-badge .agent-name {
     font-size: 13px;
     font-weight: 600;
-    color: #e74c3c;
+    background: linear-gradient(135deg, #6366F1, #EC4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.02em;
 }
 
 .agent-badge .confidence {
     font-size: 11px;
-    color: #f39c12;
-    font-weight: 500;
-    background: rgba(243, 156, 18, 0.15);
-    padding: 2px 6px;
-    border-radius: 4px;
+    color: #F59E0B;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.2);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    font-variant-numeric: tabular-nums;
 }
 
 .agent-badge .timestamp {
@@ -158,23 +274,26 @@ const OVERLAY_STYLES = `
 }
 
 .details-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 10px 18px;
     color: #ffffff;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    backdrop-filter: blur(8px);
 }
 
 .details-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .dismiss-btn {

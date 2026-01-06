@@ -5,6 +5,7 @@
 
 import { IMPORTANCE_LEVELS } from '../config/constants.js';
 import { formatPercentage } from '../utils/helpers.js';
+import { getAgentIconAsImage } from '../utils/agentIcons.js';
 
 /**
  * Create suspicious indicators alert section
@@ -397,34 +398,37 @@ export function createKnownAgentsSection(knownAgentsData) {
     const intervalMs = knownAgentsData.intervalMs || 60000;
 
     const section = document.createElement('div');
-    section.className = `fp-alert-section ${hasAnyAgent ? 'fp-alert-section--danger' : 'fp-alert-section--success'}`;
+    section.className = `fp-alert-section fp-known-agents-section ${hasAnyAgent ? 'fp-alert-section--danger' : 'fp-alert-section--success'}`;
     section.id = 'fp-known-agents-section';
 
     // Header
     const header = document.createElement('div');
-    header.className = `fp-alert-header ${hasAnyAgent ? 'fp-alert-header--danger' : 'fp-alert-header--success'}`;
+    header.className = `fp-alert-header premium-agents-header ${hasAnyAgent ? 'fp-alert-header--danger' : 'fp-alert-header--success'}`;
+    const headerIcon = hasAnyAgent 
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4M12 16h.01"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>`;
     header.innerHTML = `
-        <div class="fp-alert-header__icon">${hasAnyAgent ? '🚨' : '✅'}</div>
-        <div class="fp-alert-header__content">
-            <h3 class="fp-alert-header__title">
+        <div class="fp-alert-header__icon premium-agents-icon">${headerIcon}</div>
+        <div class="fp-alert-header__content premium-agents-content">
+            <h3 class="fp-alert-header__title premium-agents-title">
                 ${hasAnyAgent ? 'Known AI Agent(s) Detected!' : 'No Known Agents Detected'}
             </h3>
-            <p class="fp-alert-header__subtitle">
+            <p class="fp-alert-header__subtitle premium-agents-subtitle">
                 Detection for known automation frameworks and AI agents
-                ${isPeriodicRunning ? `<span class="fp-badge fp-badge--info" style="margin-left: 8px;">🔄 Live monitoring (every ${intervalMs / 1000}s)</span>` : ''}
+                ${isPeriodicRunning ? `<span class="fp-badge fp-badge--info" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Live monitoring (every ${intervalMs / 1000}s)</span>` : ''}
             </p>
-            <div class="fp-alert-stats">
-                <div class="fp-alert-stat">
-                    <span class="fp-alert-stat__value">${detectedAgents.length}</span>
-                    <span class="fp-alert-stat__label">Agents Detected</span>
+            <div class="fp-alert-stats premium-agents-stats">
+                <div class="fp-alert-stat premium-agent-stat">
+                    <span class="fp-alert-stat__value premium-agent-stat-value">${detectedAgents.length}</span>
+                    <span class="fp-alert-stat__label premium-agent-stat-label">Agents Detected</span>
                 </div>
-                <div class="fp-alert-stat">
-                    <span class="fp-alert-stat__value">${detectionResults.length}</span>
-                    <span class="fp-alert-stat__label">Agents Checked</span>
+                <div class="fp-alert-stat premium-agent-stat">
+                    <span class="fp-alert-stat__value premium-agent-stat-value">${detectionResults.length}</span>
+                    <span class="fp-alert-stat__label premium-agent-stat-label">Agents Checked</span>
                 </div>
-                <div class="fp-alert-stat">
-                    <span class="fp-alert-stat__value">${history.length}</span>
-                    <span class="fp-alert-stat__label">Detection Runs</span>
+                <div class="fp-alert-stat premium-agent-stat">
+                    <span class="fp-alert-stat__value premium-agent-stat-value">${history.length}</span>
+                    <span class="fp-alert-stat__label premium-agent-stat-label">Detection Runs</span>
                 </div>
             </div>
         </div>
@@ -432,16 +436,20 @@ export function createKnownAgentsSection(knownAgentsData) {
 
     // Body with detection results
     const body = document.createElement('div');
-    body.className = 'fp-alert-body';
+    body.className = 'fp-alert-body premium-agents-body';
     body.id = 'fp-known-agents-body';
 
     // Show detected agents first (if any)
     if (hasAnyAgent) {
         const detectedSection = document.createElement('div');
-        detectedSection.className = 'fp-known-agents-detected';
+        detectedSection.className = 'fp-known-agents-detected premium-agents-detected';
         detectedSection.innerHTML = `
-            <h4 style="color: var(--fp-danger-700); margin-bottom: var(--fp-spacing-md); display: flex; align-items: center; gap: 8px;">
-                <span>⚠️</span>
+            <h4>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
                 <span>Detected Agents</span>
             </h4>
         `;
@@ -455,13 +463,17 @@ export function createKnownAgentsSection(knownAgentsData) {
 
     // Show all agent checks as a grid
     const allAgentsSection = document.createElement('div');
-    allAgentsSection.className = 'fp-known-agents-grid';
+    allAgentsSection.className = 'fp-known-agents-grid premium-agents-grid';
     allAgentsSection.innerHTML = `
-        <h4 style="color: var(--fp-gray-700); margin: var(--fp-spacing-lg) 0 var(--fp-spacing-md); display: flex; align-items: center; gap: 8px;">
-            <span>🕵️</span>
+        <h4>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5"></path>
+                <path d="M2 12l10 5 10-5"></path>
+            </svg>
             <span>All Agent Checks</span>
         </h4>
-        <div class="fp-agent-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--fp-spacing-md);">
+        <div class="fp-agent-grid premium-agent-grid">
             ${detectionResults.map(result => createAgentCardHTML(result)).join('')}
         </div>
     `;
@@ -471,21 +483,14 @@ export function createKnownAgentsSection(knownAgentsData) {
     // Add last detection timestamp
     if (results.timestamp) {
         const timestamp = document.createElement('div');
-        timestamp.className = 'fp-known-agents-timestamp';
-        timestamp.style.cssText = `
-            margin-top: var(--fp-spacing-lg);
-            padding-top: var(--fp-spacing-md);
-            border-top: 1px solid var(--fp-gray-200);
-            font-size: 0.8rem;
-            color: var(--fp-gray-500);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        `;
+        timestamp.className = 'fp-known-agents-timestamp premium-agents-timestamp';
         timestamp.innerHTML = `
-            <span>🕐</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
             <span>Last detection: ${new Date(results.timestamp).toLocaleString()}</span>
-            ${isPeriodicRunning ? '<span class="fp-badge fp-badge--success" style="font-size: 0.7rem;">Monitoring Active</span>' : ''}
+            ${isPeriodicRunning ? '<span class="fp-badge fp-badge--success" style="font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Monitoring Active</span>' : ''}
         `;
         body.appendChild(timestamp);
     }
@@ -502,44 +507,46 @@ export function createKnownAgentsSection(knownAgentsData) {
  */
 function createAgentResultItem(result, isDetected) {
     const item = document.createElement('article');
-    item.className = `fp-alert-item ${isDetected ? 'fp-alert-item--high' : 'fp-alert-item--low'}`;
+    item.className = `fp-alert-item premium-agent-result-item ${isDetected ? 'fp-alert-item--high premium-agent-result-item--detected' : 'fp-alert-item--low'}`;
     
     const confidence = result.confidence ? `${(result.confidence * 100).toFixed(0)}%` : 'N/A';
     const indicators = result.indicators || [];
+    const agentIcon = getAgentIconAsImage(result.name);
     
     item.innerHTML = `
-        <div class="fp-alert-item__header">
-            <span class="fp-alert-item__icon">${isDetected ? '🤖' : '✅'}</span>
-            <span class="fp-alert-item__title">${escapeHtml(result.name)}</span>
-            <span class="fp-alert-item__badge ${isDetected ? 'fp-alert-item__badge--high' : 'fp-alert-item__badge--low'}">
+        <div class="fp-alert-item__header premium-agent-result-header">
+            <div class="premium-agent-card__icon">${agentIcon}</div>
+            <span class="fp-alert-item__title premium-agent-result-title">${escapeHtml(result.name)}</span>
+            <span class="fp-alert-item__badge premium-agent-card__badge ${isDetected ? 'premium-agent-card__badge--detected' : 'premium-agent-card__badge--clear'}">
                 ${isDetected ? `DETECTED (${confidence})` : 'Not Detected'}
             </span>
         </div>
-        <div class="fp-alert-item__body">
-            <p class="fp-alert-item__description">
+        <div class="fp-alert-item__body premium-agent-result-body">
+            <p class="fp-alert-item__description premium-agent-result-description">
                 <strong>Detection Method:</strong> ${escapeHtml(result.detectionMethod || 'Unknown')}
             </p>
             ${result.primarySignal ? `
-                <p class="fp-alert-item__description">
+                <p class="fp-alert-item__description premium-agent-result-description">
                     <strong>Primary Signal:</strong> ${escapeHtml(result.primarySignal)}
                 </p>
             ` : ''}
             ${indicators.length > 0 ? `
-                <details class="fp-alert-item__details">
+                <details class="fp-alert-item__details premium-agent-result-details">
                     <summary>Detection Indicators (${indicators.length})</summary>
-                    <ul style="margin: 8px 0; padding-left: 20px;">
+                    <ul style="margin: var(--premium-space-3) 0; padding-left: var(--premium-space-5); list-style: none;">
                         ${indicators.map(ind => `
-                            <li style="margin: 4px 0; font-size: 0.85rem;">
-                                <strong>${escapeHtml(ind.name || 'Unknown')}</strong>: 
-                                ${escapeHtml(ind.description || ind.value || '')}
+                            <li style="margin: var(--premium-space-2) 0; font-size: var(--premium-font-size-sm); display: flex; align-items: flex-start; gap: var(--premium-space-2);">
+                                <span style="color: var(--premium-primary); margin-top: 4px;">•</span>
+                                <span><strong>${escapeHtml(ind.name || 'Unknown')}</strong>: ${escapeHtml(ind.description || ind.value || '')}</span>
                             </li>
                         `).join('')}
                     </ul>
                 </details>
             ` : ''}
             ${result.error ? `
-                <p style="color: var(--fp-warning-600); font-size: 0.85rem; margin-top: 8px;">
-                    ⚠️ Detection error: ${escapeHtml(result.error)}
+                <p style="color: var(--premium-warning); font-size: var(--premium-font-size-sm); margin-top: var(--premium-space-3); display: flex; align-items: center; gap: var(--premium-space-2);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Detection error: ${escapeHtml(result.error)}
                 </p>
             ` : ''}
         </div>
@@ -555,43 +562,30 @@ function createAgentResultItem(result, isDetected) {
 function createAgentCardHTML(result) {
     const isDetected = result.detected;
     const confidence = result.confidence ? `${(result.confidence * 100).toFixed(0)}%` : 'N/A';
+    const agentIcon = getAgentIconAsImage(result.name);
     
     return `
-        <div class="fp-agent-card" style="
-            background: ${isDetected ? 'var(--fp-danger-50)' : 'var(--fp-gray-50)'};
-            border: 1px solid ${isDetected ? 'var(--fp-danger-200)' : 'var(--fp-gray-200)'};
-            border-radius: var(--fp-radius-lg);
-            padding: var(--fp-spacing-md);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        ">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-weight: 600; color: ${isDetected ? 'var(--fp-danger-700)' : 'var(--fp-gray-700)'};">
-                    ${isDetected ? '🤖' : '✅'} ${escapeHtml(result.name)}
-                </span>
-                <span style="
-                    font-size: 0.75rem;
-                    padding: 2px 8px;
-                    border-radius: 999px;
-                    background: ${isDetected ? 'var(--fp-danger-600)' : 'var(--fp-success-600)'};
-                    color: white;
-                ">
+        <div class="fp-agent-card premium-agent-card ${isDetected ? 'premium-agent-card--detected' : ''}">
+            <div class="premium-agent-card__header">
+                <div class="premium-agent-card__icon">${agentIcon}</div>
+                <span class="premium-agent-card__name">${escapeHtml(result.name)}</span>
+                <span class="premium-agent-card__badge ${isDetected ? 'premium-agent-card__badge--detected' : 'premium-agent-card__badge--clear'}">
                     ${isDetected ? 'DETECTED' : 'Clear'}
                 </span>
             </div>
-            <div style="font-size: 0.8rem; color: var(--fp-gray-500);">
+            <div class="premium-agent-card__method">
                 ${escapeHtml(result.detectionMethod || 'Unknown method')}
             </div>
             ${isDetected ? `
-                <div style="font-size: 0.85rem; color: var(--fp-danger-600);">
+                <div class="premium-agent-card__confidence">
                     Confidence: <strong>${confidence}</strong>
                     ${result.primarySignal ? ` • ${escapeHtml(result.primarySignal)}` : ''}
                 </div>
             ` : ''}
             ${result.error ? `
-                <div style="font-size: 0.75rem; color: var(--fp-warning-600);">
-                    ⚠️ ${escapeHtml(result.error)}
+                <div style="font-size: var(--premium-font-size-xs); color: var(--premium-warning); margin-top: var(--premium-space-2); display: flex; align-items: center; gap: 4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    ${escapeHtml(result.error)}
                 </div>
             ` : ''}
         </div>
