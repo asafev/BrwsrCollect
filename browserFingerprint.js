@@ -90,6 +90,7 @@ import { LanguageDetector } from './detectors/languageDetector.js';
 import { CssComputedStyleDetector } from './detectors/cssComputedStyle.js';
 import { WorkerSignalsDetector } from './detectors/workerSignals.js';
 import { FontsDetector } from './detectors/fonts.js';
+import { PerformanceTimingDetector } from './detectors/performanceTiming.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -682,6 +683,12 @@ class BrowserFingerprintAnalyzer {
         this.cssComputedStyleDetector = this._safeCreateDetector(() => new CssComputedStyleDetector(), 'CssComputedStyleDetector');
         this.workerSignalsDetector = this._safeCreateDetector(() => new WorkerSignalsDetector(options.workerSignals || {}), 'WorkerSignalsDetector');
         this.fontsDetector = this._safeCreateDetector(() => new FontsDetector(options.fonts || {}), 'FontsDetector');
+        this.performanceTimingDetector = this._safeCreateDetector(() => new PerformanceTimingDetector(options.performanceTiming || {}), 'PerformanceTimingDetector');
+        
+        // Initialize performance timing detector early to catch first-input
+        if (this.performanceTimingDetector) {
+            this.performanceTimingDetector.init();
+        }
         
         // Configuration options
         this.options = {
@@ -714,8 +721,8 @@ class BrowserFingerprintAnalyzer {
                     phase,
                     status, // 'starting', 'complete', 'error', 'skipped'
                     completedPhases: [...this.completedPhases],
-                    totalPhases: 17, // Total number of analysis phases (includes knownAgents)
-                    percentage: Math.round((this.completedPhases.length / 17) * 100),
+                    totalPhases: 18, // Total number of analysis phases (includes knownAgents, performanceTiming)
+                    percentage: Math.round((this.completedPhases.length / 18) * 100),
                     ...details
                 });
             } catch (e) {
@@ -814,6 +821,23 @@ class BrowserFingerprintAnalyzer {
             this.metrics.networkCapabilities = { error: { value: 'Detector not available', description: 'Network capabilities detector failed to initialize', risk: 'N/A' } };
         }
         this._reportProgress('network', 'complete', { message: 'Network capabilities analyzed' });
+
+        // Run Performance Timing detection (sync - collects navigation, paint, and first-input metrics)
+        this._reportProgress('performanceTiming', 'starting', { message: 'Analyzing performance timing metrics...' });
+        console.log('⏱️ Analyzing performance timing metrics...');
+        if (this.performanceTimingDetector) {
+            try {
+                const performanceTimingMetrics = this.performanceTimingDetector.analyze();
+                this.metrics.performanceTiming = performanceTimingMetrics;
+                console.log('⏱️ Performance timing analysis complete:', performanceTimingMetrics);
+            } catch (error) {
+                console.warn('⚠️ Performance timing detection failed:', error.message);
+                this.metrics.performanceTiming = { error: { value: error.message, description: 'Performance timing detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.performanceTiming = { error: { value: 'Detector not available', description: 'Performance timing detector failed to initialize', risk: 'N/A' } };
+        }
+        this._reportProgress('performanceTiming', 'complete', { message: 'Performance timing metrics analyzed' });
 
         // Run Battery and Storage detection (async APIs) - WITH TIMEOUT
         this._reportProgress('battery', 'starting', { message: 'Analyzing battery and storage...' });

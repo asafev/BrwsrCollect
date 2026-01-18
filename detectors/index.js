@@ -17,3 +17,4 @@ export { LanguageDetector } from './languageDetector.js';
 export { CssComputedStyleDetector } from './cssComputedStyle.js';
 export { WorkerSignalsDetector } from './workerSignals.js';
 export { FontsDetector } from './fonts.js';
+export { PerformanceTimingDetector, PERFORMANCE_TIMING_CONFIG } from './performanceTiming.js';

@@ -1,5 +1,5 @@
 {
-  "timestamp": 1767194847995,
+  "timestamp": 1768489406690,
   "analysisComplete": true,
   "metrics": {
     "navigator": {
@@ -165,21 +165,21 @@
         "description": "Viewport inner height"
       },
       "outerWidth": {
-        "value": 1920,
+        "value": 1914,
         "description": "Browser window outer width",
         "risk": "LOW"
       },
       "outerHeight": {
-        "value": 1032,
+        "value": 1026,
         "description": "Browser window outer height",
         "risk": "LOW"
       },
       "screenTop": {
-        "value": 0,
+        "value": 3,
         "description": "Window position from screen top"
       },
       "screenLeft": {
-        "value": 0,
+        "value": 3,
         "description": "Window position from screen left"
       },
       "scrollX": {
@@ -207,7 +207,7 @@
         "description": "Window self reference availability"
       },
       "historyLength": {
-        "value": 12,
+        "value": 3,
         "description": "Number of entries in session history",
         "risk": "LOW"
       },
@@ -456,11 +456,11 @@
         "description": "JavaScript heap size limit"
       },
       "usedMemory": {
-        "value": 11328491,
+        "value": 8222896,
         "description": "Used JavaScript heap size"
       },
       "totalMemory": {
-        "value": 18138131,
+        "value": 9932024,
         "description": "Total JavaScript heap size"
       },
       "redirectCount": {
@@ -468,7 +468,7 @@
         "description": "Page redirect count"
       },
       "navigationType": {
-        "value": 0,
+        "value": 1,
         "description": "Navigation type"
       },
       "timezoneOffset": {
@@ -691,48 +691,6 @@
         "description": "Temporary storage constant availability"
       }
     },
-    "apiOverrides": {
-      "permissionsQuery": {
-        "value": "[Native Code]",
-        "description": "Permissions API query function signature",
-        "risk": "LOW"
-      },
-      "dateNow": {
-        "value": "[Native Code]",
-        "description": "Date.now function signature",
-        "risk": "LOW"
-      },
-      "mathRandom": {
-        "value": "[Native Code]",
-        "description": "Math.random function signature",
-        "risk": "LOW"
-      },
-      "performanceNow": {
-        "value": "[Native Code]",
-        "description": "Performance.now function signature",
-        "risk": "LOW"
-      },
-      "jsonStringify": {
-        "value": "[Native Code]",
-        "description": "JSON.stringify function signature",
-        "risk": "LOW"
-      },
-      "objectDefineProperty": {
-        "value": "[Native Code]",
-        "description": "Object.defineProperty function signature",
-        "risk": "LOW"
-      },
-      "setTimeout": {
-        "value": "[Native Code]",
-        "description": "setTimeout function signature",
-        "risk": "LOW"
-      },
-      "setInterval": {
-        "value": "[Native Code]",
-        "description": "setInterval function signature",
-        "risk": "LOW"
-      }
-    },
     "networkCapabilities": {
       "hasNetworkInformationAPI": {
         "value": true,
@@ -745,12 +703,12 @@
         "risk": "N/A"
       },
       "rtt": {
-        "value": 0,
+        "value": 100,
         "description": "Round-trip time in milliseconds (estimated)",
-        "risk": "MEDIUM"
+        "risk": "LOW"
       },
       "downlink": {
-        "value": 4.8,
+        "value": 1.85,
         "description": "Effective bandwidth in Mbps (estimated)",
         "risk": "LOW"
       },
@@ -775,7 +733,7 @@
         "risk": "N/A"
       },
       "connectionQualityScore": {
-        "value": 100,
+        "value": 90,
         "description": "Computed network quality score (0-100)",
         "risk": "N/A"
       },
@@ -785,11 +743,129 @@
         "risk": "N/A"
       },
       "connectionAnomalies": {
-        "value": [
-          "zero_rtt"
-        ],
+        "value": [],
         "description": "Detected connection anomalies that may indicate automation",
-        "risk": "MEDIUM"
+        "risk": "LOW"
+      }
+    },
+    "performanceTiming": {
+      "domComplete": {
+        "value": 34,
+        "description": "Time until DOM is complete (ms since navigationStart)",
+        "risk": "MEDIUM",
+        "code": "performance.timing.domComplete - performance.timing.navigationStart"
+      },
+      "loadEvent": {
+        "value": 34,
+        "description": "Time until load event completes (ms since navigationStart)",
+        "risk": "MEDIUM",
+        "code": "performance.timing.loadEventEnd - performance.timing.navigationStart"
+      },
+      "domInteractive": {
+        "value": 29,
+        "description": "Time until DOM is interactive (ms since navigationStart)",
+        "risk": "N/A",
+        "code": "performance.timing.domInteractive - performance.timing.navigationStart"
+      },
+      "domContentLoaded": {
+        "value": 33,
+        "description": "Time until DOMContentLoaded event completes (ms)",
+        "risk": "N/A",
+        "code": "performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart"
+      },
+      "ttfb": {
+        "value": 8,
+        "description": "Time to First Byte - server response time (ms)",
+        "risk": "N/A",
+        "code": "performance.timing.responseStart - performance.timing.navigationStart"
+      },
+      "responseTime": {
+        "value": 4,
+        "description": "Time to receive full response (ms)",
+        "risk": "N/A",
+        "code": "performance.timing.responseEnd - performance.timing.responseStart"
+      },
+      "dnsLookup": {
+        "value": 0,
+        "description": "DNS lookup time (ms) - 0 indicates cached or same-origin",
+        "risk": "N/A",
+        "code": "performance.timing.domainLookupEnd - performance.timing.domainLookupStart"
+      },
+      "tcpConnect": {
+        "value": 1,
+        "description": "TCP connection establishment time (ms) - 0 indicates reused connection",
+        "risk": "N/A",
+        "code": "performance.timing.connectEnd - performance.timing.connectStart"
+      },
+      "timingSignature": {
+        "value": "0:1:8:29:34:34",
+        "description": "Compact timing signature (dns:tcp:ttfb:domInteractive:domComplete:loadEvent) for actor clustering",
+        "risk": "N/A",
+        "code": "[dnsLookup, tcpConnect, ttfb, domInteractive, domComplete, loadEvent].map(v => Math.round(v)).join(\":\")"
+      },
+      "navigationType": {
+        "value": "reload",
+        "description": "Navigation type (navigate, reload, back_forward, prerender)",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('navigation')[0].type"
+      },
+      "redirectCount": {
+        "value": 0,
+        "description": "Number of redirects before reaching this page",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('navigation')[0].redirectCount"
+      },
+      "transferSize": {
+        "value": 300,
+        "description": "Total bytes transferred for the page (including headers)",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('navigation')[0].transferSize"
+      },
+      "encodedBodySize": {
+        "value": 31987,
+        "description": "Encoded (compressed) size of the page body",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('navigation')[0].encodedBodySize"
+      },
+      "decodedBodySize": {
+        "value": 31987,
+        "description": "Decoded (uncompressed) size of the page body",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('navigation')[0].decodedBodySize"
+      },
+      "firstPaint": {
+        "value": 44,
+        "description": "Time until first pixel is painted on screen (ms)",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('paint').find(e => e.name === 'first-paint')?.startTime"
+      },
+      "firstContentfulPaint": {
+        "value": 44,
+        "description": "Time until first content element is painted (ms)",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint')?.startTime"
+      },
+      "paintTimingSupported": {
+        "value": true,
+        "description": "Whether paint timing entries are available",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('paint').length > 0"
+      },
+      "firstInputRecorded": {
+        "value": false,
+        "description": "Whether first user input has been recorded",
+        "risk": "N/A",
+        "code": "performance.getEntriesByType('first-input').length > 0"
+      },
+      "firstInputSupported": {
+        "value": true,
+        "description": "Whether first-input performance entry type is supported",
+        "risk": "N/A"
+      },
+      "collectionTimestamp": {
+        "value": 1768489406704,
+        "description": "Timestamp when performance metrics were collected",
+        "risk": "N/A"
       }
     },
     "batteryStorage": {
@@ -799,12 +875,12 @@
         "risk": "N/A"
       },
       "batteryLevel": {
-        "value": 100,
+        "value": 98,
         "description": "Battery charge level (0-100%)",
         "risk": "LOW"
       },
       "batteryLevelRaw": {
-        "value": 1,
+        "value": 0.98,
         "description": "Battery charge level raw value (0-1)",
         "risk": "N/A"
       },
@@ -814,12 +890,12 @@
         "risk": "N/A"
       },
       "batteryChargingTime": {
-        "value": "Fully charged/discharged",
+        "value": "Not applicable",
         "description": "Time until fully charged",
         "risk": "N/A"
       },
       "batteryChargingTimeRaw": {
-        "value": 0,
+        "value": null,
         "description": "Time until fully charged (seconds, Infinity if not charging)",
         "risk": "N/A"
       },
@@ -834,7 +910,7 @@
         "risk": "N/A"
       },
       "batteryStatus": {
-        "value": "Fully charged",
+        "value": "Charging (98%)",
         "description": "Human-readable battery status",
         "risk": "N/A"
       },
@@ -859,12 +935,12 @@
         "risk": "LOW"
       },
       "storageUsage": {
-        "value": "0 Bytes",
+        "value": "49.61 KB",
         "description": "Current storage usage",
         "risk": "N/A"
       },
       "storageUsageBytes": {
-        "value": 0,
+        "value": 50796,
         "description": "Current storage usage in bytes",
         "risk": "N/A"
       },
@@ -874,7 +950,7 @@
         "risk": "N/A"
       },
       "storageAvailableBytes": {
-        "value": 305833336012,
+        "value": 305833285216,
         "description": "Available storage space in bytes",
         "risk": "N/A"
       },
@@ -889,17 +965,17 @@
         "risk": "N/A"
       },
       "storageUsageDetails": {
-        "value": "{}",
+        "value": "{\"indexedDB\":50796}",
         "description": "Detailed storage usage breakdown by type",
         "risk": "N/A"
       },
       "timingResolutionMin": {
-        "value": 0.09999990463256836,
+        "value": 0.09999999403953552,
         "description": "Minimum observed timing resolution (ms)",
         "risk": "N/A"
       },
       "timingResolutionMax": {
-        "value": 0.10000014305114746,
+        "value": 0.10000002384185791,
         "description": "Maximum observed timing resolution (ms)",
         "risk": "N/A"
       },
@@ -934,7 +1010,7 @@
         "risk": "N/A"
       },
       "stackSizeLimit": {
-        "value": 9581,
+        "value": 9587,
         "description": "JavaScript call stack size limit",
         "risk": "LOW"
       }
@@ -1001,7 +1077,7 @@
         "risk": "N/A"
       },
       "audioCollectionTime": {
-        "value": 5,
+        "value": 6,
         "description": "Time taken to collect audio fingerprint (ms)",
         "risk": "N/A"
       },
@@ -1202,7 +1278,7 @@
         "risk": "N/A"
       },
       "cssSystemStylesHash": {
-        "value": "1adf44ee",
+        "value": "3f54ad6d",
         "description": "FNV-1a hash of system colors and fonts (CreepJS method)",
         "risk": "N/A"
       },
@@ -1232,7 +1308,7 @@
         "risk": "N/A"
       },
       "cssBlinkQuirksHash": {
-        "value": "5c9becf0",
+        "value": "98440e3d",
         "description": "Hash of Blink-specific rendering quirks",
         "risk": "N/A"
       },
@@ -1284,7 +1360,7 @@
         "risk": "N/A"
       },
       "hasSrflxCandidates": {
-        "value": true,
+        "value": false,
         "description": "Server reflexive (STUN) candidates detected",
         "risk": "N/A"
       },
@@ -1299,32 +1375,32 @@
         "risk": "N/A"
       },
       "localAddressCount": {
-        "value": 1,
+        "value": 0,
         "description": "Number of local IP addresses detected",
-        "risk": "MEDIUM"
+        "risk": "LOW"
       },
       "publicAddressCount": {
-        "value": 1,
+        "value": 0,
         "description": "Number of public IP addresses detected via srflx",
-        "risk": "HIGH"
+        "risk": "LOW"
       },
       "candidateCount": {
-        "value": 12,
+        "value": 3,
         "description": "Total ICE candidates collected",
         "risk": "N/A"
       },
       "localAddresses": {
-        "value": "77.125.51.6",
+        "value": "None detected",
         "description": "Local IP addresses (host candidates)",
-        "risk": "MEDIUM"
+        "risk": "LOW"
       },
       "publicAddresses": {
-        "value": "77.125.51.6",
+        "value": "None detected",
         "description": "Public IP addresses (srflx candidates)",
-        "risk": "HIGH"
+        "risk": "LOW"
       },
       "sdpHash": {
-        "value": "fe25e4e9",
+        "value": "170500eb",
         "description": "FNV-1a hash of SDP (Session Description Protocol)",
         "risk": "N/A"
       },
@@ -1332,6 +1408,12 @@
         "value": 7381,
         "description": "SDP content length in characters",
         "risk": "N/A"
+      },
+      "sdpOffering": {
+        "value": "v=0\r\no=- 7373354537298133171 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1 2\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:IY9i\r\na=ice-pwd:EmLTNb88BPrvdyJwkMhVN1Bv\r\na=ice-options:trickle\r\na=fingerprint:sha-256 85:AA:31:BB:4C:D7:DB:71:17:1B:DE:98:31:87:0C:74:54:C0:E1:F1:2D:7D:9B:1C:87:C4:19:33:51:C2:BF:5F\r\na=setup:actpass\r\na=mid:0\r\na=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:111 opus/48000/2\r\na=rtcp-fb:111 transport-cc\r\na=fmtp:111 minptime=10;useinbandfec=1\r\na=rtpmap:63 red/48000/2\r\na=fmtp:63 111/111\r\na=rtpmap:9 G722/8000\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\na=rtpmap:13 CN/8000\r\na=rtpmap:110 telephone-event/48000\r\na=rtpmap:126 telephone-event/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 35 36 37 38 103 104 107 108 109 114 115 116 117 118 39 40 41 42 43 44 45 46 47 48 119 120 121 122 49 50 51 52 123 124 125 53\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:IY9i\r\na=ice-pwd:EmLTNb88BPrvdyJwkMhVN1Bv\r\na=ice-options:trickle\r\na=fingerprint:sha-256 85:AA:31:BB:4C:D7:DB:71:17:1B:DE:98:31:87:0C:74:54:C0:E1:F1:2D:7D:9B:1C:87:C4:19:33:51:C2:BF:5F\r\na=setup:actpass\r\na=mid:1\r\na=extmap:14 urn:ietf:params:rtp-hdrext:toffset\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:13 urn:3gpp:video-orientation\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\na=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\na=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:96 VP8/90000\r\na=rtcp-fb:96 goog-remb\r\na=rtcp-fb:96 transport-cc\r\na=rtcp-fb:96 ccm fir\r\na=rtcp-fb:96 nack\r\na=rtcp-fb:96 nack pli\r\na=rtpmap:97 rtx/90000\r\na=fmtp:97 apt=96\r\na=rtpmap:98 VP9/90000\r\na=rtcp-fb:98 goog-remb\r\na=rtcp-fb:98 transport-cc\r\na=rtcp-fb:98 ccm fir\r\na=rtcp-fb:98 nack\r\na=rtcp-fb:98 nack pli\r\na=fmtp:98 profile-id=0\r\na=rtpmap:99 rtx/90000\r\na=fmtp:99 apt=98\r\na=rtpmap:100 VP9/90000\r\na=rtcp-fb:100 goog-remb\r\na=rtcp-fb:100 transport-cc\r\na=rtcp-fb:100 ccm fir\r\na=rtcp-fb:100 nack\r\na=rtcp-fb:100 nack pli\r\na=fmtp:100 profile-id=2\r\na=rtpmap:101 rtx/90000\r\na=fmtp:101 apt=100\r\na=rtpmap:35 VP9/90000\r\na=rtcp-fb:35 goog-remb\r\na=rtcp-fb:35 transport-cc\r\na=rtcp-fb:35 ccm fir\r\na=rtcp-fb:35 nack\r\na=rtcp-fb:35 nack pli\r\na=fmtp:35 profile-id=1\r\na=rtpmap:36 rtx/90000\r\na=fmtp:36 apt=35\r\na=rtpmap:37 VP9/90000\r\na=rtcp-fb:37 goog-remb\r\na=rtcp-fb:37 transport-cc\r\na=rtcp-fb:37 ccm fir\r\na=rtcp-fb:37 nack\r\na=rtcp-fb:37 nack pli\r\na=fmtp:37 profile-id=3\r\na=rtpmap:38 rtx/90000\r\na=fmtp:38 apt=37\r\na=rtpmap:103 H264/90000\r\na=rtcp-fb:103 goog-remb\r\na=rtcp-fb:103 transport-cc\r\na=rtcp-fb:103 ccm fir\r\na=rtcp-fb:103 nack\r\na=rtcp-fb:103 nack pli\r\na=fmtp:103 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\r\na=rtpmap:104 rtx/90000\r\na=fmtp:104 apt=103\r\na=rtpmap:107 H264/90000\r\na=rtcp-fb:107 goog-remb\r\na=rtcp-fb:107 transport-cc\r\na=rtcp-fb:107 ccm fir\r\na=rtcp-fb:107 nack\r\na=rtcp-fb:107 nack pli\r\na=fmtp:107 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f\r\na=rtpmap:108 rtx/90000\r\na=fmtp:108 apt=107\r\na=rtpmap:109 H264/90000\r\na=rtcp-fb:109 goog-remb\r\na=rtcp-fb:109 transport-cc\r\na=rtcp-fb:109 ccm fir\r\na=rtcp-fb:109 nack\r\na=rtcp-fb:109 nack pli\r\na=fmtp:109 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\na=rtpmap:114 rtx/90000\r\na=fmtp:114 apt=109\r\na=rtpmap:115 H264/90000\r\na=rtcp-fb:115 goog-remb\r\na=rtcp-fb:115 transport-cc\r\na=rtcp-fb:115 ccm fir\r\na=rtcp-fb:115 nack\r\na=rtcp-fb:115 nack pli\r\na=fmtp:115 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f\r\na=rtpmap:116 rtx/90000\r\na=fmtp:116 apt=115\r\na=rtpmap:117 H264/90000\r\na=rtcp-fb:117 goog-remb\r\na=rtcp-fb:117 transport-cc\r\na=rtcp-fb:117 ccm fir\r\na=rtcp-fb:117 nack\r\na=rtcp-fb:117 nack pli\r\na=fmtp:117 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f\r\na=rtpmap:118 rtx/90000\r\na=fmtp:118 apt=117\r\na=rtpmap:39 H264/90000\r\na=rtcp-fb:39 goog-remb\r\na=rtcp-fb:39 transport-cc\r\na=rtcp-fb:39 ccm fir\r\na=rtcp-fb:39 nack\r\na=rtcp-fb:39 nack pli\r\na=fmtp:39 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f\r\na=rtpmap:40 rtx/90000\r\na=fmtp:40 apt=39\r\na=rtpmap:41 H264/90000\r\na=rtcp-fb:41 goog-remb\r\na=rtcp-fb:41 transport-cc\r\na=rtcp-fb:41 ccm fir\r\na=rtcp-fb:41 nack\r\na=rtcp-fb:41 nack pli\r\na=fmtp:41 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=f4001f\r\na=rtpmap:42 rtx/90000\r\na=fmtp:42 apt=41\r\na=rtpmap:43 H264/90000\r\na=rtcp-fb:43 goog-remb\r\na=rtcp-fb:43 transport-cc\r\na=rtcp-fb:43 ccm fir\r\na=rtcp-fb:43 nack\r\na=rtcp-fb:43 nack pli\r\na=fmtp:43 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=f4001f\r\na=rtpmap:44 rtx/90000\r\na=fmtp:44 apt=43\r\na=rtpmap:45 AV1/90000\r\na=rtcp-fb:45 goog-remb\r\na=rtcp-fb:45 transport-cc\r\na=rtcp-fb:45 ccm fir\r\na=rtcp-fb:45 nack\r\na=rtcp-fb:45 nack pli\r\na=fmtp:45 level-idx=5;profile=0;tier=0\r\na=rtpmap:46 rtx/90000\r\na=fmtp:46 apt=45\r\na=rtpmap:47 AV1/90000\r\na=rtcp-fb:47 goog-remb\r\na=rtcp-fb:47 transport-cc\r\na=rtcp-fb:47 ccm fir\r\na=rtcp-fb:47 nack\r\na=rtcp-fb:47 nack pli\r\na=fmtp:47 level-idx=5;profile=1;tier=0\r\na=rtpmap:48 rtx/90000\r\na=fmtp:48 apt=47\r\na=rtpmap:119 H264/90000\r\na=rtcp-fb:119 goog-remb\r\na=rtcp-fb:119 transport-cc\r\na=rtcp-fb:119 ccm fir\r\na=rtcp-fb:119 nack\r\na=rtcp-fb:119 nack pli\r\na=fmtp:119 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\na=rtpmap:120 rtx/90000\r\na=fmtp:120 apt=119\r\na=rtpmap:121 H264/90000\r\na=rtcp-fb:121 goog-remb\r\na=rtcp-fb:121 transport-cc\r\na=rtcp-fb:121 ccm fir\r\na=rtcp-fb:121 nack\r\na=rtcp-fb:121 nack pli\r\na=fmtp:121 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=64001f\r\na=rtpmap:122 rtx/90000\r\na=fmtp:122 apt=121\r\na=rtpmap:49 H265/90000\r\na=rtcp-fb:49 goog-remb\r\na=rtcp-fb:49 transport-cc\r\na=rtcp-fb:49 ccm fir\r\na=rtcp-fb:49 nack\r\na=rtcp-fb:49 nack pli\r\na=fmtp:49 level-id=186;profile-id=1;tier-flag=0;tx-mode=SRST\r\na=rtpmap:50 rtx/90000\r\na=fmtp:50 apt=49\r\na=rtpmap:51 H265/90000\r\na=rtcp-fb:51 goog-remb\r\na=rtcp-fb:51 transport-cc\r\na=rtcp-fb:51 ccm fir\r\na=rtcp-fb:51 nack\r\na=rtcp-fb:51 nack pli\r\na=fmtp:51 level-id=186;profile-id=2;tier-flag=0;tx-mode=SRST\r\na=rtpmap:52 rtx/90000\r\na=fmtp:52 apt=51\r\na=rtpmap:123 red/90000\r\na=rtpmap:124 rtx/90000\r\na=fmtp:124 apt=123\r\na=rtpmap:125 ulpfec/90000\r\na=rtpmap:53 flexfec-03/90000\r\na=rtcp-fb:53 goog-remb\r\na=rtcp-fb:53 transport-cc\r\na=fmtp:53 repair-window=10000000\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:IY9i\r\na=ice-pwd:EmLTNb88BPrvdyJwkMhVN1Bv\r\na=ice-options:trickle\r\na=fingerprint:sha-256 85:AA:31:BB:4C:D7:DB:71:17:1B:DE:98:31:87:0C:74:54:C0:E1:F1:2D:7D:9B:1C:87:C4:19:33:51:C2:BF:5F\r\na=setup:actpass\r\na=mid:2\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n",
+        "description": "Full SDP (Session Description Protocol) offering string for analysis",
+        "risk": "N/A",
+        "isLargeValue": true
       },
       "mediaDevicesApiSupported": {
         "value": true,
@@ -1364,17 +1446,17 @@
         "risk": "N/A"
       },
       "collectionDurationMs": {
-        "value": 156,
+        "value": 1514,
         "description": "WebRTC data collection duration in milliseconds",
         "risk": "N/A"
       },
       "errorCount": {
-        "value": 0,
+        "value": 1,
         "description": "Number of non-fatal errors during collection",
         "risk": "N/A"
       },
       "errorMessages": {
-        "value": "None",
+        "value": "ICE gathering timeout",
         "description": "Error messages encountered during collection",
         "risk": "N/A"
       }
@@ -1590,12 +1672,12 @@
         "risk": "NONE"
       },
       "imageHash": {
-        "value": "006d1f6b17904e2bf7fae580f8d63685",
+        "value": "9ca112d8bab2d33edd47ff75665f3281",
         "description": "MD5 hash of rendered WebGL scene",
         "risk": "NONE"
       },
       "imageDataUrl": {
-        "value": "data:image/png;base64,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",
+        "value": "data:image/png;base64,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",
         "description": "Rendered WebGL scene as data URL",
         "risk": "NONE"
       },
@@ -1909,9 +1991,20 @@
         "description": "Number of video input devices (cameras)",
         "risk": "LOW"
       },
+      "fakeDevicesDetected": {
+        "value": false,
+        "description": "Fake/simulated media devices detected - strong indicator of AI automation agents",
+        "risk": "LOW",
+        "details": "No fake devices detected"
+      },
+      "fakeDeviceCount": {
+        "value": 0,
+        "description": "Number of devices with fake/simulated labels",
+        "risk": "LOW"
+      },
       "suspiciousPattern": {
         "value": false,
-        "description": "Suspicious media device pattern detected (may indicate headless/VM)",
+        "description": "Suspicious media device pattern detected (may indicate headless/VM/AI agent)",
         "risk": "LOW",
         "details": "Normal device configuration"
       },
@@ -1942,15 +2035,15 @@
     },
     "activeMeasurements": {
       "measuredRtt": {
-        "value": 5,
+        "value": 4,
         "description": "Measured round-trip time in milliseconds (via fetch timing)",
         "risk": "LOW"
       },
       "measuredRttSamples": {
         "value": [
           4,
-          7,
-          3
+          3,
+          6
         ],
         "description": "Individual RTT measurement samples",
         "risk": "N/A"
@@ -1961,12 +2054,12 @@
         "risk": "N/A"
       },
       "measuredRttMax": {
-        "value": 7,
+        "value": 6,
         "description": "Maximum observed RTT",
         "risk": "N/A"
       },
       "measuredRttJitter": {
-        "value": 4,
+        "value": 3,
         "description": "RTT jitter (difference between max and min)",
         "risk": "N/A"
       },
@@ -1981,7 +2074,7 @@
         "risk": "N/A"
       },
       "measuredDownlink": {
-        "value": 2062.77,
+        "value": 1981.56,
         "description": "Measured download speed in Mbps",
         "risk": "LOW"
       },
@@ -1991,12 +2084,12 @@
         "risk": "N/A"
       },
       "measuredDownlinkDuration": {
-        "value": 12,
+        "value": 13,
         "description": "Download test duration in milliseconds",
         "risk": "N/A"
       },
       "measuredDownlinkBytesPerSecond": {
-        "value": 262144000,
+        "value": 241979077,
         "description": "Download speed in bytes per second",
         "risk": "N/A"
       },
@@ -2011,7 +2104,7 @@
         "risk": "N/A"
       },
       "measuredUplink": {
-        "value": 79.53,
+        "value": 154.57,
         "description": "Measured/estimated upload speed in Mbps",
         "risk": "N/A"
       },
@@ -2021,12 +2114,12 @@
         "risk": "N/A"
       },
       "measuredUplinkDuration": {
-        "value": 10,
+        "value": 5,
         "description": "Upload test duration in milliseconds",
         "risk": "N/A"
       },
       "measuredUplinkBytesPerSecond": {
-        "value": 10240000,
+        "value": 20480000,
         "description": "Upload speed in bytes per second",
         "risk": "N/A"
       },
@@ -2041,585 +2134,34 @@
         "risk": "N/A"
       },
       "measurementDuration": {
-        "value": 14,
+        "value": 13,
         "description": "Total time for all active measurements (ms)",
         "risk": "N/A"
       },
       "measurementTimestamp": {
-        "value": 1767194850036,
+        "value": 1768489410146,
         "description": "Timestamp when measurements were taken",
         "risk": "N/A"
       }
     },
     "networkComparison": {
       "rttComparison": {
-        "apiValue": 0,
-        "measuredValue": 5,
-        "difference": 5,
-        "ratio": "N/A",
+        "apiValue": 100,
+        "measuredValue": 4,
+        "difference": 96,
+        "ratio": "0.04",
         "consistent": true,
         "description": "Comparison between API-reported and measured RTT"
       },
       "downlinkComparison": {
-        "apiValue": 4.8,
-        "measuredValue": 2062.77,
-        "ratio": "429.74",
+        "apiValue": 1.85,
+        "measuredValue": 1981.56,
+        "ratio": "1071.11",
         "consistent": false,
         "description": "Comparison between API-reported and measured downlink"
       }
     },
-    "aiAgentDetection": {
-      "permissionsQuery": {
-        "value": "function query() { [native code] }",
-        "description": "Signature of navigator.permissions.query function",
-        "risk": "low"
-      },
-      "dateNow": {
-        "value": "function now() { [native code] }",
-        "description": "Signature of Date.now function",
-        "risk": "low"
-      },
-      "mathRandom": {
-        "value": "function random() { [native code] }",
-        "description": "Signature of Math.random function",
-        "risk": "low"
-      },
-      "performanceNow": {
-        "value": "function now() { [native code] }",
-        "description": "Signature of performance.now function",
-        "risk": "low"
-      },
-      "jsonStringify": {
-        "value": "function stringify() { [native code] }",
-        "description": "Signature of JSON.stringify function",
-        "risk": "low"
-      },
-      "objectDefineProperty": {
-        "value": "function defineProperty() { [native code] }",
-        "description": "Signature of Object.defineProperty function",
-        "risk": "low"
-      },
-      "setTimeoutOverride": {
-        "value": "function setTimeout() { [native code] }",
-        "description": "Signature of setTimeout function",
-        "risk": "low"
-      },
-      "setIntervalOverride": {
-        "value": "function setInterval() { [native code] }",
-        "description": "Signature of setInterval function",
-        "risk": "low"
-      },
-      "funcToString": {
-        "value": "function toString() { [native code] }",
-        "description": "Signature of Function.prototype.toString",
-        "risk": "low"
-      },
-      "errorToString": {
-        "value": "function toString() { [native code] }",
-        "description": "Signature of Error.prototype.toString",
-        "risk": "low"
-      },
-      "addEventListener": {
-        "value": "function addEventListener() { [native code] }",
-        "description": "Signature of EventTarget.prototype.addEventListener",
-        "risk": "low"
-      },
-      "dispatchEvent": {
-        "value": "function dispatchEvent() { [native code] }",
-        "description": "Signature of EventTarget.prototype.dispatchEvent",
-        "risk": "low"
-      },
-      "querySelector": {
-        "value": "function querySelector() { [native code] }",
-        "description": "Signature of Document.prototype.querySelector",
-        "risk": "low"
-      },
-      "querySelectorAll": {
-        "value": "function querySelectorAll() { [native code] }",
-        "description": "Signature of Document.prototype.querySelectorAll",
-        "risk": "low"
-      },
-      "getComputedStyle": {
-        "value": "function getComputedStyle() { [native code] }",
-        "description": "Signature of getComputedStyle function",
-        "risk": "low"
-      },
-      "createElement": {
-        "value": "function createElement() { [native code] }",
-        "description": "Signature of Document.prototype.createElement",
-        "risk": "low"
-      },
-      "appendChild": {
-        "value": "function appendChild() { [native code] }",
-        "description": "Signature of Node.prototype.appendChild",
-        "risk": "low"
-      },
-      "removeChild": {
-        "value": "function removeChild() { [native code] }",
-        "description": "Signature of Node.prototype.removeChild",
-        "risk": "low"
-      },
-      "canvasToDataURL": {
-        "value": "function toDataURL() { [native code] }",
-        "description": "Signature of HTMLCanvasElement.prototype.toDataURL",
-        "risk": "low"
-      },
-      "canvasGetContext": {
-        "value": "function getContext() { [native code] }",
-        "description": "Signature of HTMLCanvasElement.prototype.getContext",
-        "risk": "low"
-      },
-      "webglGetParameter": {
-        "value": "function getParameter() { [native code] }",
-        "description": "Signature of WebGL getParameter method",
-        "risk": "low"
-      },
-      "fetchSig": {
-        "value": "function fetch() { [native code] }",
-        "description": "Signature of fetch function",
-        "risk": "low"
-      },
-      "xmlHttpRequest": {
-        "value": "function XMLHttpRequest() { [native code] }",
-        "description": "Signature of XMLHttpRequest constructor",
-        "risk": "low"
-      },
-      "websocketSig": {
-        "value": "function WebSocket() { [native code] }",
-        "description": "Signature of WebSocket constructor",
-        "risk": "low"
-      },
-      "requestAnimationFrame": {
-        "value": "function requestAnimationFrame() { [native code] }",
-        "description": "Signature of requestAnimationFrame function",
-        "risk": "low"
-      },
-      "cancelAnimationFrame": {
-        "value": "function cancelAnimationFrame() { [native code] }",
-        "description": "Signature of cancelAnimationFrame function",
-        "risk": "low"
-      },
-      "navigatorUAGetter": {
-        "value": "function get userAgent() { [native code] }",
-        "description": "Signature of Navigator.userAgent getter",
-        "risk": "low"
-      },
-      "navigatorLangGetter": {
-        "value": "function get languages() { [native code] }",
-        "description": "Signature of Navigator.languages getter",
-        "risk": "low"
-      },
-      "navigatorPlatformGetter": {
-        "value": "function get platform() { [native code] }",
-        "description": "Signature of Navigator.platform getter",
-        "risk": "low"
-      },
-      "navigatorVendorGetter": {
-        "value": "function get vendor() { [native code] }",
-        "description": "Signature of Navigator.vendor getter",
-        "risk": "low"
-      },
-      "navigatorWebdriverGetter": {
-        "value": "function get webdriver() { [native code] }",
-        "description": "Signature of Navigator.webdriver getter",
-        "risk": "low"
-      },
-      "geolocationGetCurrentPosition": {
-        "value": "function getCurrentPosition() { [native code] }",
-        "description": "Signature of Geolocation.getCurrentPosition",
-        "risk": "low"
-      },
-      "geolocationWatchPosition": {
-        "value": "function watchPosition() { [native code] }",
-        "description": "Signature of Geolocation.watchPosition",
-        "risk": "low"
-      },
-      "clipboardRead": {
-        "value": "function read() { [native code] }",
-        "description": "Signature of Clipboard.read method",
-        "risk": "low"
-      },
-      "clipboardWrite": {
-        "value": "function write() { [native code] }",
-        "description": "Signature of Clipboard.write method",
-        "risk": "low"
-      },
-      "localStorageSetItem": {
-        "value": "function setItem() { [native code] }",
-        "description": "Signature of Storage.setItem method",
-        "risk": "low"
-      },
-      "localStorageGetItem": {
-        "value": "function getItem() { [native code] }",
-        "description": "Signature of Storage.getItem method",
-        "risk": "low"
-      },
-      "getUserMedia": {
-        "value": "function getUserMedia() { [native code] }",
-        "description": "Signature of MediaDevices.getUserMedia",
-        "risk": "low"
-      },
-      "cryptoGetRandomValues": {
-        "value": "function getRandomValues() { [native code] }",
-        "description": "Signature of Crypto.getRandomValues",
-        "risk": "low"
-      },
-      "cryptoRandomUUID": {
-        "value": "function randomUUID() { [native code] }",
-        "description": "Signature of Crypto.randomUUID",
-        "risk": "low"
-      },
-      "proxyConstructor": {
-        "value": "function Proxy() { [native code] }",
-        "description": "Signature of Proxy constructor",
-        "risk": "low"
-      },
-      "reflectGet": {
-        "value": "function get() { [native code] }",
-        "description": "Signature of Reflect.get method",
-        "risk": "low"
-      },
-      "reflectSet": {
-        "value": "function set() { [native code] }",
-        "description": "Signature of Reflect.set method",
-        "risk": "low"
-      },
-      "objectGetOwnPropertyDescriptor": {
-        "value": "function getOwnPropertyDescriptor() { [native code] }",
-        "description": "Signature of Object.getOwnPropertyDescriptor method",
-        "risk": "low"
-      },
-      "promiseConstructor": {
-        "value": "function Promise() { [native code] }",
-        "description": "Signature of Promise constructor",
-        "risk": "low"
-      },
-      "promiseThen": {
-        "value": "function then() { [native code] }",
-        "description": "Signature of Promise.prototype.then method",
-        "risk": "low"
-      },
-      "promiseCatch": {
-        "value": "function catch() { [native code] }",
-        "description": "Signature of Promise.prototype.catch method",
-        "risk": "low"
-      },
-      "asyncFunctionConstructor": {
-        "value": "function AsyncFunction() { [native code] }",
-        "description": "Signature of AsyncFunction constructor",
-        "risk": "low"
-      },
-      "evalFunc": {
-        "value": "function eval() { [native code] }",
-        "description": "Signature of eval function",
-        "risk": "low"
-      },
-      "functionConstructor": {
-        "value": "function Function() { [native code] }",
-        "description": "Signature of Function constructor",
-        "risk": "low"
-      },
-      "asyncFunctionStringTag": {
-        "value": "function toString() { [native code] }",
-        "description": "Signature of AsyncFunction toString method",
-        "risk": "low"
-      },
-      "mouseEventConstructor": {
-        "value": "function MouseEvent() { [native code] }",
-        "description": "Signature of MouseEvent constructor",
-        "risk": "low"
-      },
-      "keyboardEventConstructor": {
-        "value": "function KeyboardEvent() { [native code] }",
-        "description": "Signature of KeyboardEvent constructor",
-        "risk": "low"
-      },
-      "touchEventConstructor": {
-        "value": "function TouchEvent() { [native code] }",
-        "description": "Signature of TouchEvent constructor",
-        "risk": "low"
-      },
-      "pointerEventConstructor": {
-        "value": "function PointerEvent() { [native code] }",
-        "description": "Signature of PointerEvent constructor",
-        "risk": "low"
-      },
-      "inputEventConstructor": {
-        "value": "function InputEvent() { [native code] }",
-        "description": "Signature of InputEvent constructor",
-        "risk": "low"
-      },
-      "mutationObserver": {
-        "value": "function MutationObserver() { [native code] }",
-        "description": "Signature of MutationObserver constructor",
-        "risk": "low"
-      },
-      "intersectionObserver": {
-        "value": "function IntersectionObserver() { [native code] }",
-        "description": "Signature of IntersectionObserver constructor",
-        "risk": "low"
-      },
-      "resizeObserver": {
-        "value": "function ResizeObserver() { [native code] }",
-        "description": "Signature of ResizeObserver constructor",
-        "risk": "low"
-      },
-      "notificationConstructor": {
-        "value": "function Notification() { [native code] }",
-        "description": "Signature of Notification constructor",
-        "risk": "low"
-      },
-      "permissionStatusOnchange": {
-        "value": "get:function get onchange() { [native code] }|set:function set onchange() { [native code] }",
-        "description": "Signature of PermissionStatus.prototype.onchange",
-        "risk": "low"
-      },
-      "navigatorPluginsGetter": {
-        "value": "function get plugins() { [native code] }",
-        "description": "Signature of Navigator.plugins getter",
-        "risk": "low"
-      },
-      "navigatorMimeTypesGetter": {
-        "value": "function get mimeTypes() { [native code] }",
-        "description": "Signature of Navigator.mimeTypes getter",
-        "risk": "low"
-      },
-      "navigatorDeviceMemoryGetter": {
-        "value": "function get deviceMemory() { [native code] }",
-        "description": "Signature of Navigator.deviceMemory getter",
-        "risk": "low"
-      },
-      "navigatorHardwareConcurrencyGetter": {
-        "value": "function get hardwareConcurrency() { [native code] }",
-        "description": "Signature of Navigator.hardwareConcurrency getter",
-        "risk": "low"
-      },
-      "navigatorMaxTouchPointsGetter": {
-        "value": "function get maxTouchPoints() { [native code] }",
-        "description": "Signature of Navigator.maxTouchPoints getter",
-        "risk": "low"
-      },
-      "screenWidthGetter": {
-        "value": "function get width() { [native code] }",
-        "description": "Signature of Screen.width getter",
-        "risk": "low"
-      },
-      "screenHeightGetter": {
-        "value": "function get height() { [native code] }",
-        "description": "Signature of Screen.height getter",
-        "risk": "low"
-      },
-      "screenColorDepthGetter": {
-        "value": "function get colorDepth() { [native code] }",
-        "description": "Signature of Screen.colorDepth getter",
-        "risk": "low"
-      },
-      "batteryManager": {
-        "value": "function getBattery() { [native code] }",
-        "description": "Signature of navigator.getBattery function",
-        "risk": "low"
-      },
-      "messageChannel": {
-        "value": "function MessageChannel() { [native code] }",
-        "description": "Signature of MessageChannel constructor",
-        "risk": "low"
-      },
-      "postMessage": {
-        "value": "function postMessage() { [native code] }",
-        "description": "Signature of Window.prototype.postMessage method",
-        "risk": "low"
-      },
-      "workerConstructor": {
-        "value": "function Worker() { [native code] }",
-        "description": "Signature of Worker constructor",
-        "risk": "low"
-      },
-      "sharedWorkerConstructor": {
-        "value": "function SharedWorker() { [native code] }",
-        "description": "Signature of SharedWorker constructor",
-        "risk": "low"
-      },
-      "serviceWorkerRegister": {
-        "value": "function register() { [native code] }",
-        "description": "Signature of ServiceWorker.register method",
-        "risk": "low"
-      },
-      "toStringIntegrity": {
-        "value": "likely-native",
-        "description": "Integrity check for Function.prototype.toString (critical security check)",
-        "risk": "high"
-      },
-      "crossRealm_funcToString_diff": {
-        "value": false,
-        "description": "Cross-realm check: funcToString_diff",
-        "risk": "low"
-      },
-      "crossRealm_JSON_stringify_diff": {
-        "value": false,
-        "description": "Cross-realm check: JSON_stringify_diff",
-        "risk": "low"
-      },
-      "crossRealm_Object_defineProperty_diff": {
-        "value": false,
-        "description": "Cross-realm check: Object_defineProperty_diff",
-        "risk": "low"
-      },
-      "crossRealm_setTimeout_diff": {
-        "value": false,
-        "description": "Cross-realm check: setTimeout_diff",
-        "risk": "low"
-      },
-      "crossRealm_setInterval_diff": {
-        "value": false,
-        "description": "Cross-realm check: setInterval_diff",
-        "risk": "low"
-      },
-      "crossRealm_navigator_userAgent_getter_diff": {
-        "value": false,
-        "description": "Cross-realm check: navigator_userAgent_getter_diff",
-        "risk": "low"
-      },
-      "crossRealm_Date_now_diff": {
-        "value": false,
-        "description": "Cross-realm check: Date_now_diff",
-        "risk": "low"
-      },
-      "crossRealm_Math_random_diff": {
-        "value": false,
-        "description": "Cross-realm check: Math_random_diff",
-        "risk": "low"
-      },
-      "crossRealm_Proxy_constructor_diff": {
-        "value": false,
-        "description": "Cross-realm check: Proxy_constructor_diff",
-        "risk": "low"
-      },
-      "crossRealm_Reflect_get_diff": {
-        "value": false,
-        "description": "Cross-realm check: Reflect_get_diff",
-        "risk": "low"
-      },
-      "crossRealm_Reflect_set_diff": {
-        "value": false,
-        "description": "Cross-realm check: Reflect_set_diff",
-        "risk": "low"
-      },
-      "crossRealm_Object_getOwnPropertyDescriptor_diff": {
-        "value": false,
-        "description": "Cross-realm check: Object_getOwnPropertyDescriptor_diff",
-        "risk": "low"
-      },
-      "crossRealm_Promise_constructor_diff": {
-        "value": false,
-        "description": "Cross-realm check: Promise_constructor_diff",
-        "risk": "low"
-      },
-      "crossRealm_Promise_then_diff": {
-        "value": false,
-        "description": "Cross-realm check: Promise_then_diff",
-        "risk": "low"
-      },
-      "crossRealm_Promise_catch_diff": {
-        "value": false,
-        "description": "Cross-realm check: Promise_catch_diff",
-        "risk": "low"
-      },
-      "crossRealm_AsyncFunction_constructor_diff": {
-        "value": false,
-        "description": "Cross-realm check: AsyncFunction_constructor_diff",
-        "risk": "low"
-      },
-      "crossRealm_eval_diff": {
-        "value": false,
-        "description": "Cross-realm check: eval_diff",
-        "risk": "low"
-      },
-      "crossRealm_Function_constructor_diff": {
-        "value": false,
-        "description": "Cross-realm check: Function_constructor_diff",
-        "risk": "low"
-      },
-      "crossRealm_navigator_plugins_getter_diff": {
-        "value": false,
-        "description": "Cross-realm check: navigator_plugins_getter_diff",
-        "risk": "low"
-      },
-      "crossRealm_navigator_mimeTypes_getter_diff": {
-        "value": false,
-        "description": "Cross-realm check: navigator_mimeTypes_getter_diff",
-        "risk": "low"
-      },
-      "crossRealm_screen_width_getter_diff": {
-        "value": false,
-        "description": "Cross-realm check: screen_width_getter_diff",
-        "risk": "low"
-      },
-      "crossRealm_screen_height_getter_diff": {
-        "value": false,
-        "description": "Cross-realm check: screen_height_getter_diff",
-        "risk": "low"
-      },
-      "crossRealm_postMessage_diff": {
-        "value": false,
-        "description": "Cross-realm check: postMessage_diff",
-        "risk": "low"
-      },
-      "crossRealm_Worker_constructor_diff": {
-        "value": false,
-        "description": "Cross-realm check: Worker_constructor_diff",
-        "risk": "low"
-      },
-      "crossRealm_MessageChannel_diff": {
-        "value": false,
-        "description": "Cross-realm check: MessageChannel_diff",
-        "risk": "low"
-      },
-      "crossRealm_toString_integrity_diff": {
-        "value": false,
-        "description": "Cross-realm check: toString_integrity_diff",
-        "risk": "low"
-      },
-      "proxy_permissionsQuery_proxied": {
-        "value": false,
-        "description": "Proxy detection: permissionsQuery_proxied",
-        "risk": "low"
-      },
-      "proxy_setTimeout_proxied": {
-        "value": false,
-        "description": "Proxy detection: setTimeout_proxied",
-        "risk": "low"
-      },
-      "proxy_funcToString_proxied": {
-        "value": false,
-        "description": "Proxy detection: funcToString_proxied",
-        "risk": "low"
-      },
-      "proxy_fetch_proxied": {
-        "value": false,
-        "description": "Proxy detection: fetch_proxied",
-        "risk": "low"
-      },
-      "proxy_JSON_stringify_proxied": {
-        "value": false,
-        "description": "Proxy detection: JSON_stringify_proxied",
-        "risk": "low"
-      },
-      "proxy_addEventListener_proxied": {
-        "value": false,
-        "description": "Proxy detection: addEventListener_proxied",
-        "risk": "low"
-      },
-      "contextConsistency": {
-        "value": "All contexts appear consistent - no tampering detected",
-        "description": "Advanced cross-context execution consistency analysis",
-        "risk": "low"
-      },
-      "permissionsTests": {
-        "value": "{\"notifications\":\"prompt\",\"geolocation\":\"prompt\",\"camera\":\"prompt\",\"microphone\":\"prompt\"}",
-        "description": "Permissions API behavior analysis",
-        "risk": "low"
-      }
-    },
+    "functionIntegrity": {},
     "stringSignatureAutomation": {
       "setTimeout_signature": {
         "value": false,
@@ -2656,6 +2198,156 @@
         "description": "Detects PhantomJS by analyzing error stack traces for \"phantomjs\" string",
         "rawValue": "f",
         "risk": "LOW"
+      }
+    },
+    "knownAgentsDetection": {
+      "detectionTimestamp": {
+        "value": "2026-01-15T15:04:30.194Z",
+        "description": "Last detection timestamp",
+        "risk": "N/A"
+      },
+      "totalAgentsChecked": {
+        "value": 12,
+        "description": "Total number of known agents checked",
+        "risk": "N/A"
+      },
+      "agentsDetected": {
+        "value": 0,
+        "description": "Number of known agents detected",
+        "risk": "LOW"
+      },
+      "hasAnyAgent": {
+        "value": false,
+        "description": "Whether any known agent was detected",
+        "risk": "LOW"
+      },
+      "detectedAgentsList": {
+        "value": "None",
+        "description": "List of detected agent names",
+        "risk": "LOW"
+      },
+      "periodicDetectionEnabled": {
+        "value": true,
+        "description": "Whether periodic agent detection is enabled",
+        "risk": "N/A"
+      },
+      "detectionInterval": {
+        "value": "60s",
+        "description": "Interval between periodic detections",
+        "risk": "N/A"
+      },
+      "detectionHistoryCount": {
+        "value": 2,
+        "description": "Number of detection runs in history",
+        "risk": "N/A"
+      },
+      "agent_manus": {
+        "value": "Not detected",
+        "description": "Manus agent detection status (Chrome Extension Resource Fetch)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_comet": {
+        "value": "Not detected",
+        "description": "Comet agent detection status (CSS Variable Injection Fingerprinting)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_genspark": {
+        "value": "Not detected",
+        "description": "Genspark agent detection status (DOM Element Detection)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_skyvern": {
+        "value": "Not detected",
+        "description": "Skyvern agent detection status (Window Property Detection (GlobalSkyvernFrameIndex))",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_chatgptbrowser": {
+        "value": "Not detected",
+        "description": "ChatGPTBrowser agent detection status (Console.log Override Signature Analysis)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_fellou": {
+        "value": "Not detected",
+        "description": "Fellou agent detection status (Window Property Detection (__FELLOU_TAB_ID__))",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_hyperbrowser": {
+        "value": "Not detected",
+        "description": "HyperBrowser agent detection status (Console.log Wrapper Signature Detection (rand251plus50))",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_browseruse": {
+        "value": "Not detected",
+        "description": "BrowserUse agent detection status (Console Message + Stack Classification (browser-use highlight))",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_selenium": {
+        "value": "Not detected",
+        "description": "Selenium agent detection status (WebDriver Property & Artifact Detection)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_puppeteer": {
+        "value": "Not detected",
+        "description": "Puppeteer agent detection status (Headless Browser & Runtime Analysis)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
+      },
+      "agent_playwright": {
+        "value": "Not detected",
+        "description": "Playwright agent detection status (Framework Signature Detection)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": "None"
+      },
+      "agent_devtools": {
+        "value": "Not detected",
+        "description": "DevTools agent detection status (CDP Runtime.enable Detection via Error Stack Serialization)",
+        "risk": "LOW",
+        "detected": false,
+        "confidence": 0,
+        "indicators": [],
+        "primarySignal": null
       }
     },
     "behavioralIndicators": {
@@ -2702,7 +2394,7 @@
     },
     "behavioralTelemetry": {
       "totalMouseMoves": {
-        "value": 4,
+        "value": 0,
         "description": "Total number of mouse movement events tracked",
         "risk": "N/A"
       },
@@ -2717,22 +2409,22 @@
         "risk": "N/A"
       },
       "totalMouseDistance": {
-        "value": 12,
+        "value": 0,
         "description": "Total distance traveled by mouse cursor in pixels",
         "risk": "N/A"
       },
       "averageMouseVelocity": {
-        "value": 0.35,
+        "value": 0,
         "description": "Average mouse movement velocity (pixels/ms)",
         "risk": "N/A"
       },
       "maxMouseVelocity": {
-        "value": 0.47,
+        "value": 0,
         "description": "Maximum mouse movement velocity (pixels/ms)",
         "risk": "N/A"
       },
       "mouseMovementCount": {
-        "value": 3,
+        "value": 0,
         "description": "Number of discrete mouse movements tracked",
         "risk": "N/A"
       },
@@ -2767,7 +2459,7 @@
         "risk": "N/A"
       },
       "collectionDurationMs": {
-        "value": 1006,
+        "value": 1012,
         "description": "Total behavioral data collection duration in milliseconds",
         "risk": "N/A"
       },
@@ -2777,17 +2469,17 @@
         "risk": "N/A"
       },
       "eventsPerSecond": {
-        "value": 3.98,
+        "value": 0,
         "description": "Total interaction events (mouse + click + scroll) per second",
         "risk": "N/A"
       },
       "mouseToClickRatio": {
-        "value": null,
+        "value": 0,
         "description": "Ratio of mouse movements to clicks",
         "risk": "N/A"
       },
       "hasMouseActivity": {
-        "value": true,
+        "value": false,
         "description": "Whether any mouse movement was detected",
         "risk": "N/A"
       },
@@ -3614,26 +3306,629 @@
       "emojiHash": "767ed838",
       "osMismatch": false,
       "error": null
+    },
+    "knownAgents": {
+      "timestamp": 1768489410180,
+      "detectionResults": [
+        {
+          "name": "Manus",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Chrome Extension Resource Fetch",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Comet",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "CSS Variable Injection Fingerprinting",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Genspark",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "DOM Element Detection",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Skyvern",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Window Property Detection (GlobalSkyvernFrameIndex)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "ChatGPTBrowser",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Console.log Override Signature Analysis",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Fellou",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Window Property Detection (__FELLOU_TAB_ID__)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "HyperBrowser",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Console.log Wrapper Signature Detection (rand251plus50)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "BrowserUse",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Console Message + Stack Classification (browser-use highlight)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Selenium",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "WebDriver Property & Artifact Detection",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Puppeteer",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "Headless Browser & Runtime Analysis",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Playwright",
+          "detected": false,
+          "timestamp": 1768489410180,
+          "confidence": 0,
+          "detectionMethod": "Framework Signature Detection",
+          "indicators": [],
+          "primarySignal": "None"
+        },
+        {
+          "name": "DevTools",
+          "detected": false,
+          "timestamp": 1768489410175,
+          "confidence": 0,
+          "detectionMethod": "CDP Runtime.enable Detection via Error Stack Serialization",
+          "indicators": [],
+          "primarySignal": null
+        }
+      ],
+      "summary": {
+        "detectedAgents": [],
+        "totalDetected": 0,
+        "detectionResults": [
+          {
+            "name": "Manus",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Chrome Extension Resource Fetch",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Comet",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "CSS Variable Injection Fingerprinting",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Genspark",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "DOM Element Detection",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Skyvern",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Window Property Detection (GlobalSkyvernFrameIndex)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "ChatGPTBrowser",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Console.log Override Signature Analysis",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Fellou",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Window Property Detection (__FELLOU_TAB_ID__)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "HyperBrowser",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Console.log Wrapper Signature Detection (rand251plus50)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "BrowserUse",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Console Message + Stack Classification (browser-use highlight)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Selenium",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "WebDriver Property & Artifact Detection",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Puppeteer",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "Headless Browser & Runtime Analysis",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Playwright",
+            "detected": false,
+            "timestamp": 1768489410180,
+            "confidence": 0,
+            "detectionMethod": "Framework Signature Detection",
+            "indicators": [],
+            "primarySignal": "None"
+          },
+          {
+            "name": "DevTools",
+            "detected": false,
+            "timestamp": 1768489410175,
+            "confidence": 0,
+            "detectionMethod": "CDP Runtime.enable Detection via Error Stack Serialization",
+            "indicators": [],
+            "primarySignal": null
+          }
+        ],
+        "hasAnyAgent": false
+      },
+      "detectedAgents": [],
+      "hasAnyAgent": false,
+      "totalDetected": 0
+    },
+    "webRTC": {
+      "supported": {
+        "RTCPeerConnection": true,
+        "RTCDataChannel": true
+      },
+      "leakTest": {
+        "candidateTypesSeen": {
+          "host": true,
+          "srflx": false,
+          "relay": false,
+          "prflx": false
+        },
+        "localIPAddresses": [],
+        "publicIPAddresses": [],
+        "localCandidates": [
+          {
+            "foundation": "2037845681",
+            "component": 1,
+            "protocol": "udp",
+            "priority": 2113937151,
+            "address": "da877d7a-362f-4dba-b3ba-bed4e750da8d.local",
+            "port": 56540,
+            "type": "host",
+            "relatedAddress": null,
+            "relatedPort": null,
+            "addressType": "mdns_hostname",
+            "raw": "candidate:2037845681 1 udp 2113937151 da877d7a-362f-4dba-b3ba-bed4e750da8d.local 56540 typ host generation 0 ufrag IY9i network-cost 999"
+          },
+          {
+            "foundation": "2037845681",
+            "component": 1,
+            "protocol": "udp",
+            "priority": 2113937151,
+            "address": "da877d7a-362f-4dba-b3ba-bed4e750da8d.local",
+            "port": 56542,
+            "type": "host",
+            "relatedAddress": null,
+            "relatedPort": null,
+            "addressType": "mdns_hostname",
+            "raw": "candidate:2037845681 1 udp 2113937151 da877d7a-362f-4dba-b3ba-bed4e750da8d.local 56542 typ host generation 0 ufrag IY9i network-cost 999"
+          },
+          {
+            "foundation": "2037845681",
+            "component": 1,
+            "protocol": "udp",
+            "priority": 2113937151,
+            "address": "da877d7a-362f-4dba-b3ba-bed4e750da8d.local",
+            "port": 56544,
+            "type": "host",
+            "relatedAddress": null,
+            "relatedPort": null,
+            "addressType": "mdns_hostname",
+            "raw": "candidate:2037845681 1 udp 2113937151 da877d7a-362f-4dba-b3ba-bed4e750da8d.local 56544 typ host generation 0 ufrag IY9i network-cost 999"
+          }
+        ],
+        "iceGatheringStateTimeline": [
+          {
+            "state": "gathering",
+            "t": 12
+          }
+        ]
+      },
+      "sessionDescription": {
+        "sdpHash": "170500eb",
+        "sdp": "v=0\r\no=- 7373354537298133171 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1 2\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:IY9i\r\na=ice-pwd:EmLTNb88BPrvdyJwkMhVN1Bv\r\na=ice-options:trickle\r\na=fingerprint:sha-256 85:AA:31:BB:4C:D7:DB:71:17:1B:DE:98:31:87:0C:74:54:C0:E1:F1:2D:7D:9B:1C:87:C4:19:33:51:C2:BF:5F\r\na=setup:actpass\r\na=mid:0\r\na=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:111 opus/48000/2\r\na=rtcp-fb:111 transport-cc\r\na=fmtp:111 minptime=10;useinbandfec=1\r\na=rtpmap:63 red/48000/2\r\na=fmtp:63 111/111\r\na=rtpmap:9 G722/8000\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:8 PCMA/8000\r\na=rtpmap:13 CN/8000\r\na=rtpmap:110 telephone-event/48000\r\na=rtpmap:126 telephone-event/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 35 36 37 38 103 104 107 108 109 114 115 116 117 118 39 40 41 42 43 44 45 46 47 48 119 120 121 122 49 50 51 52 123 124 125 53\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:IY9i\r\na=ice-pwd:EmLTNb88BPrvdyJwkMhVN1Bv\r\na=ice-options:trickle\r\na=fingerprint:sha-256 85:AA:31:BB:4C:D7:DB:71:17:1B:DE:98:31:87:0C:74:54:C0:E1:F1:2D:7D:9B:1C:87:C4:19:33:51:C2:BF:5F\r\na=setup:actpass\r\na=mid:1\r\na=extmap:14 urn:ietf:params:rtp-hdrext:toffset\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:13 urn:3gpp:video-orientation\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\na=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\na=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:96 VP8/90000\r\na=rtcp-fb:96 goog-remb\r\na=rtcp-fb:96 transport-cc\r\na=rtcp-fb:96 ccm fir\r\na=rtcp-fb:96 nack\r\na=rtcp-fb:96 nack pli\r\na=rtpmap:97 rtx/90000\r\na=fmtp:97 apt=96\r\na=rtpmap:98 VP9/90000\r\na=rtcp-fb:98 goog-remb\r\na=rtcp-fb:98 transport-cc\r\na=rtcp-fb:98 ccm fir\r\na=rtcp-fb:98 nack\r\na=rtcp-fb:98 nack pli\r\na=fmtp:98 profile-id=0\r\na=rtpmap:99 rtx/90000\r\na=fmtp:99 apt=98\r\na=rtpmap:100 VP9/90000\r\na=rtcp-fb:100 goog-remb\r\na=rtcp-fb:100 transport-cc\r\na=rtcp-fb:100 ccm fir\r\na=rtcp-fb:100 nack\r\na=rtcp-fb:100 nack pli\r\na=fmtp:100 profile-id=2\r\na=rtpmap:101 rtx/90000\r\na=fmtp:101 apt=100\r\na=rtpmap:35 VP9/90000\r\na=rtcp-fb:35 goog-remb\r\na=rtcp-fb:35 transport-cc\r\na=rtcp-fb:35 ccm fir\r\na=rtcp-fb:35 nack\r\na=rtcp-fb:35 nack pli\r\na=fmtp:35 profile-id=1\r\na=rtpmap:36 rtx/90000\r\na=fmtp:36 apt=35\r\na=rtpmap:37 VP9/90000\r\na=rtcp-fb:37 goog-remb\r\na=rtcp-fb:37 transport-cc\r\na=rtcp-fb:37 ccm fir\r\na=rtcp-fb:37 nack\r\na=rtcp-fb:37 nack pli\r\na=fmtp:37 profile-id=3\r\na=rtpmap:38 rtx/90000\r\na=fmtp:38 apt=37\r\na=rtpmap:103 H264/90000\r\na=rtcp-fb:103 goog-remb\r\na=rtcp-fb:103 transport-cc\r\na=rtcp-fb:103 ccm fir\r\na=rtcp-fb:103 nack\r\na=rtcp-fb:103 nack pli\r\na=fmtp:103 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\r\na=rtpmap:104 rtx/90000\r\na=fmtp:104 apt=103\r\na=rtpmap:107 H264/90000\r\na=rtcp-fb:107 goog-remb\r\na=rtcp-fb:107 transport-cc\r\na=rtcp-fb:107 ccm fir\r\na=rtcp-fb:107 nack\r\na=rtcp-fb:107 nack pli\r\na=fmtp:107 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f\r\na=rtpmap:108 rtx/90000\r\na=fmtp:108 apt=107\r\na=rtpmap:109 H264/90000\r\na=rtcp-fb:109 goog-remb\r\na=rtcp-fb:109 transport-cc\r\na=rtcp-fb:109 ccm fir\r\na=rtcp-fb:109 nack\r\na=rtcp-fb:109 nack pli\r\na=fmtp:109 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\na=rtpmap:114 rtx/90000\r\na=fmtp:114 apt=109\r\na=rtpmap:115 H264/90000\r\na=rtcp-fb:115 goog-remb\r\na=rtcp-fb:115 transport-cc\r\na=rtcp-fb:115 ccm fir\r\na=rtcp-fb:115 nack\r\na=rtcp-fb:115 nack pli\r\na=fmtp:115 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f\r\na=rtpmap:116 rtx/90000\r\na=fmtp:116 apt=115\r\na=rtpmap:117 H264/90000\r\na=rtcp-fb:117 goog-remb\r\na=rtcp-fb:117 transport-cc\r\na=rtcp-fb:117 ccm fir\r\na=rtcp-fb:117 nack\r\na=rtcp-fb:117 nack pli\r\na=fmtp:117 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f\r\na=rtpmap:118 rtx/90000\r\na=fmtp:118 apt=117\r\na=rtpmap:39 H264/90000\r\na=rtcp-fb:39 goog-remb\r\na=rtcp-fb:39 transport-cc\r\na=rtcp-fb:39 ccm fir\r\na=rtcp-fb:39 nack\r\na=rtcp-fb:39 nack pli\r\na=fmtp:39 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f\r\na=rtpmap:40 rtx/90000\r\na=fmtp:40 apt=39\r\na=rtpmap:41 H264/90000\r\na=rtcp-fb:41 goog-remb\r\na=rtcp-fb:41 transport-cc\r\na=rtcp-fb:41 ccm fir\r\na=rtcp-fb:41 nack\r\na=rtcp-fb:41 nack pli\r\na=fmtp:41 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=f4001f\r\na=rtpmap:42 rtx/90000\r\na=fmtp:42 apt=41\r\na=rtpmap:43 H264/90000\r\na=rtcp-fb:43 goog-remb\r\na=rtcp-fb:43 transport-cc\r\na=rtcp-fb:43 ccm fir\r\na=rtcp-fb:43 nack\r\na=rtcp-fb:43 nack pli\r\na=fmtp:43 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=f4001f\r\na=rtpmap:44 rtx/90000\r\na=fmtp:44 apt=43\r\na=rtpmap:45 AV1/90000\r\na=rtcp-fb:45 goog-remb\r\na=rtcp-fb:45 transport-cc\r\na=rtcp-fb:45 ccm fir\r\na=rtcp-fb:45 nack\r\na=rtcp-fb:45 nack pli\r\na=fmtp:45 level-idx=5;profile=0;tier=0\r\na=rtpmap:46 rtx/90000\r\na=fmtp:46 apt=45\r\na=rtpmap:47 AV1/90000\r\na=rtcp-fb:47 goog-remb\r\na=rtcp-fb:47 transport-cc\r\na=rtcp-fb:47 ccm fir\r\na=rtcp-fb:47 nack\r\na=rtcp-fb:47 nack pli\r\na=fmtp:47 level-idx=5;profile=1;tier=0\r\na=rtpmap:48 rtx/90000\r\na=fmtp:48 apt=47\r\na=rtpmap:119 H264/90000\r\na=rtcp-fb:119 goog-remb\r\na=rtcp-fb:119 transport-cc\r\na=rtcp-fb:119 ccm fir\r\na=rtcp-fb:119 nack\r\na=rtcp-fb:119 nack pli\r\na=fmtp:119 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\na=rtpmap:120 rtx/90000\r\na=fmtp:120 apt=119\r\na=rtpmap:121 H264/90000\r\na=rtcp-fb:121 goog-remb\r\na=rtcp-fb:121 transport-cc\r\na=rtcp-fb:121 ccm fir\r\na=rtcp-fb:121 nack\r\na=rtcp-fb:121 nack pli\r\na=fmtp:121 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=64001f\r\na=rtpmap:122 rtx/90000\r\na=fmtp:122 apt=121\r\na=rtpmap:49 H265/90000\r\na=rtcp-fb:49 goog-remb\r\na=rtcp-fb:49 transport-cc\r\na=rtcp-fb:49 ccm fir\r\na=rtcp-fb:49 nack\r\na=rtcp-fb:49 nack pli\r\na=fmtp:49 level-id=186;profile-id=1;tier-flag=0;tx-mode=SRST\r\na=rtpmap:50 rtx/90000\r\na=fmtp:50 apt=49\r\na=rtpmap:51 H265/90000\r\na=rtcp-fb:51 goog-remb\r\na=rtcp-fb:51 transport-cc\r\na=rtcp-fb:51 ccm fir\r\na=rtcp-fb:51 nack\r\na=rtcp-fb:51 nack pli\r\na=fmtp:51 level-id=186;profile-id=2;tier-flag=0;tx-mode=SRST\r\na=rtpmap:52 rtx/90000\r\na=fmtp:52 apt=51\r\na=rtpmap:123 red/90000\r\na=rtpmap:124 rtx/90000\r\na=fmtp:124 apt=123\r\na=rtpmap:125 ulpfec/90000\r\na=rtpmap:53 flexfec-03/90000\r\na=rtcp-fb:53 goog-remb\r\na=rtcp-fb:53 transport-cc\r\na=fmtp:53 repair-window=10000000\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:IY9i\r\na=ice-pwd:EmLTNb88BPrvdyJwkMhVN1Bv\r\na=ice-options:trickle\r\na=fingerprint:sha-256 85:AA:31:BB:4C:D7:DB:71:17:1B:DE:98:31:87:0C:74:54:C0:E1:F1:2D:7D:9B:1C:87:C4:19:33:51:C2:BF:5F\r\na=setup:actpass\r\na=mid:2\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n"
+      },
+      "mediaDevices": {
+        "apiSupported": true,
+        "permissions": {
+          "audio": "prompt",
+          "video": "prompt"
+        },
+        "deviceSummary": {
+          "audioinput": 1,
+          "videoinput": 1,
+          "audiooutput": 1
+        },
+        "devices": [
+          {
+            "kind": "audioinput",
+            "labelAvailable": false,
+            "deviceIdAvailable": false,
+            "groupIdAvailable": false
+          },
+          {
+            "kind": "videoinput",
+            "labelAvailable": false,
+            "deviceIdAvailable": false,
+            "groupIdAvailable": false
+          },
+          {
+            "kind": "audiooutput",
+            "labelAvailable": false,
+            "deviceIdAvailable": false,
+            "groupIdAvailable": false
+          }
+        ]
+      },
+      "timing": {
+        "startedAt": 1768489406792,
+        "finishedAt": 1768489408306,
+        "durationMs": 1514
+      },
+      "errors": [
+        "ICE gathering timeout"
+      ]
+    },
+    "functionIntegrity": {
+      "funcToString": "function toString() { [native code] }",
+      "funcToString_native": true,
+      "functionConstructor": "function Function() { [native code] }",
+      "functionConstructor_native": true,
+      "evalFunc": "function eval() { [native code] }",
+      "evalFunc_native": true,
+      "asyncFunctionConstructor": "function AsyncFunction() { [native code] }",
+      "asyncFunctionConstructor_native": true,
+      "objectDefineProperty": "function defineProperty() { [native code] }",
+      "objectDefineProperty_native": true,
+      "objectGetOwnPropertyDescriptor": "function getOwnPropertyDescriptor() { [native code] }",
+      "objectGetOwnPropertyDescriptor_native": true,
+      "jsonStringify": "function stringify() { [native code] }",
+      "jsonStringify_native": true,
+      "jsonParse": "function parse() { [native code] }",
+      "jsonParse_native": true,
+      "proxyConstructor": "function Proxy() { [native code] }",
+      "proxyConstructor_native": true,
+      "reflectGet": "function get() { [native code] }",
+      "reflectGet_native": true,
+      "reflectSet": "function set() { [native code] }",
+      "reflectSet_native": true,
+      "promiseConstructor": "function Promise() { [native code] }",
+      "promiseConstructor_native": true,
+      "promiseThen": "function then() { [native code] }",
+      "promiseThen_native": true,
+      "promiseCatch": "function catch() { [native code] }",
+      "promiseCatch_native": true,
+      "errorToString": "function toString() { [native code] }",
+      "errorToString_native": true,
+      "dateNow": "function now() { [native code] }",
+      "dateNow_native": true,
+      "performanceNow": "function now() { [native code] }",
+      "performanceNow_native": true,
+      "setTimeoutFunc": "function setTimeout() { [native code] }",
+      "setTimeoutFunc_native": true,
+      "setIntervalFunc": "function setInterval() { [native code] }",
+      "setIntervalFunc_native": true,
+      "requestAnimationFrame": "function requestAnimationFrame() { [native code] }",
+      "requestAnimationFrame_native": true,
+      "cancelAnimationFrame": "function cancelAnimationFrame() { [native code] }",
+      "cancelAnimationFrame_native": true,
+      "mathRandom": "function random() { [native code] }",
+      "mathRandom_native": true,
+      "cryptoGetRandomValues": "function getRandomValues() { [native code] }",
+      "cryptoGetRandomValues_native": true,
+      "cryptoRandomUUID": "function randomUUID() { [native code] }",
+      "cryptoRandomUUID_native": true,
+      "consoleLog": "function log() { [native code] }",
+      "consoleLog_native": true,
+      "consoleWarn": "function warn() { [native code] }",
+      "consoleWarn_native": true,
+      "consoleError": "function error() { [native code] }",
+      "consoleError_native": true,
+      "consoleDebug": "function debug() { [native code] }",
+      "consoleDebug_native": true,
+      "consoleInfo": "function info() { [native code] }",
+      "consoleInfo_native": true,
+      "consoleTrace": "function trace() { [native code] }",
+      "consoleTrace_native": true,
+      "createElement": "function createElement() { [native code] }",
+      "createElement_native": true,
+      "getElementById": "function getElementById() { [native code] }",
+      "getElementById_native": true,
+      "querySelector": "function querySelector() { [native code] }",
+      "querySelector_native": true,
+      "querySelectorAll": "function querySelectorAll() { [native code] }",
+      "querySelectorAll_native": true,
+      "appendChild": "function appendChild() { [native code] }",
+      "appendChild_native": true,
+      "removeChild": "function removeChild() { [native code] }",
+      "removeChild_native": true,
+      "getComputedStyle": "function getComputedStyle() { [native code] }",
+      "getComputedStyle_native": true,
+      "addEventListener": "function addEventListener() { [native code] }",
+      "addEventListener_native": true,
+      "removeEventListener": "function removeEventListener() { [native code] }",
+      "removeEventListener_native": true,
+      "dispatchEvent": "function dispatchEvent() { [native code] }",
+      "dispatchEvent_native": true,
+      "mouseEventConstructor": "function MouseEvent() { [native code] }",
+      "mouseEventConstructor_native": true,
+      "keyboardEventConstructor": "function KeyboardEvent() { [native code] }",
+      "keyboardEventConstructor_native": true,
+      "touchEventConstructor": "function TouchEvent() { [native code] }",
+      "touchEventConstructor_native": true,
+      "pointerEventConstructor": "function PointerEvent() { [native code] }",
+      "pointerEventConstructor_native": true,
+      "inputEventConstructor": "function InputEvent() { [native code] }",
+      "inputEventConstructor_native": true,
+      "fetchFunc": "function fetch() { [native code] }",
+      "fetchFunc_native": true,
+      "xmlHttpRequestConstructor": "function XMLHttpRequest() { [native code] }",
+      "xmlHttpRequestConstructor_native": true,
+      "xmlHttpRequestOpen": "function open() { [native code] }",
+      "xmlHttpRequestOpen_native": true,
+      "xmlHttpRequestSend": "function send() { [native code] }",
+      "xmlHttpRequestSend_native": true,
+      "websocketConstructor": "function WebSocket() { [native code] }",
+      "websocketConstructor_native": true,
+      "sendBeacon": "function sendBeacon() { [native code] }",
+      "sendBeacon_native": true,
+      "postMessage": "function postMessage() { [native code] }",
+      "postMessage_native": true,
+      "messageChannel": "function MessageChannel() { [native code] }",
+      "messageChannel_native": true,
+      "workerConstructor": "function Worker() { [native code] }",
+      "workerConstructor_native": true,
+      "sharedWorkerConstructor": "function SharedWorker() { [native code] }",
+      "sharedWorkerConstructor_native": true,
+      "serviceWorkerRegister": "function register() { [native code] }",
+      "serviceWorkerRegister_native": true,
+      "canvasToDataURL": "function toDataURL() { [native code] }",
+      "canvasToDataURL_native": true,
+      "canvasGetContext": "function getContext() { [native code] }",
+      "canvasGetContext_native": true,
+      "webglGetParameter": "function getParameter() { [native code] }",
+      "webglGetParameter_native": true,
+      "navigatorUAGetter": "function get userAgent() { [native code] }",
+      "navigatorUAGetter_native": true,
+      "navigatorLangGetter": "function get languages() { [native code] }",
+      "navigatorLangGetter_native": true,
+      "navigatorPlatformGetter": "function get platform() { [native code] }",
+      "navigatorPlatformGetter_native": true,
+      "navigatorVendorGetter": "function get vendor() { [native code] }",
+      "navigatorVendorGetter_native": true,
+      "navigatorWebdriverGetter": "function get webdriver() { [native code] }",
+      "navigatorWebdriverGetter_native": true,
+      "navigatorPluginsGetter": "function get plugins() { [native code] }",
+      "navigatorPluginsGetter_native": true,
+      "navigatorMimeTypesGetter": "function get mimeTypes() { [native code] }",
+      "navigatorMimeTypesGetter_native": true,
+      "navigatorDeviceMemoryGetter": "function get deviceMemory() { [native code] }",
+      "navigatorDeviceMemoryGetter_native": true,
+      "navigatorHardwareConcurrencyGetter": "function get hardwareConcurrency() { [native code] }",
+      "navigatorHardwareConcurrencyGetter_native": true,
+      "navigatorMaxTouchPointsGetter": "function get maxTouchPoints() { [native code] }",
+      "navigatorMaxTouchPointsGetter_native": true,
+      "screenWidthGetter": "function get width() { [native code] }",
+      "screenWidthGetter_native": true,
+      "screenHeightGetter": "function get height() { [native code] }",
+      "screenHeightGetter_native": true,
+      "screenColorDepthGetter": "function get colorDepth() { [native code] }",
+      "screenColorDepthGetter_native": true,
+      "permissionsQuery": "function query() { [native code] }",
+      "permissionsQuery_native": true,
+      "geolocationGetCurrentPosition": "function getCurrentPosition() { [native code] }",
+      "geolocationGetCurrentPosition_native": true,
+      "geolocationWatchPosition": "function watchPosition() { [native code] }",
+      "geolocationWatchPosition_native": true,
+      "clipboardRead": "function read() { [native code] }",
+      "clipboardRead_native": true,
+      "clipboardWrite": "function write() { [native code] }",
+      "clipboardWrite_native": true,
+      "localStorageSetItem": "function setItem() { [native code] }",
+      "localStorageSetItem_native": true,
+      "localStorageGetItem": "function getItem() { [native code] }",
+      "localStorageGetItem_native": true,
+      "localStorageRemoveItem": "function removeItem() { [native code] }",
+      "localStorageRemoveItem_native": true,
+      "getUserMedia": "function getUserMedia() { [native code] }",
+      "getUserMedia_native": true,
+      "mutationObserver": "function MutationObserver() { [native code] }",
+      "mutationObserver_native": true,
+      "intersectionObserver": "function IntersectionObserver() { [native code] }",
+      "intersectionObserver_native": true,
+      "resizeObserver": "function ResizeObserver() { [native code] }",
+      "resizeObserver_native": true,
+      "notificationConstructor": "function Notification() { [native code] }",
+      "notificationConstructor_native": true,
+      "batteryManager": "function getBattery() { [native code] }",
+      "batteryManager_native": true,
+      "toStringIntegrity": "native",
+      "toStringIntegrity_native": false,
+      "overriddenFunctions": {},
+      "errorStackTrace": "Error\n    at FunctionIntegrityDetector.verifyFunctionIntegrity (http://localhost:8002/functionIntegrityDetector.js:429:25)\n    at FunctionIntegrityDetector.detectIntegrityViolations (http://localhost:8002/functionIntegrityDetector.js:53:49)\n    at BrowserFingerprintAnalyzer.analyzeFingerprint (http://localhost:8002/browserFingerprint.js:1080:81)\n    at async initializeAnalysis (http://localhost:8002/fingerprint-analysis-v2.html:405:17)",
+      "crossRealm": {
+        "funcToString_diff": false,
+        "JSON_stringify_diff": false,
+        "Object_defineProperty_diff": false,
+        "setTimeout_diff": false,
+        "setInterval_diff": false,
+        "navigator_userAgent_getter_diff": false,
+        "Date_now_diff": false,
+        "Math_random_diff": false,
+        "console_log_diff": false,
+        "Proxy_constructor_diff": false,
+        "Reflect_get_diff": false,
+        "fetch_diff": false,
+        "XMLHttpRequest_diff": false,
+        "Promise_constructor_diff": false,
+        "eval_diff": false,
+        "Function_constructor_diff": false,
+        "Worker_constructor_diff": false,
+        "toString_integrity_diff": false
+      },
+      "descriptors": {
+        "Navigator_userAgent_desc_unchanged": true,
+        "Navigator_languages_desc_unchanged": true,
+        "Navigator_platform_desc_unchanged": true,
+        "Function_toString_desc_unchanged": true,
+        "JSON_stringify_desc_unchanged": true,
+        "console_log_desc_unchanged": true,
+        "Date_now_desc_unchanged": true,
+        "Math_random_desc_unchanged": true
+      },
+      "proxySuspicions": {
+        "setTimeout_proxied": false,
+        "setInterval_proxied": false,
+        "funcToString_proxied": false,
+        "fetch_proxied": false,
+        "JSON_stringify_proxied": false,
+        "addEventListener_proxied": false,
+        "console_log_proxied": false
+      },
+      "contexts": {
+        "main": {
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "plat": "Win32",
+          "lang": [
+            "en-US",
+            "en-GB",
+            "ru-RU",
+            "ru",
+            "en",
+            "he"
+          ],
+          "hw": 12,
+          "funcToString": "function toString() { [native code] }",
+          "JSONStringify": "function stringify() { [native code] }",
+          "mathRandom": "function random() { [native code] }",
+          "dateNow": "function now() { [native code] }",
+          "consoleLog": "function log() { [native code] }",
+          "fetch": "function fetch() { [native code] }"
+        },
+        "iframe": {
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "plat": "Win32",
+          "lang": [
+            "en-US",
+            "en-GB",
+            "ru-RU",
+            "ru",
+            "en",
+            "he"
+          ],
+          "hw": 12,
+          "funcToString": "function toString() { [native code] }",
+          "JSONStringify": "function stringify() { [native code] }",
+          "mathRandom": "function random() { [native code] }",
+          "dateNow": "function now() { [native code] }",
+          "consoleLog": "function log() { [native code] }",
+          "fetch": "function fetch() { [native code] }"
+        },
+        "worker": {
+          "ok": true,
+          "worker": {
+            "success": true,
+            "data": {
+              "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+              "plat": "Win32",
+              "lang": [
+                "en-US",
+                "en-GB",
+                "ru-RU",
+                "ru",
+                "en",
+                "he"
+              ],
+              "hw": 12,
+              "funcToString": "function toString() { [native code] }",
+              "JSONStringify": "function stringify() { [native code] }",
+              "mathRandom": "function random() { [native code] }",
+              "dateNow": "function now() { [native code] }",
+              "consoleLog": "function log() { [native code] }",
+              "fetch": "function fetch() { [native code] }"
+            }
+          }
+        }
+      }
     }
   },
-  "suspiciousIndicators": [
-    {
-      "category": "network",
-      "name": "zero_rtt",
-      "description": "RTT value is zero, indicating possible mocked Network Information API",
-      "severity": "MEDIUM",
-      "confidence": 0.6,
-      "details": "Network anomaly detected: zero_rtt"
-    },
-    {
-      "category": "active_measurement",
-      "name": "downlink_api_mismatch",
-      "description": "Measured downlink differs significantly from Connection API value",
-      "severity": "LOW",
-      "confidence": 0.4,
-      "details": "API: 4.8Mbps, Measured: 2062.77Mbps"
-    }
-  ],
+  "suspiciousIndicators": [],
   "suspiciousAnalysis": {
     "indicators": [],
     "allIndicators": [
@@ -3646,8 +3941,8 @@
         "confidence": 0.7,
         "importance": "WEAK",
         "details": "Normal DPR range is 0.95-2.5, detected: 0.8999999761581421. Note: This can occur with custom zoom levels or unusual display setups.",
-        "timestamp": 1767194850058,
-        "id": "display_device_pixel_ratio_anomaly_1767194850058"
+        "timestamp": 1768489410183,
+        "id": "display_device_pixel_ratio_anomaly_1768489410183"
       },
       {
         "name": "dpr_float_noise_pattern",
@@ -3658,8 +3953,8 @@
         "confidence": 0.85,
         "importance": "WEAK",
         "details": "Float noise around 0.8 can be characteristic of automation frameworks, but may also occur with certain zoom levels.",
-        "timestamp": 1767194850058,
-        "id": "display_dpr_float_noise_pattern_1767194850058"
+        "timestamp": 1768489410183,
+        "id": "display_dpr_float_noise_pattern_1768489410183"
       }
     ],
     "analysis": {
@@ -3676,8 +3971,8 @@
             "confidence": 0.7,
             "importance": "WEAK",
             "details": "Normal DPR range is 0.95-2.5, detected: 0.8999999761581421. Note: This can occur with custom zoom levels or unusual display setups.",
-            "timestamp": 1767194850058,
-            "id": "display_device_pixel_ratio_anomaly_1767194850058"
+            "timestamp": 1768489410183,
+            "id": "display_device_pixel_ratio_anomaly_1768489410183"
           },
           {
             "name": "dpr_float_noise_pattern",
@@ -3688,8 +3983,8 @@
             "confidence": 0.85,
             "importance": "WEAK",
             "details": "Float noise around 0.8 can be characteristic of automation frameworks, but may also occur with certain zoom levels.",
-            "timestamp": 1767194850058,
-            "id": "display_dpr_float_noise_pattern_1767194850058"
+            "timestamp": 1768489410183,
+            "id": "display_dpr_float_noise_pattern_1768489410183"
           }
         ],
         "unknown": []
@@ -3721,7 +4016,7 @@
     "suspicionScore": 0,
     "reasoning": "Insufficient evidence - 2 weak indicator(s) found but below threshold"
   },
-  "aiAgentSummary": {
+  "functionIntegritySummary": {
     "totalIndicators": 0,
     "riskCounts": {
       "HIGH": 0,
@@ -3730,13 +4025,260 @@
     },
     "suspicionScore": 0,
     "hasSuspiciousActivity": false,
-    "reasoning": "No significant AI agent patterns detected"
+    "reasoning": "No function integrity violations detected"
+  },
+  "knownAgentsDetection": {
+    "results": {
+      "timestamp": 1768489470194,
+      "detectionResults": [
+        {
+          "name": "Manus",
+          "detected": false,
+          "timestamp": 1768489470188,
+          "confidence": 0,
+          "detectionMethod": "Chrome Extension Resource Fetch",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Comet",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "CSS Variable Injection Fingerprinting",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Genspark",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "DOM Element Detection",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Skyvern",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "Window Property Detection (GlobalSkyvernFrameIndex)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "ChatGPTBrowser",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "Console.log Override Signature Analysis",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Fellou",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "Window Property Detection (__FELLOU_TAB_ID__)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "HyperBrowser",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "Console.log Wrapper Signature Detection (rand251plus50)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "BrowserUse",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "Console Message + Stack Classification (browser-use highlight)",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Selenium",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "WebDriver Property & Artifact Detection",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Puppeteer",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "Headless Browser & Runtime Analysis",
+          "indicators": [],
+          "primarySignal": null
+        },
+        {
+          "name": "Playwright",
+          "detected": false,
+          "timestamp": 1768489470194,
+          "confidence": 0,
+          "detectionMethod": "Framework Signature Detection",
+          "indicators": [],
+          "primarySignal": "None"
+        },
+        {
+          "name": "DevTools",
+          "detected": false,
+          "timestamp": 1768489470187,
+          "confidence": 0,
+          "detectionMethod": "CDP Runtime.enable Detection via Error Stack Serialization",
+          "indicators": [],
+          "primarySignal": null
+        }
+      ],
+      "summary": {
+        "detectedAgents": [],
+        "totalDetected": 0,
+        "detectionResults": [
+          {
+            "name": "Manus",
+            "detected": false,
+            "timestamp": 1768489470188,
+            "confidence": 0,
+            "detectionMethod": "Chrome Extension Resource Fetch",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Comet",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "CSS Variable Injection Fingerprinting",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Genspark",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "DOM Element Detection",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Skyvern",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "Window Property Detection (GlobalSkyvernFrameIndex)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "ChatGPTBrowser",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "Console.log Override Signature Analysis",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Fellou",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "Window Property Detection (__FELLOU_TAB_ID__)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "HyperBrowser",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "Console.log Wrapper Signature Detection (rand251plus50)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "BrowserUse",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "Console Message + Stack Classification (browser-use highlight)",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Selenium",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "WebDriver Property & Artifact Detection",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Puppeteer",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "Headless Browser & Runtime Analysis",
+            "indicators": [],
+            "primarySignal": null
+          },
+          {
+            "name": "Playwright",
+            "detected": false,
+            "timestamp": 1768489470194,
+            "confidence": 0,
+            "detectionMethod": "Framework Signature Detection",
+            "indicators": [],
+            "primarySignal": "None"
+          },
+          {
+            "name": "DevTools",
+            "detected": false,
+            "timestamp": 1768489470187,
+            "confidence": 0,
+            "detectionMethod": "CDP Runtime.enable Detection via Error Stack Serialization",
+            "indicators": [],
+            "primarySignal": null
+          }
+        ],
+        "hasAnyAgent": false
+      },
+      "detectedAgents": [],
+      "hasAnyAgent": false,
+      "totalDetected": 0
+    },
+    "history": [
+      {
+        "timestamp": 1768489410180,
+        "detectedAgents": [],
+        "totalDetected": 0
+      },
+      {
+        "timestamp": 1768489470194,
+        "detectedAgents": [],
+        "totalDetected": 0
+      }
+    ],
+    "isPeriodicRunning": true,
+    "intervalMs": 60000
   },
   "summary": {
-    "totalMetrics": 551,
-    "highRiskIndicators": 2,
-    "mediumRiskIndicators": 4,
-    "riskLevel": "HIGH",
+    "totalMetrics": 476,
+    "highRiskIndicators": 0,
+    "mediumRiskIndicators": 2,
+    "riskLevel": "MEDIUM",
     "automationLikelihood": "Low"
   },
   "behavioralSummary": {
@@ -3749,8 +4291,8 @@
     "summary": "No clear signs of automated behavior detected"
   },
   "behavioralMetadata": {
-    "startTime": 323.5,
-    "endTime": 1329.2000000476837,
+    "startTime": 64.7000000178814,
+    "endTime": 1076.5,
     "storagePrefix": "fp_behavioral_"
   }
 }

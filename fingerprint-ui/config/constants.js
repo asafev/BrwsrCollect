@@ -185,6 +185,13 @@ export const CATEGORY_CONFIG = {
         label: 'Network Capabilities',
         description: 'Network connection and bandwidth info',
         color: '#06B6D4'
+    },
+    performanceTiming: {
+        get icon() { return getIcon('performanceTiming'); },
+        iconType: 'svg',
+        label: 'Performance Timing',
+        description: 'Navigation, paint, and first-input timing metrics for actor clustering',
+        color: '#F97316'
     }
 };
 

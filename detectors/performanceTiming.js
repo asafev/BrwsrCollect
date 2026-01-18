@@ -1,0 +1,658 @@
+/**
+ * Performance Timing Detector Module
+ * Collects critical performance timing metrics from the Performance API
+ * 
+ * Focuses on three key performance entry types:
+ * - navigation: Page load and DOM timing metrics
+ * - paint: First paint and first contentful paint
+ * - first-input: User's first interaction timing
+ * 
+ * These metrics help cluster and identify specific actors based on
+ * their page load patterns and interaction timing signatures.
+ * 
+ * @module detectors/performanceTiming
+ */
+
+/**
+ * Configuration for performance timing collection
+ */
+export const PERFORMANCE_TIMING_CONFIG = {
+    // Whether to collect navigation timing
+    collectNavigation: true,
+    // Whether to collect paint timing
+    collectPaint: true,
+    // Whether to collect first-input timing
+    collectFirstInput: true,
+    // Whether to setup PerformanceObserver for first-input
+    observeFirstInput: true,
+    // Timeout for first-input observation (ms)
+    firstInputTimeout: 5000
+};
+
+/**
+ * Performance Timing Detector
+ * Collects performance metrics useful for actor clustering and analysis
+ */
+export class PerformanceTimingDetector {
+    /**
+     * @param {Object} config - Configuration options
+     */
+    constructor(config = {}) {
+        this.config = { ...PERFORMANCE_TIMING_CONFIG, ...config };
+        this.metrics = {};
+        this.firstInputData = null;
+        this.firstInputObserver = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize the detector - should be called early in page lifecycle
+     * to capture first-input data before it's available
+     */
+    init() {
+        if (this.isInitialized) return;
+        
+        // Setup PerformanceObserver for first-input if configured
+        if (this.config.observeFirstInput && typeof PerformanceObserver !== 'undefined') {
+            this._setupFirstInputObserver();
+        }
+        
+        this.isInitialized = true;
+    }
+
+    /**
+     * Setup PerformanceObserver for first-input entries
+     * @private
+     */
+    _setupFirstInputObserver() {
+        try {
+            // Check if first-input type is supported
+            if (!PerformanceObserver.supportedEntryTypes?.includes('first-input')) {
+                return;
+            }
+
+            this.firstInputObserver = new PerformanceObserver((list) => {
+                const entries = list.getEntries();
+                if (entries.length > 0) {
+                    this.firstInputData = this._processFirstInputEntry(entries[0]);
+                    // Disconnect after capturing first input
+                    this.firstInputObserver?.disconnect();
+                }
+            });
+
+            this.firstInputObserver.observe({ type: 'first-input', buffered: true });
+
+            // Auto-disconnect after timeout
+            setTimeout(() => {
+                this.firstInputObserver?.disconnect();
+            }, this.config.firstInputTimeout);
+
+        } catch (e) {
+            // Silently fail - first-input observation is optional
+        }
+    }
+
+    /**
+     * Run performance timing analysis
+     * @returns {Object} Performance timing metrics
+     */
+    analyze() {
+        this.metrics = {};
+
+        // Collect navigation timing
+        if (this.config.collectNavigation) {
+            Object.assign(this.metrics, this._collectNavigationTiming());
+        }
+
+        // Collect paint timing
+        if (this.config.collectPaint) {
+            Object.assign(this.metrics, this._collectPaintTiming());
+        }
+
+        // Collect first-input timing
+        if (this.config.collectFirstInput) {
+            Object.assign(this.metrics, this._collectFirstInputTiming());
+        }
+
+        // Add collection metadata
+        this.metrics.collectionTimestamp = {
+            value: Date.now(),
+            description: 'Timestamp when performance metrics were collected',
+            risk: 'N/A'
+        };
+
+        return this.metrics;
+    }
+
+    /**
+     * Collect Navigation Timing metrics
+     * @private
+     * @returns {Object} Navigation timing metrics
+     */
+    _collectNavigationTiming() {
+        const metrics = {};
+        
+        try {
+            if (typeof performance === 'undefined') {
+                return { navigationTimingError: this._createErrorMetric('Performance API not available') };
+            }
+
+            const timing = performance.timing;
+            const navigationStart = timing?.navigationStart || 0;
+
+            // Primary navigation metrics (relative to navigationStart)
+            if (timing) {
+                // DOM Complete: When DOM is fully loaded and parsed
+                const domComplete = timing.domComplete > 0 
+                    ? timing.domComplete - navigationStart 
+                    : null;
+                
+                metrics.domComplete = {
+                    value: domComplete ?? 'Not available',
+                    description: 'Time until DOM is complete (ms since navigationStart)',
+                    risk: this._assessDomCompleteRisk(domComplete),
+                    code: 'performance.timing.domComplete - performance.timing.navigationStart'
+                };
+
+                // Load Event: When load event finishes
+                const loadEvent = timing.loadEventEnd > 0 
+                    ? timing.loadEventEnd - navigationStart 
+                    : null;
+                
+                metrics.loadEvent = {
+                    value: loadEvent ?? 'Not available',
+                    description: 'Time until load event completes (ms since navigationStart)',
+                    risk: this._assessLoadEventRisk(loadEvent),
+                    code: 'performance.timing.loadEventEnd - performance.timing.navigationStart'
+                };
+
+                // DOM Interactive: When DOM parsing is complete
+                const domInteractive = timing.domInteractive > 0 
+                    ? timing.domInteractive - navigationStart 
+                    : null;
+                
+                metrics.domInteractive = {
+                    value: domInteractive ?? 'Not available',
+                    description: 'Time until DOM is interactive (ms since navigationStart)',
+                    risk: 'N/A',
+                    code: 'performance.timing.domInteractive - performance.timing.navigationStart'
+                };
+
+                // DOM Content Loaded: When DOMContentLoaded event fires
+                const domContentLoaded = timing.domContentLoadedEventEnd > 0 
+                    ? timing.domContentLoadedEventEnd - navigationStart 
+                    : null;
+                
+                metrics.domContentLoaded = {
+                    value: domContentLoaded ?? 'Not available',
+                    description: 'Time until DOMContentLoaded event completes (ms)',
+                    risk: 'N/A',
+                    code: 'performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart'
+                };
+
+                // Time to First Byte (TTFB)
+                const ttfb = timing.responseStart > 0 
+                    ? timing.responseStart - navigationStart 
+                    : null;
+                
+                metrics.ttfb = {
+                    value: ttfb ?? 'Not available',
+                    description: 'Time to First Byte - server response time (ms)',
+                    risk: 'N/A',
+                    code: 'performance.timing.responseStart - performance.timing.navigationStart'
+                };
+
+                // Response time
+                const responseTime = timing.responseEnd > 0 && timing.responseStart > 0
+                    ? timing.responseEnd - timing.responseStart
+                    : null;
+
+                metrics.responseTime = {
+                    value: responseTime ?? 'Not available',
+                    description: 'Time to receive full response (ms)',
+                    risk: 'N/A',
+                    code: 'performance.timing.responseEnd - performance.timing.responseStart'
+                };
+
+                // DNS Lookup time
+                const dnsLookup = timing.domainLookupEnd > 0 && timing.domainLookupStart > 0
+                    ? timing.domainLookupEnd - timing.domainLookupStart
+                    : null;
+
+                metrics.dnsLookup = {
+                    value: dnsLookup ?? 0,
+                    description: 'DNS lookup time (ms) - 0 indicates cached or same-origin',
+                    risk: 'N/A',
+                    code: 'performance.timing.domainLookupEnd - performance.timing.domainLookupStart'
+                };
+
+                // TCP Connection time
+                const tcpConnect = timing.connectEnd > 0 && timing.connectStart > 0
+                    ? timing.connectEnd - timing.connectStart
+                    : null;
+
+                metrics.tcpConnect = {
+                    value: tcpConnect ?? 0,
+                    description: 'TCP connection establishment time (ms) - 0 indicates reused connection',
+                    risk: 'N/A',
+                    code: 'performance.timing.connectEnd - performance.timing.connectStart'
+                };
+
+                // Build timing signature (like PerimeterX) for clustering
+                // Format: dnsLookup:tcpConnect:ttfb:domInteractive:domComplete:pageLoadTime
+                const timingSignatureValues = [
+                    dnsLookup ?? 0,
+                    tcpConnect ?? 0,
+                    ttfb ?? 0,
+                    domInteractive ?? 0,
+                    domComplete ?? 0,
+                    loadEvent ?? 0  // pageLoadTime equivalent
+                ];
+                const timingSignature = timingSignatureValues.map(v => Math.round(v)).join(':');
+
+                metrics.timingSignature = {
+                    value: timingSignature,
+                    description: 'Compact timing signature (dns:tcp:ttfb:domInteractive:domComplete:loadEvent) for actor clustering',
+                    risk: 'N/A',
+                    code: '[dnsLookup, tcpConnect, ttfb, domInteractive, domComplete, loadEvent].map(v => Math.round(v)).join(":")'
+                };
+            }
+
+            // Navigation Timing Level 2 (PerformanceNavigationTiming)
+            if (performance.getEntriesByType) {
+                const navEntries = performance.getEntriesByType('navigation');
+                if (navEntries?.length > 0) {
+                    const nav = navEntries[0];
+                    
+                    metrics.navigationType = {
+                        value: nav.type || 'Not available',
+                        description: 'Navigation type (navigate, reload, back_forward, prerender)',
+                        risk: 'N/A',
+                        code: "performance.getEntriesByType('navigation')[0].type"
+                    };
+
+                    metrics.redirectCount = {
+                        value: nav.redirectCount ?? 'Not available',
+                        description: 'Number of redirects before reaching this page',
+                        risk: 'N/A',
+                        code: "performance.getEntriesByType('navigation')[0].redirectCount"
+                    };
+
+                    metrics.transferSize = {
+                        value: nav.transferSize ?? 'Not available',
+                        description: 'Total bytes transferred for the page (including headers)',
+                        risk: 'N/A',
+                        code: "performance.getEntriesByType('navigation')[0].transferSize"
+                    };
+
+                    metrics.encodedBodySize = {
+                        value: nav.encodedBodySize ?? 'Not available',
+                        description: 'Encoded (compressed) size of the page body',
+                        risk: 'N/A',
+                        code: "performance.getEntriesByType('navigation')[0].encodedBodySize"
+                    };
+
+                    metrics.decodedBodySize = {
+                        value: nav.decodedBodySize ?? 'Not available',
+                        description: 'Decoded (uncompressed) size of the page body',
+                        risk: 'N/A',
+                        code: "performance.getEntriesByType('navigation')[0].decodedBodySize"
+                    };
+                }
+            }
+
+        } catch (e) {
+            metrics.navigationTimingError = this._createErrorMetric(e.message);
+        }
+
+        return metrics;
+    }
+
+    /**
+     * Collect Paint Timing metrics
+     * @private
+     * @returns {Object} Paint timing metrics
+     */
+    _collectPaintTiming() {
+        const metrics = {};
+
+        try {
+            if (typeof performance === 'undefined' || !performance.getEntriesByType) {
+                return { paintTimingError: this._createErrorMetric('Paint timing not available') };
+            }
+
+            const paintEntries = performance.getEntriesByType('paint');
+            
+            // First Paint
+            const firstPaintEntry = paintEntries?.find(entry => entry.name === 'first-paint');
+            metrics.firstPaint = {
+                value: firstPaintEntry?.startTime 
+                    ? Math.round(firstPaintEntry.startTime * 100) / 100 
+                    : 'Not available',
+                description: 'Time until first pixel is painted on screen (ms)',
+                risk: this._assessFirstPaintRisk(firstPaintEntry?.startTime),
+                code: "performance.getEntriesByType('paint').find(e => e.name === 'first-paint')?.startTime"
+            };
+
+            // First Contentful Paint (FCP)
+            const fcpEntry = paintEntries?.find(entry => entry.name === 'first-contentful-paint');
+            metrics.firstContentfulPaint = {
+                value: fcpEntry?.startTime 
+                    ? Math.round(fcpEntry.startTime * 100) / 100 
+                    : 'Not available',
+                description: 'Time until first content element is painted (ms)',
+                risk: this._assessFcpRisk(fcpEntry?.startTime),
+                code: "performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint')?.startTime"
+            };
+
+            // Paint timing available
+            metrics.paintTimingSupported = {
+                value: paintEntries?.length > 0,
+                description: 'Whether paint timing entries are available',
+                risk: 'N/A',
+                code: "performance.getEntriesByType('paint').length > 0"
+            };
+
+        } catch (e) {
+            metrics.paintTimingError = this._createErrorMetric(e.message);
+        }
+
+        return metrics;
+    }
+
+    /**
+     * Collect First Input timing metrics
+     * @private
+     * @returns {Object} First input timing metrics
+     */
+    _collectFirstInputTiming() {
+        const metrics = {};
+
+        try {
+            // First try to get from observer data
+            if (this.firstInputData) {
+                return this._buildFirstInputMetrics(this.firstInputData);
+            }
+
+            // Fall back to direct API access
+            if (typeof performance === 'undefined' || !performance.getEntriesByType) {
+                metrics.firstInputSupported = {
+                    value: false,
+                    description: 'First-input performance API support',
+                    risk: 'N/A'
+                };
+                return metrics;
+            }
+
+            const firstInputEntries = performance.getEntriesByType('first-input');
+            
+            if (firstInputEntries?.length > 0) {
+                const entry = firstInputEntries[0];
+                const processedData = this._processFirstInputEntry(entry);
+                return this._buildFirstInputMetrics(processedData);
+            }
+
+            // No first-input recorded yet
+            metrics.firstInputRecorded = {
+                value: false,
+                description: 'Whether first user input has been recorded',
+                risk: 'N/A',
+                code: "performance.getEntriesByType('first-input').length > 0"
+            };
+
+            metrics.firstInputSupported = {
+                value: this._isFirstInputSupported(),
+                description: 'Whether first-input performance entry type is supported',
+                risk: 'N/A'
+            };
+
+        } catch (e) {
+            metrics.firstInputError = this._createErrorMetric(e.message);
+        }
+
+        return metrics;
+    }
+
+    /**
+     * Process a first-input performance entry
+     * @private
+     * @param {PerformanceEntry} entry - The first-input entry
+     * @returns {Object} Processed first input data
+     */
+    _processFirstInputEntry(entry) {
+        const data = {
+            recorded: true,
+            eventName: entry.name,
+            startTime: Math.round(entry.startTime),
+            processingStart: entry.processingStart ? Math.round(entry.processingStart) : null,
+            processingEnd: entry.processingEnd ? Math.round(entry.processingEnd) : null,
+            duration: entry.duration ? Math.round(entry.duration) : null
+        };
+
+        // Calculate First Input Delay (FID)
+        if (entry.processingStart && entry.startTime) {
+            data.firstInputDelay = Math.round(entry.processingStart - entry.startTime);
+        }
+
+        // Try to get target element info
+        if (entry.target) {
+            try {
+                data.targetTagName = entry.target.tagName;
+                data.targetId = entry.target.id || null;
+                data.targetClassName = entry.target.className || null;
+                
+                // Get element position
+                const rect = entry.target.getBoundingClientRect?.();
+                if (rect) {
+                    data.targetX = Math.round(rect.x);
+                    data.targetY = Math.round(rect.y);
+                }
+            } catch (e) {
+                // Target element access failed
+            }
+        }
+
+        return data;
+    }
+
+    /**
+     * Build metrics object from processed first-input data
+     * @private
+     * @param {Object} data - Processed first input data
+     * @returns {Object} Metrics object
+     */
+    _buildFirstInputMetrics(data) {
+        const metrics = {};
+
+        metrics.firstInputRecorded = {
+            value: true,
+            description: 'Whether first user input has been recorded',
+            risk: 'N/A'
+        };
+
+        metrics.firstInputEventName = {
+            value: data.eventName || 'Not available',
+            description: 'Type of first user input event (pointerdown, click, keydown, etc.)',
+            risk: 'N/A',
+            code: "performance.getEntriesByType('first-input')[0].name"
+        };
+
+        metrics.firstInputStartTime = {
+            value: data.startTime ?? 'Not available',
+            description: 'Time when first input occurred (ms since page load)',
+            risk: this._assessFirstInputTimeRisk(data.startTime),
+            code: "performance.getEntriesByType('first-input')[0].startTime"
+        };
+
+        metrics.firstInputDelay = {
+            value: data.firstInputDelay ?? 'Not available',
+            description: 'First Input Delay - time between input and processing start (ms)',
+            risk: this._assessFirstInputDelayRisk(data.firstInputDelay),
+            code: "entry.processingStart - entry.startTime"
+        };
+
+        metrics.firstInputDuration = {
+            value: data.duration ?? 'Not available',
+            description: 'Total duration of first input event handling (ms)',
+            risk: 'N/A',
+            code: "performance.getEntriesByType('first-input')[0].duration"
+        };
+
+        // Target element info (useful for bot detection - automated clicks often target specific patterns)
+        if (data.targetTagName) {
+            metrics.firstInputTargetTag = {
+                value: data.targetTagName,
+                description: 'HTML tag of first interacted element',
+                risk: 'N/A'
+            };
+        }
+
+        if (data.targetX !== undefined && data.targetY !== undefined) {
+            metrics.firstInputTargetPosition = {
+                value: `${data.targetX},${data.targetY}`,
+                description: 'Position of first interacted element (x,y)',
+                risk: 'N/A'
+            };
+        }
+
+        // Compact format for clustering (similar to competitor implementations)
+        metrics.firstInputSignature = {
+            value: this._buildFirstInputSignature(data),
+            description: 'Compact first-input signature for clustering',
+            risk: 'N/A'
+        };
+
+        return metrics;
+    }
+
+    /**
+     * Build a compact signature from first-input data
+     * @private
+     * @param {Object} data - First input data
+     * @returns {string} Compact signature
+     */
+    _buildFirstInputSignature(data) {
+        const parts = [
+            data.recorded ? '1' : '0',
+            data.eventName || '-',
+            data.startTime ?? '-',
+            data.firstInputDelay ?? '-'
+        ];
+
+        if (data.targetTagName) {
+            parts.push(data.targetTagName);
+            parts.push(data.targetX ?? '-');
+            parts.push(data.targetY ?? '-');
+        }
+
+        return parts.join(',');
+    }
+
+    /**
+     * Check if first-input entry type is supported
+     * @private
+     * @returns {boolean}
+     */
+    _isFirstInputSupported() {
+        try {
+            return PerformanceObserver?.supportedEntryTypes?.includes('first-input') ?? false;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // Risk Assessment Helpers
+    // =========================================================================
+
+    /**
+     * Assess risk for DOM complete timing
+     * @private
+     */
+    _assessDomCompleteRisk(value) {
+        if (value === null || value === undefined) return 'N/A';
+        // Impossibly fast page load suggests automation/caching issues
+        if (value < 50) return 'MEDIUM';
+        return 'N/A';
+    }
+
+    /**
+     * Assess risk for load event timing
+     * @private
+     */
+    _assessLoadEventRisk(value) {
+        if (value === null || value === undefined) return 'N/A';
+        // Impossibly fast suggests automation
+        if (value < 50) return 'MEDIUM';
+        return 'N/A';
+    }
+
+    /**
+     * Assess risk for first paint timing
+     * @private
+     */
+    _assessFirstPaintRisk(value) {
+        if (value === null || value === undefined) return 'N/A';
+        // Very fast first paint might indicate headless/cached scenarios
+        if (value < 10) return 'LOW';
+        return 'N/A';
+    }
+
+    /**
+     * Assess risk for FCP timing
+     * @private
+     */
+    _assessFcpRisk(value) {
+        if (value === null || value === undefined) return 'N/A';
+        // Very fast FCP might indicate headless/cached scenarios
+        if (value < 10) return 'LOW';
+        return 'N/A';
+    }
+
+    /**
+     * Assess risk for first input timing
+     * @private
+     */
+    _assessFirstInputTimeRisk(value) {
+        if (value === null || value === undefined) return 'N/A';
+        // Extremely fast first input (before page fully loads) is suspicious
+        if (value < 100) return 'MEDIUM';
+        return 'N/A';
+    }
+
+    /**
+     * Assess risk for first input delay
+     * @private
+     */
+    _assessFirstInputDelayRisk(value) {
+        if (value === null || value === undefined) return 'N/A';
+        // Very low FID might indicate automation (immediate processing)
+        if (value < 1) return 'LOW';
+        // High FID indicates slow page but not necessarily suspicious
+        return 'N/A';
+    }
+
+    /**
+     * Create error metric object
+     * @private
+     */
+    _createErrorMetric(message) {
+        return {
+            value: 'Error',
+            description: message,
+            risk: 'N/A'
+        };
+    }
+
+    /**
+     * Cleanup observer if active
+     */
+    destroy() {
+        if (this.firstInputObserver) {
+            this.firstInputObserver.disconnect();
+            this.firstInputObserver = null;
+        }
+    }
+}
+
+export default PerformanceTimingDetector;

@@ -79,7 +79,7 @@ const CSS_FEATURES = [
 // Blink-specific rendering quirks
 const BLINK_QUIRKS = [
     'text-size-adjust',
-    '-webkit-font-smoothing',
+    // '-webkit-font-smoothing',
     '-webkit-tap-highlight-color',
     '-webkit-text-stroke-width',
     'zoom',
