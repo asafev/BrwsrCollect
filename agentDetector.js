@@ -7,15 +7,15 @@ import { isNativeFunction } from './utils/functionUtils.js';
 
 // ============================================================
 // MANUS AGENT DETECTION CONSTANTS
-// Used for MessageChannel-based extension detection
+// Used for extension detection
 // ============================================================
 const MANUS_AGENT_SIGNATURES = {
-    // Chrome extension URL for Manus agent
-    MANUS_EXTENSION_URL: "chrome-extension://mljmkmodkfigdopcpgboaalildgijkoc/content.ts.js",
-    // Path to iframe.html within the extension
-    MANUS_IFRAME_PATH: "HYU232/iframe.html",
-    // Message type used in iframe communication
-    INTERCEPT_HEADERS_MSG: "INTERCEPT_HEADERS"
+    // Chrome extension ID for Manus agent
+    MANUS_EXTENSION_ID: "mljmkmodkfigdopcpgboaalildgijkoc",
+    // Known web-accessible resource in the extension
+    MANUS_KNOWN_RESOURCE: "content.ts.js",
+    // DOM element ID injected by Manus Browser/Cloud agent
+    MANUS_DOM_ELEMENT_ID: "manus-action-mask-host"
 };
 
 // ============================================================
@@ -151,7 +151,8 @@ class AIAgentDetector {
         console.log('🕵️ Starting AI Agent Detection...');
         
         const detectors = [
-            { name: 'Manus', detector: this.detectManusExtension },
+            { name: 'ManusBrowser', detector: this.detectManusBrowser },
+            { name: 'ManusExtension', detector: this.detectManusExtension },
             { name: 'Comet', detector: this.detectCometAIAgent },
             { name: 'Genspark', detector: this.detectGenspark },
             { name: 'Skyvern', detector: this.detectSkyvern },
@@ -187,8 +188,11 @@ class AIAgentDetector {
                 // Calculate confidence based on detection method and agent type (only if not already set)
                 if (detected && confidence === 0.0) {
                     switch (name) {
-                        case 'Manus':
-                            confidence = 0.9; // High confidence - extension fetch is very reliable
+                        case 'ManusBrowser':
+                            confidence = 0.98; // Very high confidence - unique DOM element
+                            break;
+                        case 'ManusExtension':
+                            confidence = 0.95; // High confidence - extension resource detection
                             break;
                         case 'Comet':
                             confidence = 0.85; // Very high confidence - CSS fingerprinting is robust
@@ -279,17 +283,65 @@ class AIAgentDetector {
     }
 
     /**
-     * Detect Manus Extension via MessageChannel iframe probing
+     * Detect Manus Browser/Cloud Agent via DOM element
      * 
-     * This detection method uses a robust iframe + MessageChannel approach:
-     * 1. Creates a hidden iframe pointing to the Manus extension's internal page
-     * 2. Uses MessageChannel for direct communication with the extension
-     * 3. Checks for INTERCEPT_HEADERS signature in the response
+     * Manus injects a div with id="manus-action-mask-host" into the page
+     * This is a very reliable detection method for the cloud agent.
      * 
-     * This is more reliable than simple fetch as it verifies the extension
-     * is actually the Manus agent (not just any extension with that ID).
+     * @returns {Object} Detection result with status and indicators
+     */
+    async detectManusBrowser() {
+        const indicators = [];
+        
+        try {
+            const manusElement = document.getElementById(MANUS_AGENT_SIGNATURES.MANUS_DOM_ELEMENT_ID);
+            
+            if (manusElement) {
+                indicators.push({
+                    name: 'Manus_Action_Mask_Host',
+                    description: 'Manus action mask host element detected in DOM',
+                    value: manusElement.outerHTML.substring(0, 150) + '...'
+                });
+                
+                console.log("Manus Browser detected via DOM element");
+                
+                return {
+                    detected: true,
+                    confidence: 0.98,
+                    indicators,
+                    primarySignal: 'Manus_DOM_Element'
+                };
+            }
+            
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                primarySignal: null
+            };
+        } catch (error) {
+            console.debug('Error in Manus Browser detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Detect Manus Extension via resource fetch
+     * 
+     * Only runs on Chrome 128.x.x where extension resources may be accessible
+     * without triggering console errors. On other versions, this detection
+     * is skipped to avoid noisy console errors.
+     * 
+     * @returns {Object} Detection result with status and indicators
      */
     async detectManusExtension() {
+        const indicators = [];
+        
         // ============================================================
         // OLD IMPLEMENTATION - COMMENTED OUT FOR ROLLBACK PURPOSES
         // ============================================================
@@ -314,95 +366,79 @@ class AIAgentDetector {
         // END OLD IMPLEMENTATION
         // ============================================================
 
-        return new Promise((resolve) => {
-            try {
-                // Only run in Chrome-based browsers (navigator.userAgentData is Chromium-only)
-                if (!navigator.userAgentData) {
-                    console.log("Manus detection skipped - not a Chromium browser");
-                    resolve(false);
-                    return;
-                }
-
-                // Build extension iframe URL
-                const extensionBase = MANUS_AGENT_SIGNATURES.MANUS_EXTENSION_URL.replace("/content.ts.js", "/");
-                const iframeUrl = extensionBase + MANUS_AGENT_SIGNATURES.MANUS_IFRAME_PATH;
-
-                // Create hidden iframe
-                const iframe = document.createElement("iframe");
-                iframe.style.display = "none";
-                iframe.src = iframeUrl;
-
-                // Track if we've already resolved to prevent double resolution
-                let hasResolved = false;
-
-                // Set up MessageChannel for communication
-                const channel = new MessageChannel();
-                channel.port1.onmessage = function(event) {
-                    if (hasResolved) return;
-
-                    const data = event.data || {};
-                    if (data.type === "INIT_CHANNEL") {
-                        // Check for INTERCEPT_HEADERS in response
-                        const headers = data.headers;
-                        if (headers && headers.keys && 
-                            headers.keys.indexOf(MANUS_AGENT_SIGNATURES.INTERCEPT_HEADERS_MSG) > -1) {
-                            console.log("Manus extension detected via MessageChannel probe");
-                            hasResolved = true;
-                            resolve(true);
-                        } else {
-                            console.log("Manus extension iframe responded but no INTERCEPT_HEADERS signature");
-                            hasResolved = true;
-                            resolve(false);
-                        }
-
-                        // Clean up
-                        if (iframe.parentNode) {
-                            iframe.parentNode.removeChild(iframe);
-                        }
-                        channel.port1.close();
-                    }
+        try {
+            // Only run in Chrome-based browsers
+            if (!navigator.userAgentData) {
+                return {
+                    detected: false,
+                    confidence: 0.0,
+                    indicators: [],
+                    primarySignal: null
                 };
-
-                iframe.onload = function() {
-                    try {
-                        iframe.contentWindow.postMessage({ type: "INIT_CHANNEL" }, "*", [channel.port2]);
-                    } catch (e) {
-                        // Cross-origin error means extension is not installed or not accessible
-                        console.log("Manus extension not detected (iframe postMessage error)");
-                        if (!hasResolved) {
-                            hasResolved = true;
-                            resolve(false);
-                        }
-                    }
-                };
-
-                iframe.onerror = function() {
-                    console.log("Manus extension not detected (iframe load error)");
-                    if (!hasResolved) {
-                        hasResolved = true;
-                        resolve(false);
-                    }
-                };
-
-                document.body.appendChild(iframe);
-
-                // Clean up after timeout (5 seconds)
-                setTimeout(function() {
-                    if (!hasResolved) {
-                        console.log("Manus extension not detected (timeout)");
-                        hasResolved = true;
-                        resolve(false);
-                    }
-                    if (iframe.parentNode) {
-                        iframe.parentNode.removeChild(iframe);
-                    }
-                }, 5000);
-
-            } catch (e) {
-                console.log("Manus extension detection error:", e.message);
-                resolve(false);
             }
-        });
+
+            // Check Chrome version - only run on 128.x.x to avoid console errors
+            const uaData = navigator.userAgent;
+            const chromeVersionMatch = uaData.match(/Chrome\/(\d+)\./);
+            
+            if (!chromeVersionMatch) {
+                return {
+                    detected: false,
+                    confidence: 0.0,
+                    indicators: [],
+                    primarySignal: null
+                };
+            }
+            
+            const majorVersion = parseInt(chromeVersionMatch[1], 10);
+            
+            // Only run extension check on Chrome 128
+            // Other versions will show console errors when probing extensions
+            if (majorVersion !== 128) {
+                console.debug(`Manus extension check skipped - Chrome ${majorVersion} (only runs on 128)`);
+                return {
+                    detected: false,
+                    confidence: 0.0,
+                    indicators: [],
+                    primarySignal: null
+                };
+            }
+
+            const extensionUrl = `chrome-extension://${MANUS_AGENT_SIGNATURES.MANUS_EXTENSION_ID}/${MANUS_AGENT_SIGNATURES.MANUS_KNOWN_RESOURCE}`;
+            
+            const response = await fetch(extensionUrl, { method: 'HEAD' });
+            
+            if (response.ok || response.status === 200) {
+                indicators.push({
+                    name: 'Manus_Extension_Resource',
+                    description: 'Manus extension resource successfully fetched',
+                    value: extensionUrl
+                });
+                console.log("Manus extension detected via resource fetch");
+                return {
+                    detected: true,
+                    confidence: 0.95,
+                    indicators,
+                    primarySignal: 'Manus_Extension_Fetch'
+                };
+            }
+            
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                primarySignal: null
+            };
+            
+        } catch (e) {
+            // Extension not found or not accessible
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                primarySignal: null
+            };
+        }
     }
 
     /**
@@ -1321,7 +1357,8 @@ class AIAgentDetector {
      */
     _getDetectionMethod(agentName) {
         const methods = {
-            'Manus': 'Chrome Extension Resource Fetch',
+            'ManusBrowser': 'DOM Element Detection (manus-action-mask-host)',
+            'ManusExtension': 'Chrome Extension Resource Fetch (Silent)',
             'Comet': 'CSS Variable Injection Fingerprinting',
             'Genspark': 'DOM Element Detection',
             'Skyvern': 'Window Property Detection (GlobalSkyvernFrameIndex)',
