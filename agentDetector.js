@@ -6,6 +6,19 @@
 import { isNativeFunction } from './utils/functionUtils.js';
 
 // ============================================================
+// MANUS AGENT DETECTION CONSTANTS
+// Used for MessageChannel-based extension detection
+// ============================================================
+const MANUS_AGENT_SIGNATURES = {
+    // Chrome extension URL for Manus agent
+    MANUS_EXTENSION_URL: "chrome-extension://mljmkmodkfigdopcpgboaalildgijkoc/content.ts.js",
+    // Path to iframe.html within the extension
+    MANUS_IFRAME_PATH: "HYU232/iframe.html",
+    // Message type used in iframe communication
+    INTERCEPT_HEADERS_MSG: "INTERCEPT_HEADERS"
+};
+
+// ============================================================
 // EARLY CONSOLE HOOK FOR BROWSER-USE DETECTION
 // This must run immediately at module load to capture console
 // messages before any agent detection runs.
@@ -266,26 +279,130 @@ class AIAgentDetector {
     }
 
     /**
-     * Detect Manus Extension
+     * Detect Manus Extension via MessageChannel iframe probing
+     * 
+     * This detection method uses a robust iframe + MessageChannel approach:
+     * 1. Creates a hidden iframe pointing to the Manus extension's internal page
+     * 2. Uses MessageChannel for direct communication with the extension
+     * 3. Checks for INTERCEPT_HEADERS signature in the response
+     * 
+     * This is more reliable than simple fetch as it verifies the extension
+     * is actually the Manus agent (not just any extension with that ID).
      */
     async detectManusExtension() {
-        const extensionID = "mljmkmodkfigdopcpgboaalildgijkoc";
-        const knownResource = "content.ts.js";
-        const url = `chrome-extension://${extensionID}/${knownResource}`;
-        
-        try {
-            const response = await fetch(url, { method: "GET" });
-            if (response.status === 200) {
-                console.log("Manus extension detected via fetch");
-                return true;
-            } else {
-                console.log("Manus extension not detected");
-                return false;
+        // ============================================================
+        // OLD IMPLEMENTATION - COMMENTED OUT FOR ROLLBACK PURPOSES
+        // ============================================================
+        // const extensionID = "mljmkmodkfigdopcpgboaalildgijkoc";
+        // const knownResource = "content.ts.js";
+        // const url = `chrome-extension://${extensionID}/${knownResource}`;
+        // 
+        // try {
+        //     const response = await fetch(url, { method: "GET" });
+        //     if (response.status === 200) {
+        //         console.log("Manus extension detected via fetch");
+        //         return true;
+        //     } else {
+        //         console.log("Manus extension not detected");
+        //         return false;
+        //     }
+        // } catch (err) {
+        //     console.log("Manus extension not detected (fetch error):", err.message);
+        //     return false;
+        // }
+        // ============================================================
+        // END OLD IMPLEMENTATION
+        // ============================================================
+
+        return new Promise((resolve) => {
+            try {
+                // Only run in Chrome-based browsers (navigator.userAgentData is Chromium-only)
+                if (!navigator.userAgentData) {
+                    console.log("Manus detection skipped - not a Chromium browser");
+                    resolve(false);
+                    return;
+                }
+
+                // Build extension iframe URL
+                const extensionBase = MANUS_AGENT_SIGNATURES.MANUS_EXTENSION_URL.replace("/content.ts.js", "/");
+                const iframeUrl = extensionBase + MANUS_AGENT_SIGNATURES.MANUS_IFRAME_PATH;
+
+                // Create hidden iframe
+                const iframe = document.createElement("iframe");
+                iframe.style.display = "none";
+                iframe.src = iframeUrl;
+
+                // Track if we've already resolved to prevent double resolution
+                let hasResolved = false;
+
+                // Set up MessageChannel for communication
+                const channel = new MessageChannel();
+                channel.port1.onmessage = function(event) {
+                    if (hasResolved) return;
+
+                    const data = event.data || {};
+                    if (data.type === "INIT_CHANNEL") {
+                        // Check for INTERCEPT_HEADERS in response
+                        const headers = data.headers;
+                        if (headers && headers.keys && 
+                            headers.keys.indexOf(MANUS_AGENT_SIGNATURES.INTERCEPT_HEADERS_MSG) > -1) {
+                            console.log("Manus extension detected via MessageChannel probe");
+                            hasResolved = true;
+                            resolve(true);
+                        } else {
+                            console.log("Manus extension iframe responded but no INTERCEPT_HEADERS signature");
+                            hasResolved = true;
+                            resolve(false);
+                        }
+
+                        // Clean up
+                        if (iframe.parentNode) {
+                            iframe.parentNode.removeChild(iframe);
+                        }
+                        channel.port1.close();
+                    }
+                };
+
+                iframe.onload = function() {
+                    try {
+                        iframe.contentWindow.postMessage({ type: "INIT_CHANNEL" }, "*", [channel.port2]);
+                    } catch (e) {
+                        // Cross-origin error means extension is not installed or not accessible
+                        console.log("Manus extension not detected (iframe postMessage error)");
+                        if (!hasResolved) {
+                            hasResolved = true;
+                            resolve(false);
+                        }
+                    }
+                };
+
+                iframe.onerror = function() {
+                    console.log("Manus extension not detected (iframe load error)");
+                    if (!hasResolved) {
+                        hasResolved = true;
+                        resolve(false);
+                    }
+                };
+
+                document.body.appendChild(iframe);
+
+                // Clean up after timeout (5 seconds)
+                setTimeout(function() {
+                    if (!hasResolved) {
+                        console.log("Manus extension not detected (timeout)");
+                        hasResolved = true;
+                        resolve(false);
+                    }
+                    if (iframe.parentNode) {
+                        iframe.parentNode.removeChild(iframe);
+                    }
+                }, 5000);
+
+            } catch (e) {
+                console.log("Manus extension detection error:", e.message);
+                resolve(false);
             }
-        } catch (err) {
-            console.log("Manus extension not detected (fetch error):", err.message);
-            return false;
-        }
+        });
     }
 
     /**
