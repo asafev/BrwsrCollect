@@ -15,7 +15,9 @@ const MANUS_AGENT_SIGNATURES = {
     // Known web-accessible resource in the extension
     MANUS_KNOWN_RESOURCE: "content.ts.js",
     // DOM element ID injected by Manus Browser/Cloud agent
-    MANUS_DOM_ELEMENT_ID: "manus-action-mask-host"
+    MANUS_DOM_ELEMENT_ID: "manus-action-mask-host",
+    // Attribute on document.head injected by Manus Cloud helper
+    MANUS_HELPER_READY_ATTR: "manus-helper-ready"
 };
 
 // ============================================================
@@ -286,6 +288,7 @@ class AIAgentDetector {
      * Detect Manus Browser/Cloud Agent via DOM element
      * 
      * Manus injects a div with id="manus-action-mask-host" into the page
+     * and/or adds "manus-helper-ready" attribute to document.head
      * This is a very reliable detection method for the cloud agent.
      * 
      * @returns {Object} Detection result with status and indicators
@@ -294,6 +297,7 @@ class AIAgentDetector {
         const indicators = [];
         
         try {
+            // Check for manus-action-mask-host DOM element
             const manusElement = document.getElementById(MANUS_AGENT_SIGNATURES.MANUS_DOM_ELEMENT_ID);
             
             if (manusElement) {
@@ -302,14 +306,26 @@ class AIAgentDetector {
                     description: 'Manus action mask host element detected in DOM',
                     value: manusElement.outerHTML.substring(0, 150) + '...'
                 });
-                
-                console.log("Manus Browser detected via DOM element");
+            }
+            
+            // Check for manus-helper-ready attribute on document.head (Manus Cloud)
+            if (document.head && document.head.hasAttribute(MANUS_AGENT_SIGNATURES.MANUS_HELPER_READY_ATTR)) {
+                indicators.push({
+                    name: 'Manus_Helper_Ready',
+                    description: 'Manus Cloud helper attribute detected on document.head',
+                    value: document.head.getAttribute(MANUS_AGENT_SIGNATURES.MANUS_HELPER_READY_ATTR) || 'present'
+                });
+                console.log("Manus helper detected");
+            }
+            
+            if (indicators.length > 0) {
+                console.log("Manus Browser detected via DOM element/attribute");
                 
                 return {
                     detected: true,
                     confidence: 0.98,
                     indicators,
-                    primarySignal: 'Manus_DOM_Element'
+                    primarySignal: indicators[0].name
                 };
             }
             
@@ -1357,7 +1373,7 @@ class AIAgentDetector {
      */
     _getDetectionMethod(agentName) {
         const methods = {
-            'ManusBrowser': 'DOM Element Detection (manus-action-mask-host)',
+            'ManusBrowser': 'DOM Element Detection (manus-action-mask-host) OR Head Attribute (manus-helper-ready)',
             'ManusExtension': 'Chrome Extension Resource Fetch (Silent)',
             'Comet': 'CSS Variable Injection Fingerprinting',
             'Genspark': 'DOM Element Detection',
