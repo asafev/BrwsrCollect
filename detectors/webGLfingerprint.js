@@ -272,6 +272,18 @@ class WebGLFingerprintDetector {
      * @returns {Promise<Object>} Complete WebGL fingerprint
      */
     async collectWebGLFingerprint() {
+        // Timing: Start total collection time
+        const totalStartTime = performance.now();
+        
+        // Timing object to track sub-operations
+        const timing = {
+            totalMs: 0,
+            contextProbeMs: 0,
+            parameterCollectionMs: 0,
+            reportHashMs: 0,
+            imageHashMs: 0
+        };
+        
         try {
             const canvas = document.createElement('canvas');
             canvas.width = this.config.canvasWidth;
@@ -281,13 +293,20 @@ class WebGLFingerprintDetector {
             const contexts = [];
             const reportByContext = {};
 
+            // Timing: Context probing
+            const probeStartTime = performance.now();
+            
             // Probe contexts in BrowserLeaks order
             for (const ctxName of CONTEXT_NAMES) {
                 const ctx = this._getContext(canvas, ctxName);
                 if (!ctx) continue;
 
                 contexts.push(ctxName);
+                
+                // Timing: Parameter collection per context
+                const paramStartTime = performance.now();
                 reportByContext[ctxName] = this._collectContextReport(ctx, ctxName);
+                timing.parameterCollectionMs += Math.round(performance.now() - paramStartTime);
 
                 // Mark support
                 if (ctxName === 'webgl2') supported.webgl2 = true;
@@ -295,10 +314,14 @@ class WebGLFingerprintDetector {
                     supported.webgl = true;
                 }
             }
+            
+            timing.contextProbeMs = Math.round(performance.now() - probeStartTime);
 
-            // Generate hashes
+            // Timing: Report hash generation
+            const hashStartTime = performance.now();
             const reportJson = JSON.stringify(reportByContext);
             const reportHash = md5(reportJson);
+            timing.reportHashMs = Math.round(performance.now() - hashStartTime);
 
             // Generate image hash from first available context
             let imageHash = null;
@@ -308,7 +331,11 @@ class WebGLFingerprintDetector {
                 const ctx = this._getContext(canvas, contexts[0]);
                 if (ctx) {
                     try {
+                        // Timing: Image hash generation (computationally expensive)
+                        const imageStartTime = performance.now();
                         const imageResult = this._generateImageHash(ctx);
+                        timing.imageHashMs = Math.round(performance.now() - imageStartTime);
+                        
                         imageHash = imageResult.hash;
                         imageDataUrl = imageResult.dataUrl;
                     } catch (err) {
@@ -316,6 +343,9 @@ class WebGLFingerprintDetector {
                     }
                 }
             }
+            
+            // Timing: Calculate total
+            timing.totalMs = Math.round(performance.now() - totalStartTime);
 
             return {
                 supported,
@@ -325,7 +355,8 @@ class WebGLFingerprintDetector {
                 reportHash,
                 imageHash,
                 imageDataUrl,
-                imageError
+                imageError,
+                timing
             };
 
         } catch (error) {
@@ -336,7 +367,15 @@ class WebGLFingerprintDetector {
                 reportByContext: {},
                 reportJson: '{}',
                 reportHash: md5('{}'),
-                imageHash: null
+                imageHash: null,
+                timing: {
+                    totalMs: Math.round(performance.now() - totalStartTime),
+                    contextProbeMs: 0,
+                    parameterCollectionMs: 0,
+                    reportHashMs: 0,
+                    imageHashMs: 0,
+                    error: true
+                }
             };
         }
     }
@@ -1102,6 +1141,39 @@ class WebGLFingerprintDetector {
                     };
                 }
             }
+        }
+
+        // Timing metrics
+        if (result.timing) {
+            metrics.collectionTimeMs = {
+                value: result.timing.totalMs,
+                description: 'Total WebGL fingerprint collection time (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.contextProbeTimeMs = {
+                value: result.timing.contextProbeMs,
+                description: 'Time to probe WebGL contexts (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.parameterCollectionTimeMs = {
+                value: result.timing.parameterCollectionMs,
+                description: 'Time to collect WebGL parameters (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.reportHashTimeMs = {
+                value: result.timing.reportHashMs,
+                description: 'Time to generate report MD5 hash (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.imageHashTimeMs = {
+                value: result.timing.imageHashMs,
+                description: 'Time to render and hash WebGL image (ms)',
+                risk: 'N/A'
+            };
         }
 
         // Error handling

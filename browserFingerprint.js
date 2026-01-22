@@ -91,6 +91,7 @@ import { CssComputedStyleDetector } from './detectors/cssComputedStyle.js';
 import { WorkerSignalsDetector } from './detectors/workerSignals.js';
 import { FontsDetector } from './detectors/fonts.js';
 import { PerformanceTimingDetector } from './detectors/performanceTiming.js';
+import { KeyboardLayoutDetector } from './detectors/keyboardLayout.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -684,6 +685,7 @@ class BrowserFingerprintAnalyzer {
         this.workerSignalsDetector = this._safeCreateDetector(() => new WorkerSignalsDetector(options.workerSignals || {}), 'WorkerSignalsDetector');
         this.fontsDetector = this._safeCreateDetector(() => new FontsDetector(options.fonts || {}), 'FontsDetector');
         this.performanceTimingDetector = this._safeCreateDetector(() => new PerformanceTimingDetector(options.performanceTiming || {}), 'PerformanceTimingDetector');
+        this.keyboardLayoutDetector = this._safeCreateDetector(() => new KeyboardLayoutDetector(options.keyboardLayout || {}), 'KeyboardLayoutDetector');
         
         // Initialize performance timing detector early to catch first-input
         if (this.performanceTimingDetector) {
@@ -721,7 +723,7 @@ class BrowserFingerprintAnalyzer {
                     phase,
                     status, // 'starting', 'complete', 'error', 'skipped'
                     completedPhases: [...this.completedPhases],
-                    totalPhases: 18, // Total number of analysis phases (includes knownAgents, performanceTiming)
+                    totalPhases: 19, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout)
                     percentage: Math.round((this.completedPhases.length / 18) * 100),
                     ...details
                 });
@@ -767,8 +769,13 @@ class BrowserFingerprintAnalyzer {
         console.log('🔍 Starting comprehensive browser fingerprint analysis...');
         this._reportProgress('initialization', 'starting', { message: 'Starting fingerprint analysis...' });
         
+        // Initialize category timing tracking
+        const categoryTiming = {};
+        const totalStartTime = performance.now();
+        
         // Initialize metrics with safe analysis calls
         this._reportProgress('core', 'starting', { message: 'Analyzing core browser properties...' });
+        const coreStartTime = performance.now();
         this.metrics = {
             // Core Navigator Properties
             navigator: safeAnalysis(() => this._analyzeNavigator(), 'Navigator'),
@@ -803,11 +810,13 @@ class BrowserFingerprintAnalyzer {
             // Note: API Override Detection is now handled by FunctionIntegrityDetector
             // which provides comprehensive cross-realm checks and only shows violations
         };
+        categoryTiming.core = Math.round(performance.now() - coreStartTime);
         this._reportProgress('core', 'complete', { message: 'Core browser properties analyzed' });
 
         // Run Network Capabilities detection (passive, from Connection API)
         this._reportProgress('network', 'starting', { message: 'Analyzing network capabilities...' });
         console.log('📡 Analyzing network capabilities...');
+        const networkStartTime = performance.now();
         if (this.networkCapabilitiesDetector) {
             try {
                 const networkMetrics = this.networkCapabilitiesDetector.analyze();
@@ -820,11 +829,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.networkCapabilities = { error: { value: 'Detector not available', description: 'Network capabilities detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.networkCapabilities = Math.round(performance.now() - networkStartTime);
         this._reportProgress('network', 'complete', { message: 'Network capabilities analyzed' });
 
         // Run Performance Timing detection (sync - collects navigation, paint, and first-input metrics)
         this._reportProgress('performanceTiming', 'starting', { message: 'Analyzing performance timing metrics...' });
         console.log('⏱️ Analyzing performance timing metrics...');
+        const perfTimingStartTime = performance.now();
         if (this.performanceTimingDetector) {
             try {
                 const performanceTimingMetrics = this.performanceTimingDetector.analyze();
@@ -837,11 +848,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.performanceTiming = { error: { value: 'Detector not available', description: 'Performance timing detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.performanceTiming = Math.round(performance.now() - perfTimingStartTime);
         this._reportProgress('performanceTiming', 'complete', { message: 'Performance timing metrics analyzed' });
 
         // Run Battery and Storage detection (async APIs) - WITH TIMEOUT
         this._reportProgress('battery', 'starting', { message: 'Analyzing battery and storage...' });
         console.log('🔋 Analyzing battery and storage...');
+        const batteryStartTime = performance.now();
         if (this.batteryStorageDetector) {
             try {
                 const batteryStorageMetrics = await this._withTimeout(
@@ -858,11 +871,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.batteryStorage = { error: { value: 'Detector not available', description: 'Battery/storage detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.batteryStorage = Math.round(performance.now() - batteryStartTime);
         this._reportProgress('battery', 'complete', { message: 'Battery and storage analyzed' });
 
         // Run Audio Fingerprint detection (async, uses OfflineAudioContext) - WITH TIMEOUT
         this._reportProgress('audio', 'starting', { message: 'Analyzing audio fingerprint...' });
         console.log('🔊 Analyzing audio fingerprint...');
+        const audioStartTime = performance.now();
         if (this.audioFingerprintDetector) {
             try {
                 const audioFingerprintMetrics = await this._withTimeout(
@@ -879,12 +894,14 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.audioFingerprint = { error: { value: 'Detector not available', description: 'Audio fingerprint detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.audioFingerprint = Math.round(performance.now() - audioStartTime);
         this._reportProgress('audio', 'complete', { message: 'Audio fingerprint analyzed' });
 
 
         // Run Speech Synthesis detection (async - waits for voices when available) - WITH TIMEOUT
         this._reportProgress('speech', 'starting', { message: 'Analyzing speech synthesis...' });
         console.log('🗣️ Analyzing speech synthesis...');
+        const speechStartTime = performance.now();
         if (this.speechSynthesisDetector) {
             try {
                 const speechMetrics = await this._withTimeout(
@@ -901,11 +918,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.speechSynthesis = { error: { value: 'Detector not available', description: 'Speech synthesis detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.speechSynthesis = Math.round(performance.now() - speechStartTime);
         this._reportProgress('speech', 'complete', { message: 'Speech synthesis analyzed' });
 
         // Run Language detection (sync)
         this._reportProgress('language', 'starting', { message: 'Analyzing language signals...' });
         console.log('🌐 Analyzing language signals...');
+        const languageStartTime = performance.now();
         if (this.languageDetector) {
             try {
                 const languageMetrics = this.languageDetector.analyze();
@@ -918,11 +937,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.language = { error: { value: 'Detector not available', description: 'Language detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.language = Math.round(performance.now() - languageStartTime);
         this._reportProgress('language', 'complete', { message: 'Language signals analyzed' });
 
         // Run CSS Computed Style detection (sync)
         this._reportProgress('css', 'starting', { message: 'Analyzing computed styles...' });
         console.log('🎨 Analyzing computed styles...');
+        const cssStartTime = performance.now();
         if (this.cssComputedStyleDetector) {
             try {
                 const cssMetrics = this.cssComputedStyleDetector.analyze();
@@ -935,11 +956,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.cssComputedStyle = { error: { value: 'Detector not available', description: 'CSS computed style detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.cssComputedStyle = Math.round(performance.now() - cssStartTime);
         this._reportProgress('css', 'complete', { message: 'Computed styles analyzed' });
 
         // Run WebRTC Leak detection (async - checks for IP leaks via WebRTC) - WITH TIMEOUT
         this._reportProgress('webrtc', 'starting', { message: 'Analyzing WebRTC leaks...' });
         console.log('📡 Analyzing WebRTC leaks...');
+        const webrtcStartTime = performance.now();
         if (this.webRTCLeakDetector) {
             try {
                 const webRTCLeakMetrics = await this._withTimeout(
@@ -956,11 +979,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.webRTCLeak = { error: { value: 'Detector not available', description: 'WebRTC leak detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.webRTCLeak = Math.round(performance.now() - webrtcStartTime);
         this._reportProgress('webrtc', 'complete', { message: 'WebRTC leaks analyzed' });
 
         // Run Worker signals detection (async) - WITH TIMEOUT
         this._reportProgress('workers', 'starting', { message: 'Analyzing worker signals...' });
         console.log('🔄 Analyzing worker signals...');
+        const workersStartTime = performance.now();
         if (this.workerSignalsDetector) {
             try {
                 const workerMetrics = await this._withTimeout(
@@ -977,11 +1002,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.workerSignals = { error: { value: 'Detector not available', description: 'Worker signals detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.workerSignals = Math.round(performance.now() - workersStartTime);
         this._reportProgress('workers', 'complete', { message: 'Worker signals analyzed' });
 
         // Run Fonts detection (async - tests installed fonts via FontFace.load) - WITH TIMEOUT
         this._reportProgress('fonts', 'starting', { message: 'Analyzing fonts...' });
         console.log('🔤 Analyzing fonts...');
+        const fontsStartTime = performance.now();
         if (this.fontsDetector) {
             try {
                 const fontsMetrics = await this._withTimeout(
@@ -998,11 +1025,36 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.fonts = { error: { value: 'Detector not available', description: 'Fonts detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.fonts = Math.round(performance.now() - fontsStartTime);
         this._reportProgress('fonts', 'complete', { message: 'Fonts analyzed' });
+
+        // Run Keyboard Layout detection (async - uses navigator.keyboard API) - WITH TIMEOUT
+        this._reportProgress('keyboardLayout', 'starting', { message: 'Analyzing keyboard layout...' });
+        console.log('⌨️ Analyzing keyboard layout...');
+        const keyboardStartTime = performance.now();
+        if (this.keyboardLayoutDetector) {
+            try {
+                const keyboardLayoutMetrics = await this._withTimeout(
+                    this.keyboardLayoutDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Keyboard layout detection'
+                );
+                this.metrics.keyboardLayout = keyboardLayoutMetrics;
+                console.log('⌨️ Keyboard layout analysis complete:', keyboardLayoutMetrics);
+            } catch (error) {
+                console.warn('⚠️ Keyboard layout detection failed:', error.message);
+                this.metrics.keyboardLayout = { error: { value: error.message, description: 'Keyboard layout detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.keyboardLayout = { error: { value: 'Detector not available', description: 'Keyboard layout detector failed to initialize', risk: 'N/A' } };
+        }
+        categoryTiming.keyboardLayout = Math.round(performance.now() - keyboardStartTime);
+        this._reportProgress('keyboardLayout', 'complete', { message: 'Keyboard layout analyzed' });
 
         // Run WebGL Fingerprint detection - WITH TIMEOUT
         this._reportProgress('webgl', 'starting', { message: 'Analyzing WebGL fingerprint...' });
         console.log('🎨 Analyzing WebGL fingerprint...');
+        const webglStartTime = performance.now();
         if (this.webGLFingerprintDetector) {
             try {
                 const webGLMetrics = await this._withTimeout(
@@ -1019,11 +1071,13 @@ class BrowserFingerprintAnalyzer {
         } else {
             this.metrics.webgl = { error: { value: 'Detector not available', description: 'WebGL fingerprint detector failed to initialize', risk: 'N/A' } };
         }
+        categoryTiming.webgl = Math.round(performance.now() - webglStartTime);
         this._reportProgress('webgl', 'complete', { message: 'WebGL fingerprint analyzed' });
 
         // Run Media Devices enumeration (async - enumerates available media devices) - WITH TIMEOUT
         this._reportProgress('media', 'starting', { message: 'Analyzing media devices...' });
         console.log('🎤 Analyzing media devices...');
+        const mediaStartTime = performance.now();
         try {
             const mediaDevicesMetrics = await this._withTimeout(
                 this._analyzeMediaDevices(),
@@ -1036,9 +1090,11 @@ class BrowserFingerprintAnalyzer {
             console.warn('⚠️ Media devices detection failed:', error.message);
             this.metrics.mediaDevices = { error: { value: error.message, description: 'Media devices detection error', risk: 'N/A' } };
         }
+        categoryTiming.mediaDevices = Math.round(performance.now() - mediaStartTime);
         this._reportProgress('media', 'complete', { message: 'Media devices analyzed' });
 
         // Run Active Network Measurements (optional, makes network requests) - WITH TIMEOUT
+        const activeMeasurementsStartTime = performance.now();
         if (this.options.enableActiveMeasurements && this.activeMeasurementsDetector) {
             this._reportProgress('activeMeasurements', 'starting', { message: 'Running network speed test (may take a few seconds)...' });
             console.log('⚡ Running active network measurements...');
@@ -1067,6 +1123,7 @@ class BrowserFingerprintAnalyzer {
                 };
                 this._reportProgress('activeMeasurements', 'error', { message: 'Network test skipped (timeout/error)', error: error.message });
             }
+            categoryTiming.activeMeasurements = Math.round(performance.now() - activeMeasurementsStartTime);
         } else {
             this._reportProgress('activeMeasurements', 'skipped', { message: 'Network speed test disabled' });
         }
@@ -1074,6 +1131,7 @@ class BrowserFingerprintAnalyzer {
         // Run Function Integrity Detection
         this._reportProgress('functionIntegrity', 'starting', { message: 'Running function integrity detection...' });
         console.log('🔒 Running Function Integrity detection...');
+        const functionIntegrityStartTime = performance.now();
         let functionIntegrityResults = { success: false, error: 'Detector not available' };
         if (this.functionIntegrityDetector) {
             try {
@@ -1091,11 +1149,13 @@ class BrowserFingerprintAnalyzer {
                 functionIntegrityResults = { success: false, error: error.message };
             }
         }
+        categoryTiming.functionIntegrity = Math.round(performance.now() - functionIntegrityStartTime);
         this._reportProgress('functionIntegrity', 'complete', { message: 'Function integrity detection complete' });
 
         // Run String Signature Automation Detection
         this._reportProgress('stringSignature', 'starting', { message: 'Running automation signature detection...' });
         console.log('🔍 Running String Signature Automation Detection...');
+        const stringSignatureStartTime = performance.now();
         let stringSignatureResults = { totalDetected: 0, indicators: [] };
         if (this.stringSignatureDetector) {
             try {
@@ -1107,12 +1167,15 @@ class BrowserFingerprintAnalyzer {
                 console.warn('⚠️ String Signature detection failed:', error.message);
             }
         }
+        categoryTiming.stringSignature = Math.round(performance.now() - stringSignatureStartTime);
         this._reportProgress('stringSignature', 'complete', { message: 'Automation signature detection complete' });
 
         // Run Known Agents Detection (Manus, Comet, Genspark, Selenium, Puppeteer, Playwright, etc.)
         this._reportProgress('knownAgents', 'starting', { message: 'Running known agents detection...' });
         console.log('🕵️ Running Known Agents Detection...');
+        const knownAgentsStartTime = performance.now();
         await this._runKnownAgentsDetection();
+        categoryTiming.knownAgents = Math.round(performance.now() - knownAgentsStartTime);
         this._reportProgress('knownAgents', 'complete', { message: 'Known agents detection complete' });
 
         // Start periodic known agents detection if enabled
@@ -1123,11 +1186,14 @@ class BrowserFingerprintAnalyzer {
         // Collect Behavioral Indicators from stored data
         this._reportProgress('behavioral', 'starting', { message: 'Analyzing behavioral indicators...' });
         console.log('🎯 Collecting behavioral indicators...');
+        const behavioralStartTime = performance.now();
         this.metrics.behavioralIndicators = safeAnalysis(() => this._analyzeBehavioralIndicators(), 'Behavioral Indicators');
+        categoryTiming.behavioral = Math.round(performance.now() - behavioralStartTime);
         this._reportProgress('behavioral', 'complete', { message: 'Behavioral indicators analyzed' });
 
         // Analyze suspicious indicators (includes both original and AI agent indicators)
         this._reportProgress('suspicious', 'starting', { message: 'Finalizing analysis...' });
+        const suspiciousStartTime = performance.now();
         let suspiciousResults = { indicators: [], shouldShow: false, reasoning: 'Analysis not available' };
         if (this.suspiciousIndicatorDetector) {
             try {
@@ -1174,10 +1240,57 @@ class BrowserFingerprintAnalyzer {
         }
         
         this.suspiciousAnalysis = suspiciousResults; // Full analysis including reasoning
+        categoryTiming.suspiciousAnalysis = Math.round(performance.now() - suspiciousStartTime);
         this._reportProgress('suspicious', 'complete', { message: 'Analysis complete!' });
+
+        // Calculate total analysis time
+        const totalAnalysisTime = Math.round(performance.now() - totalStartTime);
+        
+        // Add timing metrics to the results - each category as a separate metric
+        const categoryTimingDescriptions = {
+            core: 'Core browser properties collection time',
+            networkCapabilities: 'Network capabilities detection time',
+            performanceTiming: 'Performance timing metrics collection time',
+            batteryStorage: 'Battery and storage detection time',
+            audioFingerprint: 'Audio fingerprint generation time',
+            speechSynthesis: 'Speech synthesis detection time',
+            language: 'Language detection time',
+            cssComputedStyle: 'CSS computed style detection time',
+            webRTCLeak: 'WebRTC leak detection time',
+            workerSignals: 'Worker signals detection time',
+            fonts: 'Fonts detection time',
+            keyboardLayout: 'Keyboard layout detection time',
+            webgl: 'WebGL fingerprint detection time',
+            mediaDevices: 'Media devices enumeration time',
+            activeMeasurements: 'Active network measurements time',
+            functionIntegrity: 'Function integrity detection time',
+            stringSignature: 'String signature detection time',
+            knownAgents: 'Known agents detection time',
+            behavioral: 'Behavioral indicators analysis time',
+            suspiciousAnalysis: 'Suspicious indicators analysis time'
+        };
+        
+        this.metrics.collectionTiming = {
+            totalAnalysisMs: { 
+                value: totalAnalysisTime, 
+                description: 'Total fingerprint analysis time in milliseconds', 
+                risk: 'N/A' 
+            }
+        };
+        
+        // Add each category timing as a separate metric
+        for (const [category, timeMs] of Object.entries(categoryTiming)) {
+            this.metrics.collectionTiming[`${category}Ms`] = {
+                value: timeMs,
+                description: categoryTimingDescriptions[category] || `${category} detection time`,
+                risk: 'N/A'
+            };
+        }
 
         this.analysisComplete = true;
         console.log('✅ Browser fingerprint analysis complete:', this.metrics);
+        console.log('⏱️ Total analysis time:', totalAnalysisTime, 'ms');
+        console.log('⏱️ Category timing breakdown:', categoryTiming);
         console.log('🚨 Suspicious indicators analysis:', suspiciousResults);
         if (functionIntegrityResults && functionIntegrityResults.success && this.functionIntegrityDetector) {
             try {
@@ -1262,6 +1375,18 @@ class BrowserFingerprintAnalyzer {
                 const webGLIndicators = this.webGLFingerprintDetector.getSuspiciousIndicators();
                 if (webGLIndicators) {
                     this.suspiciousIndicators = [...this.suspiciousIndicators, ...webGLIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
+        }
+
+        // Keyboard layout indicators
+        if (this.keyboardLayoutDetector) {
+            try {
+                const keyboardLayoutIndicators = this.keyboardLayoutDetector.getSuspiciousIndicators();
+                if (keyboardLayoutIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...keyboardLayoutIndicators];
                 }
             } catch (e) {
                 // Ignore if not available

@@ -204,6 +204,19 @@ export function getCategoryIcon(categoryKey) {
             <path d="M12 20v2"></path>
             <path d="M20 12h2"></path>
             <path d="M2 12h2"></path>
+        </svg>`,
+        
+        keyboardLayout: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+            <line x1="6" y1="8" x2="6" y2="8"></line>
+            <line x1="10" y1="8" x2="10" y2="8"></line>
+            <line x1="14" y1="8" x2="14" y2="8"></line>
+            <line x1="18" y1="8" x2="18" y2="8"></line>
+            <line x1="6" y1="12" x2="6" y2="12"></line>
+            <line x1="10" y1="12" x2="10" y2="12"></line>
+            <line x1="14" y1="12" x2="14" y2="12"></line>
+            <line x1="18" y1="12" x2="18" y2="12"></line>
+            <line x1="6" y1="16" x2="18" y2="16"></line>
         </svg>`
     };
     

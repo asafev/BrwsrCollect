@@ -192,6 +192,13 @@ export const CATEGORY_CONFIG = {
         label: 'Performance Timing',
         description: 'Navigation, paint, and first-input timing metrics for actor clustering',
         color: '#F97316'
+    },
+    keyboardLayout: {
+        get icon() { return getIcon('keyboardLayout'); },
+        iconType: 'svg',
+        label: 'Keyboard Layout',
+        description: 'Physical keyboard locale fingerprint (hard to spoof)',
+        color: '#8B5CF6'
     }
 };
 

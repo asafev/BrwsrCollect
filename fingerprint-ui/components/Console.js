@@ -34,6 +34,7 @@ const PHASE_NAMES = {
     webrtc: 'WebRTC Detection',
     workers: 'Worker Signals',
     fonts: 'Font Detection',
+    keyboardLayout: 'Keyboard Layout',
     webgl: 'WebGL Fingerprint',
     media: 'Media Devices',
     activeMeasurements: 'Network Speed Test',

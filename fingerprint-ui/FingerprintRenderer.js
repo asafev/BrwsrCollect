@@ -23,7 +23,8 @@ import {
     updateDiffSummary,
     createSearchBar,
     createSearchFilter,
-    createMetricsCustomizer
+    createMetricsCustomizer,
+    createCategorySidebar
 } from './components/index.js';
 
 import { sortCategories } from './utils/helpers.js';
@@ -50,6 +51,7 @@ export class FingerprintUIRenderer {
         this.diffOverviewCard = null;
         this.searchBar = null;
         this.metricsCustomizer = null;
+        this.categorySidebar = null;
         
         // Search and customization state
         this.searchState = null;
@@ -280,6 +282,11 @@ export class FingerprintUIRenderer {
             
             this.container.appendChild(this.sectionsContainer);
             
+            // Initialize category sidebar (only in normal mode)
+            if (!this.diffMode) {
+                this.initCategorySidebar();
+            }
+            
             // Render footer
             this.container.appendChild(this.createFooter());
             
@@ -291,6 +298,41 @@ export class FingerprintUIRenderer {
     }
     
     /**
+     * Initialize the persistent category sidebar
+     */
+    initCategorySidebar() {
+        // Cleanup previous sidebar if exists
+        if (this.categorySidebar) {
+            this.categorySidebar.destroy();
+        }
+        
+        // Create new category sidebar
+        this.categorySidebar = createCategorySidebar({
+            sectionsContainer: this.sectionsContainer,
+            showProgress: true,
+            collapsible: true,
+            showMetricCounts: true,
+            onCategoryClick: (category) => {
+                console.log(`📍 Navigated to: ${category.label}`);
+            }
+        });
+        
+        // Mount sidebar to body (before main container)
+        this.categorySidebar.mount(document.body);
+        
+        // Add body class for layout offset
+        document.body.classList.add('fp-has-sidebar');
+        
+        // Listen for sidebar toggle to update body class
+        window.addEventListener('fp-sidebar-toggle', (e) => {
+            document.body.classList.toggle('fp-sidebar-collapsed', e.detail.collapsed);
+        });
+        
+        // Initialize after DOM is ready
+        this.categorySidebar.init();
+    }
+    
+    /**
      * Handle diff mode toggle
      * @param {boolean} enabled - Whether diff mode is enabled
      */
@@ -299,6 +341,13 @@ export class FingerprintUIRenderer {
         console.log(`🔄 Diff mode ${enabled ? 'enabled' : 'disabled'}`);
         console.log('📊 Current fingerprint data:', this.fingerprintData ? 'available' : 'null');
         console.log('📊 Comparison result:', this.comparisonResult ? 'available' : 'null');
+        
+        // Cleanup sidebar before re-render
+        if (this.categorySidebar) {
+            this.categorySidebar.destroy();
+            this.categorySidebar = null;
+            document.body.classList.remove('fp-has-sidebar', 'fp-sidebar-collapsed');
+        }
         
         // Re-render the page with new mode
         this.render(this.fingerprintData).then(() => {

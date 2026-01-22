@@ -99,6 +99,19 @@ class FontsDetector {
     }
 
     async collect() {
+        // Timing: Start total collection time
+        const totalStartTime = performance.now();
+        
+        // Timing object to track sub-operations
+        const timing = {
+            totalMs: 0,
+            fontTestingMs: 0,
+            platformDetectionMs: 0,
+            applicationDetectionMs: 0,
+            emojiMeasurementMs: 0,
+            hashingMs: 0
+        };
+        
         if (typeof document === 'undefined') {
             return this._getUnsupportedResult('document-unavailable');
         }
@@ -108,14 +121,36 @@ class FontsDetector {
         }
 
         try {
+            // Timing: Font testing (computationally expensive)
+            const fontTestStartTime = performance.now();
             const availableFonts = await this._testFonts();
+            timing.fontTestingMs = Math.round(performance.now() - fontTestStartTime);
+            
+            // Timing: Platform detection
+            const platformStartTime = performance.now();
             const platformInfo = this._detectPlatform(availableFonts);
+            timing.platformDetectionMs = Math.round(performance.now() - platformStartTime);
+            
+            // Timing: Application detection
+            const appStartTime = performance.now();
             const appInfo = this._detectApplications(availableFonts);
+            timing.applicationDetectionMs = Math.round(performance.now() - appStartTime);
+            
+            // Timing: Emoji measurement (computationally expensive)
+            const emojiStartTime = performance.now();
             const emojiMetrics = await this._measureEmoji();
+            timing.emojiMeasurementMs = Math.round(performance.now() - emojiStartTime);
+            
             const osMismatch = this._detectOSMismatch(platformInfo);
 
+            // Timing: Hashing
+            const hashStartTime = performance.now();
             const fontHash = fnv1a32(availableFonts.sort().join('|'));
             const emojiHash = fnv1a32(JSON.stringify(emojiMetrics));
+            timing.hashingMs = Math.round(performance.now() - hashStartTime);
+            
+            // Timing: Calculate total
+            timing.totalMs = Math.round(performance.now() - totalStartTime);
 
             return {
                 supported: true,
@@ -127,6 +162,7 @@ class FontsDetector {
                 emoji: emojiMetrics,
                 emojiHash,
                 osMismatch,
+                timing,
                 error: null
             };
         } catch (error) {
@@ -140,6 +176,15 @@ class FontsDetector {
                 emoji: null,
                 emojiHash: fnv1a32('error'),
                 osMismatch: false,
+                timing: {
+                    totalMs: Math.round(performance.now() - totalStartTime),
+                    fontTestingMs: 0,
+                    platformDetectionMs: 0,
+                    applicationDetectionMs: 0,
+                    emojiMeasurementMs: 0,
+                    hashingMs: 0,
+                    error: true
+                },
                 error: error.message || 'font-detection-error'
             };
         }
@@ -409,7 +454,7 @@ class FontsDetector {
      * @private
      */
     _formatMetrics(result) {
-        return {
+        const metrics = {
             fontsSupported: {
                 value: result.supported,
                 description: 'Font detection API availability (FontFace.load)',
@@ -481,6 +526,41 @@ class FontsDetector {
                 risk: result.error && result.error !== 'None' ? 'MEDIUM' : 'N/A'
             }
         };
+        
+        // Timing metrics
+        if (result.timing) {
+            metrics.collectionTimeMs = {
+                value: result.timing.totalMs,
+                description: 'Total fonts detection time (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.fontTestingTimeMs = {
+                value: result.timing.fontTestingMs,
+                description: 'Time to test fonts (ms) - measures each font against baseline',
+                risk: 'N/A'
+            };
+            
+            metrics.emojiMeasurementTimeMs = {
+                value: result.timing.emojiMeasurementMs,
+                description: 'Time to measure emoji rendering (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.platformDetectionTimeMs = {
+                value: result.timing.platformDetectionMs,
+                description: 'Time for platform detection from font signatures (ms)',
+                risk: 'N/A'
+            };
+            
+            metrics.hashingTimeMs = {
+                value: result.timing.hashingMs,
+                description: 'Time to generate font hashes (ms)',
+                risk: 'N/A'
+            };
+        }
+        
+        return metrics;
     }
 }
 

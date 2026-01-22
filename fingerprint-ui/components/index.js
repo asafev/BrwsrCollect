@@ -35,3 +35,9 @@ export { createMetricsCustomizer } from './MetricsCustomizer.js';
 
 // Agent Detection Overlay
 export { AgentDetectionOverlay } from './AgentDetectionOverlay.js';
+
+// Scroll Navigator - Floating category navigation hint (legacy)
+export { createScrollNavigator } from './ScrollNavigator.js';
+
+// Category Sidebar - Persistent left navigation panel
+export { createCategorySidebar } from './CategorySidebar.js';

@@ -232,6 +232,7 @@ export function sortCategories(categories) {
         'behavioralTelemetry',
         'speechSynthesis',
         'language',
+        'keyboardLayout',
         'cssComputedStyle',
         'workerSignals',
         'fonts',
