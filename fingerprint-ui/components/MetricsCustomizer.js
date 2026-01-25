@@ -18,7 +18,7 @@ export function createMetricsCustomizer(allMetrics, onChange, options = {}) {
     
     const {
         defaultVisibleCategories = null, // null = all visible
-        defaultVisibleColumns = ['name', 'value', 'description', 'code', 'risk'],
+        defaultVisibleColumns = ['key', 'name', 'value', 'description', 'code', 'risk'],
         showColumnToggles = true,
         showCategoryToggles = true,
         showMetricToggles = false // Can be slow with hundreds of metrics
@@ -56,6 +56,10 @@ export function createMetricsCustomizer(allMetrics, onChange, options = {}) {
             <div class="fp-metrics-customizer__section">
                 <h4 class="fp-metrics-customizer__section-title">Table Columns</h4>
                 <div class="fp-metrics-customizer__checkbox-group">
+                    <label class="fp-checkbox-label">
+                        <input type="checkbox" class="fp-checkbox" data-column="key" ${defaultVisibleColumns.includes('key') ? 'checked' : ''}>
+                        <span>Property Key</span>
+                    </label>
                     <label class="fp-checkbox-label">
                         <input type="checkbox" class="fp-checkbox" data-column="name" ${defaultVisibleColumns.includes('name') ? 'checked' : ''}>
                         <span>Metric Name</span>

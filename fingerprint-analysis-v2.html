@@ -3,87 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browser Fingerprint Analysis | Enterprise Security Dashboard</title>
+    <title>Fingerprint Research | Enterprise Analysis Dashboard</title>
     
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Modern fonts for enterprise look - Segoe UI fallback to system fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Enterprise Design System v2.0 -->
+    <link rel="stylesheet" href="fingerprint-ui/styles/research-design-system-v2.css">
     
-    <!-- Enterprise Design System (base) -->
-    <link rel="stylesheet" href="fingerprint-ui/styles/enterprise-design-system.css">
-    <link rel="stylesheet" href="fingerprint-ui/styles/enterprise-components.css">
-    <!-- Premium 2026 CWAF Design System (loads last for precedence) -->
-    <link rel="stylesheet" href="fingerprint-ui/styles/premium-design-system.css">
-    <link rel="stylesheet" href="fingerprint-ui/styles/premium-components.css">
+    <!-- Favicon - Clean geometric -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233B528B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12'/><path d='M6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12V16'/><path d='M9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12V18'/><path d='M12 12V21'/></svg>">
     
-    <!-- Favicon - Professional SVG -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230066FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2L2 7l10 5 10-5-10-5z'/><path d='M2 17l10 5 10-5'/><path d='M2 12l10 5 10-5'/></svg>">
+    <style>
+        /* Initial loading state */
+        .rx-init-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #FAFAFA;
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            gap: 1.25rem;
+        }
+        
+        .rx-init-loading__spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #E4E4E7;
+            border-top-color: #3B528B;
+            border-radius: 50%;
+            animation: rx-init-spin 0.7s linear infinite;
+        }
+        
+        @keyframes rx-init-spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .rx-init-loading__text {
+            font-size: 0.875rem;
+            color: #71717A;
+            letter-spacing: -0.01em;
+        }
+        
+        .rx-init-loading__progress {
+            width: 180px;
+            height: 2px;
+            background: #E4E4E7;
+            border-radius: 1px;
+            overflow: hidden;
+        }
+        
+        .rx-init-loading__progress-bar {
+            height: 100%;
+            background: #3B528B;
+            width: 0%;
+            transition: width 0.25s ease-out;
+        }
+        
+        .rx-init-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #FAFAFA;
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .rx-init-error__icon {
+            width: 40px;
+            height: 40px;
+            color: #B54548;
+            margin-bottom: 1rem;
+        }
+        
+        .rx-init-error__title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #18181B;
+            margin-bottom: 0.5rem;
+        }
+        
+        .rx-init-error__message {
+            font-size: 0.875rem;
+            color: #71717A;
+            max-width: 360px;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .rx-init-error__btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #3B528B;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s ease-out;
+        }
+        
+        .rx-init-error__btn:hover {
+            background: #2E4270;
+        }
+        
+        /* Subtle entrance animation */
+        @keyframes rx-fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .rx-app {
+            animation: rx-fade-in 0.4s ease-out;
+        }
+    </style>
 </head>
-<body class="fp-page premium-page">
-    <!-- Back Navigation -->
-    <!-- <button class="fp-back-btn premium-back-btn" onclick="window.history.back()" aria-label="Go back">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        <span>Back</span>
-    </button> -->
-
-    <!-- Main Container -->
-    <div class="fp-container" id="fp-app">
-        <!-- Loading state will be inserted here, then replaced with content -->
+<body>
+    <!-- Application Root -->
+    <div id="rx-root">
+        <div class="rx-init-loading">
+            <div class="rx-init-loading__spinner"></div>
+            <div class="rx-init-loading__text">Initializing analysis...</div>
+            <div class="rx-init-loading__progress">
+                <div class="rx-init-loading__progress-bar" id="init-progress"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Main Application Script -->
+    <!-- Application Script -->
     <script type="module">
-        // Import dependencies with error handling
-        let BrowserFingerprintAnalyzer, StandaloneBehavioralTracker;
-        let FingerprintUIRenderer, getTelemetryDescription;
-        let createBehavioralLoadingState, createLoadingState, updateLoadingProgress, updateBehavioralStats, updateLoadingContent, createErrorState;
-        let FingerprintConsole;
+        // ============================================================
+        // MODULE IMPORTS
+        // ============================================================
+        let BrowserFingerprintAnalyzer;
+        let createResearchWorkspace;
         let AgentDetectionOverlay, createAgentDetectionOverlay;
         
+        const progressBar = document.getElementById('init-progress');
+        const loadingText = document.querySelector('.rx-init-loading__text');
+        
+        function updateProgress(percent, message) {
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (loadingText && message) loadingText.textContent = message;
+        }
+        
+        // Load modules with progress tracking
         try {
+            updateProgress(10, 'Loading fingerprint analyzer...');
             const fpModule = await import('./browserFingerprint.js');
             BrowserFingerprintAnalyzer = fpModule.BrowserFingerprintAnalyzer;
+            updateProgress(30, 'Loading UI components...');
         } catch (e) {
             console.error('Failed to load browserFingerprint.js:', e);
         }
         
         try {
-            const btModule = await import('./behavioralTracker.js');
-            StandaloneBehavioralTracker = btModule.StandaloneBehavioralTracker;
+            // Use the new v2 workspace
+            const workspaceModule = await import('./fingerprint-ui/components/ResearchWorkspaceV2.js');
+            createResearchWorkspace = workspaceModule.createResearchWorkspace;
+            updateProgress(50, 'Loading agent detection...');
         } catch (e) {
-            console.error('Failed to load behavioralTracker.js:', e);
-        }
-        
-        try {
-            const uiModule = await import('./fingerprint-ui/FingerprintRenderer.js');
-            FingerprintUIRenderer = uiModule.FingerprintUIRenderer;
-            getTelemetryDescription = uiModule.getTelemetryDescription || (() => 'Behavioral metric');
-        } catch (e) {
-            console.error('Failed to load FingerprintRenderer.js:', e);
-        }
-        
-        try {
-            const loadingModule = await import('./fingerprint-ui/components/Loading.js');
-            createBehavioralLoadingState = loadingModule.createBehavioralLoadingState;
-            createLoadingState = loadingModule.createLoadingState;
-            updateLoadingProgress = loadingModule.updateLoadingProgress;
-            updateBehavioralStats = loadingModule.updateBehavioralStats;
-            updateLoadingContent = loadingModule.updateLoadingContent;
-            createErrorState = loadingModule.createErrorState;
-        } catch (e) {
-            console.error('Failed to load Loading.js:', e);
-        }
-        
-        try {
-            const consoleModule = await import('./fingerprint-ui/components/Console.js');
-            FingerprintConsole = consoleModule.FingerprintConsole;
-        } catch (e) {
-            console.error('Failed to load Console.js:', e);
+            console.error('Failed to load ResearchWorkspaceV2.js:', e);
+            // Fallback to original
+            try {
+                const fallbackModule = await import('./fingerprint-ui/components/ResearchWorkspace.js');
+                createResearchWorkspace = fallbackModule.createResearchWorkspace;
+            } catch (e2) {
+                console.error('Failed to load fallback workspace:', e2);
+            }
         }
         
         // Import Agent Detection Overlay
@@ -95,242 +190,88 @@
             console.error('Failed to load AgentDetectionOverlay.js:', e);
         }
         
-        // Initialize Agent Detection Overlay immediately
-        // It listens for 'agentDetected' events dispatched by the console hook
-        let agentOverlay = null;
-        if (createAgentDetectionOverlay) {
-            agentOverlay = createAgentDetectionOverlay({
-                autoDismissMs: 0, // Don't auto-dismiss
-                showDetails: true,
-                onDismiss: (agents) => {
-                    console.log('Agent detection overlay dismissed. Detected agents:', agents);
-                }
-            });
-        }
-        
-        // Listen for agent detection events to update the Known Agents UI section
-        window.addEventListener('agentDetected', async (event) => {
-            const detection = event.detail || {};
-            const { name, detectionMethod, indicators = [], primarySignal } = detection;
-            console.log(`🤖 Agent detected event: ${name} (${detectionMethod})`);
-            
-            // Update Known Agents section in UI if it exists
-            try {
-                const { updateKnownAgentsSection } = await import('./fingerprint-ui/components/AlertSection.js');
-                const indicatorNames = indicators.map(i => i?.name || i?.description || String(i));
-                updateKnownAgentsSection({
-                    detected: true,
-                    agents: [name],
-                    indicators: indicatorNames.length ? indicatorNames : [primarySignal || detectionMethod],
-                    message: `Detected: ${name}`,
-                    details: { method: detectionMethod, timestamp: new Date().toISOString() }
-                });
-            } catch (e) {
-                console.warn('Could not update Known Agents UI section:', e);
-            }
-        });
-        
-        // Fallback for createErrorState if not loaded
-        if (!createErrorState) {
-            createErrorState = (error) => {
-                const div = document.createElement('div');
-                div.className = 'premium-card';
-                div.style.cssText = 'padding: var(--premium-space-10); text-align: center; background: var(--premium-danger-bg); border-color: var(--premium-danger);';
-                div.innerHTML = `
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--premium-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto var(--premium-space-4);">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    <h2 style="color: var(--premium-danger); margin-bottom: var(--premium-space-4); font-size: var(--premium-font-size-xl); font-weight: var(--premium-font-weight-semibold);">Analysis Error</h2>
-                    <p style="color: var(--premium-neutral-700); margin-bottom: var(--premium-space-6);">${error.message || 'An error occurred during fingerprint analysis'}</p>
-                    <button onclick="location.reload()" class="premium-btn premium-btn--primary">Try Again</button>
-                `;
-                return div;
-            };
-        }
+        updateProgress(60, 'Preparing analysis...');
         
         // ============================================================
         // GLOBAL STATE
         // ============================================================
         let fingerprintData = null;
-        let uiRenderer = null;
+        let workspaceController = null;
+        let agentOverlay = null;
+        
+        // Initialize Agent Detection Overlay
+        if (createAgentDetectionOverlay) {
+            agentOverlay = createAgentDetectionOverlay({
+                autoDismissMs: 0,
+                showDetails: true,
+                onDismiss: (agents) => {
+                    console.log('Agent detection dismissed. Detected agents:', agents);
+                }
+            });
+        }
+        
+        // Listen for agent detection events
+        window.addEventListener('agentDetected', async (event) => {
+            const detection = event.detail || {};
+            const { name, detectionMethod, indicators = [], primarySignal } = detection;
+            console.log(`Agent detected: ${name} (${detectionMethod})`);
+        });
         
         // ============================================================
-        // HELPER: Safe function wrapper
+        // ERROR DISPLAY
         // ============================================================
-        function safeCall(fn, fallback = null) {
-            try {
-                return fn();
-            } catch (e) {
-                console.warn('Safe call failed:', e.message);
-                return fallback;
-            }
+        function showError(error) {
+            const appContainer = document.getElementById('rx-root');
+            appContainer.innerHTML = `
+                <div class="rx-init-error">
+                    <svg class="rx-init-error__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <circle cx="12" cy="15.5" r="0.5" fill="currentColor"></circle>
+                    </svg>
+                    <h1 class="rx-init-error__title">Analysis Error</h1>
+                    <p class="rx-init-error__message">${error.message || 'An unexpected error occurred during fingerprint analysis.'}</p>
+                    <button class="rx-init-error__btn" onclick="location.reload()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 2v6h-6"></path>
+                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                            <path d="M3 22v-6h6"></path>
+                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                        </svg>
+                        Retry Analysis
+                    </button>
+                </div>
+            `;
         }
         
         // ============================================================
         // INITIALIZATION
         // ============================================================
         async function initializeAnalysis() {
-            const appContainer = document.getElementById('fp-app');
-            
-            // Show initial loading state
-            appContainer.innerHTML = '<div style="padding: 40px; text-align: center;"><h2 style="color: var(--premium-neutral-700); font-weight: 600;">Initializing Analysis...</h2></div>';
+            const appContainer = document.getElementById('rx-root');
             
             try {
-                // ----------------------------------------
-                // Phase 1: Behavioral Data Collection
-                // ----------------------------------------
-                let behavioralData = {
-                    indicators: {},
-                    summary: { riskLevel: 'UNKNOWN', detectedCount: 0 },
-                    telemetry: {},
-                    metadata: {}
-                };
-                
-                if (StandaloneBehavioralTracker && createBehavioralLoadingState) {
-                    try {
-                        const behavioralLoading = createBehavioralLoadingState();
-                        appContainer.innerHTML = '';
-                        appContainer.appendChild(behavioralLoading);
-                        
-                        // Create standalone behavioral tracker
-                        const behavioralTracker = new StandaloneBehavioralTracker({ 
-                            duration: 1000 // 1 second
-                        });
-                        
-                        // Update UI with countdown and progress
-                        const startTime = Date.now();
-                        const totalDuration = 1000;
-                        
-                        const countdownInterval = setInterval(() => {
-                            const elapsed = Date.now() - startTime;
-                            const remaining = Math.max(0, Math.ceil((totalDuration - elapsed) / 1000));
-                            const percentage = Math.min((elapsed / totalDuration) * 100, 100);
-                            
-                            if (updateLoadingProgress) {
-                                updateLoadingProgress(percentage, `Time remaining: ${remaining}s - Keep interacting!`);
-                            }
-                            
-                            // Update real-time stats
-                            if (updateBehavioralStats) {
-                                try {
-                                    const stats = behavioralTracker.getStats();
-                                    updateBehavioralStats(stats);
-                                } catch (e) {
-                                    // Stats may not be available yet
-                                }
-                            }
-                            
-                            if (remaining === 0) {
-                                clearInterval(countdownInterval);
-                            }
-                        }, 100);
-                        
-                        // Collect behavioral data
-                        console.log('Starting behavioral data collection...');
-                        behavioralData = await behavioralTracker.collectBehavioralData();
-                        clearInterval(countdownInterval);
-                        console.log('Behavioral data collected:', behavioralData);
-                    } catch (e) {
-                        console.warn('Behavioral collection failed, continuing with fingerprint:', e.message);
-                    }
-                } else {
-                    console.warn('Behavioral tracker not available, skipping behavioral collection');
-                }
-                
-                // ----------------------------------------
-                // Phase 2: Fingerprint Analysis with Real-Time Progress
-                // ----------------------------------------
-                
-                // Create container for loading state and console
-                appContainer.innerHTML = '';
-                
-                // Create loading state
-                if (createLoadingState) {
-                    const analysisLoading = createLoadingState({
-                        title: 'Analyzing Browser Fingerprint...',
-                        subtitle: `Processing ${Object.keys(behavioralData.indicators || {}).length} behavioral indicators...`,
-                        showProgress: true
-                    });
-                    appContainer.appendChild(analysisLoading);
-                } else {
-                    const loadingDiv = document.createElement('div');
-                    loadingDiv.className = 'premium-loading';
-                    loadingDiv.innerHTML = `
-                        <div class="premium-loading__spinner"></div>
-                        <h2 class="premium-loading__title">Analyzing Browser Fingerprint...</h2>
-                        <p class="premium-loading__text">Collecting comprehensive browser and network data</p>
-                    `;
-                    appContainer.appendChild(loadingDiv);
-                }
-                
-                // Create console for detailed logging
-                let fpConsole = null;
-                if (FingerprintConsole) {
-                    fpConsole = new FingerprintConsole({
-                        container: appContainer,
-                        title: 'Analysis Log',
-                        expanded: true,
-                        timestamps: true
-                    });
-                    fpConsole.info('Fingerprint analysis initialized');
-                    fpConsole.info(`Behavioral indicators collected: ${Object.keys(behavioralData.indicators || {}).length}`);
-                }
-                
-                // Run fingerprint analysis
+                // Validate required modules
                 if (!BrowserFingerprintAnalyzer) {
                     throw new Error('BrowserFingerprintAnalyzer module failed to load');
                 }
                 
-                // Progress callback for real-time UI updates AND console logging
+                if (!createResearchWorkspace) {
+                    throw new Error('ResearchWorkspace module failed to load');
+                }
+                
+                updateProgress(70, 'Running fingerprint analysis...');
+                
+                // Progress callback for analysis
                 const handleProgress = (progress) => {
-                    // Update loading UI
-                    if (updateLoadingProgress) {
-                        updateLoadingProgress(progress.percentage, progress.message);
-                    }
-                    
-                    // Update subtitle with completed phases info
-                    if (updateLoadingContent && progress.completedPhases) {
-                        const phaseNames = {
-                            core: 'Core Properties',
-                            network: 'Network',
-                            battery: 'Battery/Storage',
-                            audio: 'Audio',
-                            speech: 'Speech',
-                            language: 'Language',
-                            css: 'CSS Styles',
-                            webrtc: 'WebRTC',
-                            workers: 'Workers',
-                            fonts: 'Fonts',
-                            webgl: 'WebGL',
-                            media: 'Media Devices',
-                            activeMeasurements: 'Network Speed',
-                            functionIntegrity: 'Function Integrity',
-                            stringSignature: 'Automation Signatures',
-                            knownAgents: 'Known Agents',
-                            behavioral: 'Behavioral',
-                            suspicious: 'Risk Analysis'
-                        };
-                        const completedNames = progress.completedPhases
-                            .map(p => phaseNames[p] || p)
-                            .slice(-3) // Show last 3 completed
-                            .join(' → ');
-                        const subtitle = completedNames ? completedNames : progress.message;
-                        updateLoadingContent('Analyzing Browser Fingerprint...', subtitle);
-                    }
-                    
-                    // Log to console
-                    if (fpConsole) {
-                        fpConsole.handleProgress(progress);
-                    }
+                    const scaledProgress = 70 + (progress.percentage * 0.25);
+                    updateProgress(scaledProgress, progress.message || 'Analyzing...');
                 };
                 
-                // Handler for known agents live updates
+                // Handler for known agents updates
                 const handleKnownAgentsUpdate = (updateData) => {
                     console.log('Known agents update:', updateData);
                     
-                    // Update the fingerprint data
                     if (fingerprintData) {
                         fingerprintData.knownAgentsDetection = {
                             results: updateData.results,
@@ -340,7 +281,7 @@
                         };
                     }
                     
-                    // Show overlay for newly detected agents
+                    // Show overlay for detected agents
                     if (updateData.results && agentOverlay) {
                         for (const result of updateData.results) {
                             if (result.detected) {
@@ -349,227 +290,72 @@
                         }
                     }
                     
-                    // Alert on new agents detected
                     if (updateData.newAgentsDetected?.length > 0) {
                         console.warn(`NEW AGENT(S) DETECTED: ${updateData.newAgentsDetected.join(', ')}`);
                     }
-                    
-                    // Update the UI section
-                    try {
-                        import('./fingerprint-ui/components/AlertSection.js').then(({ updateKnownAgentsSection }) => {
-                            updateKnownAgentsSection(fingerprintData.knownAgentsDetection);
-                        }).catch(e => {
-                            console.warn('Could not update known agents section:', e);
-                        });
-                    } catch (e) {
-                        console.warn('Known agents UI update failed:', e);
-                    }
                 };
                 
+                // Create analyzer
                 const analyzer = new BrowserFingerprintAnalyzer({
-                    enableActiveMeasurements: true,
-                    activeMeasurements: {
-                        downloadUrl: './network-test-3mb.bin',
-                        expectedDownloadBytes: 3 * 1024 * 1024,
-                        pingCount: 3
-                    },
-                    networkTimeout: 5000, // 5 second timeout for network tests
-                    detectorTimeout: 3000, // 3 second timeout for individual detectors
+                    detectorTimeout: 3000,
                     onProgress: handleProgress,
-                    // Known agents detection options
                     enablePeriodicAgentDetection: true,
-                    agentDetectionInterval: 60000, // 1 minute
+                    agentDetectionInterval: 60000,
                     onKnownAgentsUpdate: handleKnownAgentsUpdate
                 });
                 
-                // Store analyzer reference globally for cleanup
                 window._fingerprintAnalyzer = analyzer;
                 
-                // Check if browser-use was detected before we started
-                // (the console hook runs immediately at module load)
-                if (window.__botSignals?.browserUseDetection) {
-                    console.log('� Found pre-existing browser-use detection');
-                    // The agentDetected event was already dispatched, overlay should show it
-                    // But also update fingerprint data when available
-                    setTimeout(() => {
-                        if (fingerprintData && agentOverlay) {
-                            handleKnownAgentsUpdate({
-                                results: agentOverlay.getDetectedAgents(),
-                                history: [],
-                                newAgentsDetected: ['BrowserUse']
-                            });
-                        }
-                    }, 500);
-                }
-                
+                // Run analysis
                 await analyzer.analyzeFingerprint();
                 fingerprintData = analyzer.getAnalysisResults();
                 
-                // Mark console as complete
-                if (fpConsole) {
-                    fpConsole.complete();
-                }
+                console.log('Fingerprint analysis complete:', fingerprintData);
                 
-                // ----------------------------------------
-                // Phase 3: Inject Behavioral Data
-                // ----------------------------------------
-                fingerprintData.metrics = fingerprintData.metrics || {};
-                fingerprintData.metrics.behavioralIndicators = behavioralData.indicators || {};
-                fingerprintData.behavioralSummary = behavioralData.summary || {};
-                fingerprintData.behavioralMetadata = behavioralData.metadata || {};
-                
-                // Add raw behavioral telemetry as separate metrics category
-                fingerprintData.metrics.behavioralTelemetry = {};
-                const telemetryDescFn = getTelemetryDescription || (() => 'Behavioral metric');
-                for (const [key, value] of Object.entries(behavioralData.telemetry || {})) {
-                    fingerprintData.metrics.behavioralTelemetry[key] = {
-                        value: value,
-                        description: telemetryDescFn(key),
-                        risk: 'N/A'
-                    };
-                }
-                
-                console.log('Complete fingerprint data:', fingerprintData);
-                
-                // ----------------------------------------
-                // Phase 4: Render UI
-                // ----------------------------------------
-                if (updateLoadingProgress) {
-                    updateLoadingProgress(100, 'Rendering results...');
-                }
+                updateProgress(95, 'Rendering workspace...');
                 
                 // Small delay for visual feedback
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
-                // Clear container and render
+                updateProgress(100, 'Complete');
+                
+                // Clear and render workspace
                 appContainer.innerHTML = '';
                 
-                if (FingerprintUIRenderer) {
-                    uiRenderer = new FingerprintUIRenderer(appContainer, {
-                        diffModeDefault: false, // Start with full view, user can toggle
-                        baselinePath: './fp_base/browser-fingerprint-chrome-trivial.json'
-                    });
-                    await uiRenderer.render(fingerprintData);
-                } else {
-                    // Fallback: render basic JSON view
-                    console.warn('FingerprintUIRenderer not available, showing fallback view');
-                    renderFallbackView(appContainer, fingerprintData);
-                }
-                
-                // Check for any browser-use signals that were captured before UI was ready
-                // This handles the case where browser-use logged before our event listener was set up
-                if (window.__botSignals?.browserUseConsole) {
-                    console.log('Found pre-existing browser-use signal, triggering overlay...');
-                    // Short delay to ensure UI is fully rendered
-                    setTimeout(() => {
-                        const signal = window.__botSignals.browserUseConsole;
-                        handleKnownAgentsUpdate({
-                            agents: ['Browser-Use'],
-                            indicators: [signal.indicator || 'Console hook detection']
-                        });
-                    }, 100);
-                }
-                
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                workspaceController = createResearchWorkspace(appContainer, fingerprintData, {
+                    baselinePath: './fp_base/browser-fingerprint-chrome-trivial.json'
+                });
                 
             } catch (error) {
                 console.error('Error during fingerprint analysis:', error);
-                appContainer.innerHTML = '';
-                appContainer.appendChild(createErrorState(error));
+                showError(error);
             }
         }
         
         // ============================================================
-        // FALLBACK RENDERER
-        // ============================================================
-        function renderFallbackView(container, data) {
-            const metricsCount = Object.values(data.metrics || {}).reduce((sum, cat) => sum + Object.keys(cat || {}).length, 0);
-            
-            container.innerHTML = `
-                <div class="premium-card" style="padding: var(--premium-space-8);">
-                    <h1 style="color: var(--premium-neutral-900); margin-bottom: var(--premium-space-6); font-size: var(--premium-font-size-3xl); font-weight: var(--premium-font-weight-bold);">Fingerprint Analysis Complete</h1>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--premium-space-5); margin-bottom: var(--premium-space-8);">
-                        <div class="premium-card" style="padding: var(--premium-space-6); text-align: center;">
-                            <div style="font-size: var(--premium-font-size-4xl); font-weight: var(--premium-font-weight-bold); color: var(--premium-primary); font-variant-numeric: tabular-nums;">${metricsCount}</div>
-                            <div style="color: var(--premium-neutral-600); font-size: var(--premium-font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-top: var(--premium-space-2);">Total Metrics</div>
-                        </div>
-                        <div class="premium-card" style="padding: var(--premium-space-6); text-align: center;">
-                            <div style="font-size: var(--premium-font-size-4xl); font-weight: var(--premium-font-weight-bold); color: var(--premium-primary); font-variant-numeric: tabular-nums;">${Object.keys(data.metrics || {}).length}</div>
-                            <div style="color: var(--premium-neutral-600); font-size: var(--premium-font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-top: var(--premium-space-2);">Categories</div>
-                        </div>
-                        <div class="premium-card" style="padding: var(--premium-space-6); text-align: center;">
-                            <div style="font-size: var(--premium-font-size-4xl); font-weight: var(--premium-font-weight-bold); color: var(--premium-primary); font-variant-numeric: tabular-nums;">${(data.suspiciousIndicators || []).length}</div>
-                            <div style="color: var(--premium-neutral-600); font-size: var(--premium-font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-top: var(--premium-space-2);">Suspicious Indicators</div>
-                        </div>
-                    </div>
-                    <details class="premium-card" style="margin-bottom: var(--premium-space-6); padding: var(--premium-space-4);">
-                        <summary style="cursor: pointer; font-weight: var(--premium-font-weight-semibold); padding: var(--premium-space-3); color: var(--premium-neutral-700); user-select: none;">View Raw JSON Data</summary>
-                        <pre style="background: var(--premium-neutral-900); color: var(--premium-neutral-100); padding: var(--premium-space-5); border-radius: var(--premium-radius-lg); overflow: auto; max-height: 400px; margin-top: var(--premium-space-4); font-size: var(--premium-font-size-sm); font-family: var(--premium-font-mono); line-height: 1.6;">${JSON.stringify(data, null, 2)}</pre>
-                    </details>
-                    <div style="display: flex; gap: var(--premium-space-3);">
-                        <button onclick="copyData()" class="premium-btn premium-btn--primary">Copy JSON</button>
-                        <button onclick="downloadData()" class="premium-btn premium-btn--secondary">Download JSON</button>
-                    </div>
-                </div>
-            `;
-            
-            // Add copy/download functions to window
-            window.copyData = () => {
-                navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-                    .then(() => {
-                        // Show subtle notification instead of alert
-                        const btn = document.querySelector('button[onclick="copyData()"]');
-                        if (btn) {
-                            const originalText = btn.textContent;
-                            btn.textContent = 'Copied!';
-                            btn.style.background = 'var(--premium-success)';
-                            setTimeout(() => {
-                                btn.textContent = originalText;
-                                btn.style.background = '';
-                            }, 2000);
-                        }
-                    })
-                    .catch(err => console.error('Failed to copy:', err));
-            };
-            
-            window.downloadData = () => {
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `fingerprint-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-            };
-        }
-        
-        // ============================================================
-        // GLOBAL EXPORT FUNCTION (for legacy compatibility)
+        // GLOBAL EXPORT
         // ============================================================
         window.exportFingerprintData = function(format) {
             if (!fingerprintData) {
-                alert('No fingerprint data available for export');
+                console.warn('No fingerprint data available');
                 return;
             }
             
-            import('./fingerprint-ui/components/Export.js').then(({ exportFingerprintData }) => {
-                exportFingerprintData(fingerprintData, format);
-            }).catch(err => {
-                console.warn('Export module not available, using fallback');
-                window.downloadData && window.downloadData();
-            });
+            const blob = new Blob([JSON.stringify(fingerprintData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fingerprint-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         };
         
         // ============================================================
         // START APPLICATION
         // ============================================================
-        // Note: Since we use top-level await for imports, DOMContentLoaded may have 
-        // already fired by the time the module finishes loading. Check and run immediately.
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeAnalysis);
         } else {
-            // DOM is already ready, run immediately
             initializeAnalysis();
         }
     </script>

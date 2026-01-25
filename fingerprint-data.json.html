@@ -187,17 +187,17 @@
 </head>
 <body>
     <div class="container">
-        <div id="status" class="collecting">
-            <div class="collecting-emoji">🖱️</div>
-            <h2>Collecting Behavioral Data...</h2>
+        <div id="status" class="analyzing">
+            <div class="collecting-emoji">�</div>
+            <h2>Analyzing Browser Fingerprint...</h2>
             <div class="instructions">
-                <strong>Please interact with this page!</strong>
-                Move your mouse, click anywhere, scroll if possible
+                <strong>Please wait</strong>
+                Collecting browser fingerprint data...
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" id="progress"></div>
             </div>
-            <p id="countdown">Time remaining: 1s</p>
+            <p id="countdown">Starting analysis...</p>
             <div class="stats" id="stats" style="display: none;">
                 <div class="stat-card">
                     <div class="value" id="stat-mouse">0</div>
@@ -299,64 +299,9 @@
             };
             
             try {
-                // Show stats during collection
-                if (statsEl) statsEl.style.display = 'grid';
-                
-                // Phase 1: Behavioral collection (if available)
-                if (StandaloneBehavioralTracker) {
-                    try {
-                        // Create behavioral tracker
-                        const behavioralTracker = new StandaloneBehavioralTracker({ 
-                            duration: 1000 // 1 second
-                        });
-                        
-                        // Update UI every 100ms
-                        const startTime = Date.now();
-                        const updateInterval = setInterval(() => {
-                            try {
-                                const elapsed = Date.now() - startTime;
-                                const remaining = Math.max(0, 1 - Math.floor(elapsed / 1000));
-                                const percentage = Math.min((elapsed / 1000) * 100, 100);
-                                
-                                if (countdownEl) {
-                                    countdownEl.textContent = `Time remaining: ${remaining}s - Keep interacting!`;
-                                }
-                                if (progressEl) {
-                                    progressEl.style.width = `${percentage}%`;
-                                }
-                                
-                                // Update stats safely
-                                try {
-                                    const stats = behavioralTracker.getStats();
-                                    safeUpdateElement('stat-mouse', el => el.textContent = stats.mouseTrailLength || 0);
-                                    safeUpdateElement('stat-clicks', el => el.textContent = stats.clickHistoryLength || 0);
-                                    safeUpdateElement('stat-scrolls', el => el.textContent = stats.scrollHistoryLength || 0);
-                                } catch (e) {
-                                    // Stats may not be available
-                                }
-                                
-                                if (remaining === 0) {
-                                    clearInterval(updateInterval);
-                                }
-                            } catch (e) {
-                                // Ignore interval errors
-                            }
-                        }, 100);
-                        
-                        // Collect behavioral data (waits for duration)
-                        console.log('🎯 Starting behavioral data collection...');
-                        behavioralData = await behavioralTracker.collectBehavioralData();
-                        clearInterval(updateInterval);
-                        
-                        console.log('✅ Behavioral data collected:', behavioralData);
-                    } catch (e) {
-                        console.warn('⚠️ Behavioral collection failed:', e.message);
-                    }
-                } else {
-                    console.warn('⚠️ StandaloneBehavioralTracker not available');
-                    // Wait a moment anyway
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
+                // Phase 1: Behavioral collection (DISABLED)
+                // Behavioral collection is currently disabled - using empty defaults
+                console.log('Behavioral collection disabled, skipping to fingerprint analysis...');
                 
                 // Update UI for fingerprint analysis phase with progress tracking
                 if (statusEl) {

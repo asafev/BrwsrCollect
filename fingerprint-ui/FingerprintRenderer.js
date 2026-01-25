@@ -57,7 +57,7 @@ export class FingerprintUIRenderer {
         this.searchState = null;
         this.customizationState = {
             visibleCategories: null, // null = all visible
-            visibleColumns: ['name', 'value', 'description', 'code', 'risk'],
+            visibleColumns: ['key', 'name', 'value', 'description', 'code', 'risk'],
             visibleMetrics: {}
         };
         
@@ -395,7 +395,7 @@ export class FingerprintUIRenderer {
             this.applyFilters();
         }, {
             defaultVisibleCategories: savedPreferences.visibleCategories || null,
-            defaultVisibleColumns: savedPreferences.visibleColumns || ['name', 'value', 'description', 'code', 'risk'],
+            defaultVisibleColumns: savedPreferences.visibleColumns || ['key', 'name', 'value', 'description', 'code', 'risk'],
             showColumnToggles: true,
             showCategoryToggles: true,
             showMetricToggles: false
@@ -444,7 +444,7 @@ export class FingerprintUIRenderer {
             : (this.customizationState.visibleCategories || Object.keys(this.allMetrics));
         
         // Get visible columns
-        const visibleColumns = this.customizationState.visibleColumns || ['name', 'value', 'description', 'code', 'risk'];
+        const visibleColumns = this.customizationState.visibleColumns || ['key', 'name', 'value', 'description', 'code', 'risk'];
         
         // Update all sections
         const sections = this.sectionsContainer.querySelectorAll('.fp-section');
@@ -575,7 +575,7 @@ export class FingerprintUIRenderer {
         
         const categories = sortCategories(Object.keys(data.metrics));
         const visibleCategories = this.customizationState.visibleCategories || categories;
-        const visibleColumns = this.customizationState.visibleColumns || ['name', 'value', 'description', 'code', 'risk'];
+        const visibleColumns = this.customizationState.visibleColumns || ['key', 'name', 'value', 'description', 'code', 'risk'];
         
         // Get filter function if search is active
         let filterFn = null;

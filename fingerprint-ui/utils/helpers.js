@@ -221,7 +221,6 @@ export function sortCategories(categories) {
         'navigator',
         'display',
         'window',
-        'graphics',
         'webgl',
         'performance',
         'performanceTiming',
@@ -250,4 +249,19 @@ export function sortCategories(categories) {
         const orderB = indexB === -1 ? 999 : indexB;
         return orderA - orderB;
     });
+}
+
+/**
+ * Escape HTML special characters to prevent XSS
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
+export function escapeHtml(str) {
+    if (typeof str !== 'string') return String(str);
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }

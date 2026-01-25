@@ -692,6 +692,23 @@ class WebGLFingerprintDetector {
                     };
                 }
 
+                // Unmasked renderer/vendor from WEBGL_debug_renderer_info extension
+                if (report.UNMASKED_RENDERER_WEBGL) {
+                    metrics.unmaskedRenderer = {
+                        value: report.UNMASKED_RENDERER_WEBGL,
+                        description: 'Unmasked WebGL renderer (GPU hardware)',
+                        risk: 'NONE'
+                    };
+                }
+
+                if (report.UNMASKED_VENDOR_WEBGL) {
+                    metrics.unmaskedVendor = {
+                        value: report.UNMASKED_VENDOR_WEBGL,
+                        description: 'Unmasked WebGL vendor (GPU manufacturer)',
+                        risk: 'NONE'
+                    };
+                }
+
                 if (report.VERSION) {
                     metrics.version = {
                         value: report.VERSION,

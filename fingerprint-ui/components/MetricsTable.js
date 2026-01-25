@@ -39,7 +39,7 @@ export function setRawResults(results) {
  * @param {string} categoryKey - The category key
  * @param {object} rawData - Optional raw data for this category (for details)
  * @param {object} options - Table options
- * @param {string[]} options.visibleColumns - Array of visible column keys ['name', 'value', 'description', 'code', 'risk']
+ * @param {string[]} options.visibleColumns - Array of visible column keys ['key', 'name', 'value', 'description', 'code', 'risk']
  * @param {Function} options.filterFn - Optional filter function (categoryKey, metricName, metricData) => boolean
  * @returns {HTMLElement} Table element
  */
@@ -50,7 +50,7 @@ export function createMetricsTable(metrics, categoryKey, rawData = null, options
     }
     
     const {
-        visibleColumns = ['name', 'value', 'description', 'code', 'risk'],
+        visibleColumns = ['key', 'name', 'value', 'description', 'code', 'risk'],
         filterFn = null
     } = options;
     
@@ -78,6 +78,7 @@ export function createMetricsTable(metrics, categoryKey, rawData = null, options
     // Column definitions
     const columns = [
         { key: 'index', label: '#', width: '44px', align: 'center', alwaysVisible: true },
+        { key: 'key', label: 'Property Key', width: '150px', align: 'left' },
         { key: 'name', label: 'Metric Name', width: '180px', align: 'left' },
         { key: 'value', label: 'Current Value', width: '220px', align: 'left' },
         { key: 'description', label: 'Description', width: '240px', align: 'left' },
@@ -182,7 +183,7 @@ function updateTableColumnVisibility(table, columns, visibleColumns) {
  * @param {string[]} visibleColumns - Visible columns array
  * @returns {HTMLTableRowElement} Table row element
  */
-function createMetricRow(index, metricName, metricData, categoryKey, visibleColumns = ['name', 'value', 'description', 'code', 'risk']) {
+function createMetricRow(index, metricName, metricData, categoryKey, visibleColumns = ['key', 'name', 'value', 'description', 'code', 'risk']) {
     const row = document.createElement('tr');
     row.setAttribute('data-metric-name', metricName);
     row.setAttribute('data-category', categoryKey);
@@ -203,6 +204,34 @@ function createMetricRow(index, metricName, metricData, categoryKey, visibleColu
     numCell.style.fontFamily = 'var(--fp-font-mono)';
     numCell.textContent = index;
     row.appendChild(numCell);
+    
+    // Property Key cell - small black box with exact property name
+    if (visibleColumns.includes('key')) {
+        const keyCell = document.createElement('td');
+        keyCell.setAttribute('data-column', 'key');
+        const keyBadge = document.createElement('span');
+        keyBadge.className = 'fp-property-key';
+        keyBadge.textContent = metricName;
+        keyBadge.title = `Property key: ${metricName}`;
+        keyBadge.style.cssText = `
+            display: inline-block;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: default;
+            user-select: all;
+        `;
+        keyCell.appendChild(keyBadge);
+        row.appendChild(keyCell);
+    }
     
     // Name cell
     if (visibleColumns.includes('name')) {
@@ -284,14 +313,19 @@ function createValueElement(value, metricName, categoryKey) {
         span.classList.add(value ? 'fp-metric-value--success' : 'fp-metric-value--danger');
     }
     
+    const fullValueStr = String(value);
     span.textContent = formatValue(value);
-    span.title = String(value); // Full value on hover
+    span.title = `Click to copy: ${fullValueStr.length > 100 ? fullValueStr.substring(0, 100) + '...' : fullValueStr}`;
+    span.dataset.fullValue = fullValueStr; // Store full value for copying
     
     // Check if this metric has detailed data available
     const detailConfig = DETAIL_METRICS[metricName];
+    let hasDetailModal = false;
+    
     if (detailConfig && rawResultsStore[categoryKey]) {
         const detailData = rawResultsStore[categoryKey][detailConfig.detailKey];
         if (detailData && (Array.isArray(detailData) ? detailData.length > 0 : detailData)) {
+            hasDetailModal = true;
             span.classList.add('fp-metric-value--clickable');
             span.title = 'Click to view details';
             span.innerHTML = `${formatValue(value)} <span class="fp-detail-icon">🔍</span>`;
@@ -307,6 +341,26 @@ function createValueElement(value, metricName, categoryKey) {
         }
     }
     
+    // Add click-to-copy functionality for regular metrics (not detail modals)
+    if (!hasDetailModal) {
+        span.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(fullValueStr);
+                // Visual feedback
+                const originalBg = span.style.background;
+                const originalTitle = span.title;
+                span.style.background = 'var(--fp-success-100, #d1fae5)';
+                span.title = 'Copied!';
+                setTimeout(() => {
+                    span.style.background = originalBg;
+                    span.title = originalTitle;
+                }, 1000);
+            } catch (err) {
+                console.warn('Copy failed:', err);
+            }
+        });
+    }
+    
     return span;
 }
 
@@ -318,7 +372,7 @@ function createValueElement(value, metricName, categoryKey) {
  * @param {string[]} visibleColumns - Visible columns array
  * @returns {HTMLTableRowElement} Error row element
  */
-function createErrorRow(index, metricName, error, visibleColumns = ['name', 'value', 'description', 'code', 'risk']) {
+function createErrorRow(index, metricName, error, visibleColumns = ['key', 'name', 'value', 'description', 'code', 'risk']) {
     const row = document.createElement('tr');
     row.style.backgroundColor = 'var(--fp-danger-50)';
     
@@ -327,6 +381,31 @@ function createErrorRow(index, metricName, error, visibleColumns = ['name', 'val
     numCell.textContent = index;
     numCell.style.textAlign = 'center';
     row.appendChild(numCell);
+    
+    // Property Key cell for error rows
+    if (visibleColumns.includes('key')) {
+        const keyCell = document.createElement('td');
+        keyCell.setAttribute('data-column', 'key');
+        const keyBadge = document.createElement('span');
+        keyBadge.className = 'fp-property-key';
+        keyBadge.textContent = metricName;
+        keyBadge.style.cssText = `
+            display: inline-block;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        `;
+        keyCell.appendChild(keyBadge);
+        row.appendChild(keyCell);
+    }
     
     if (visibleColumns.includes('name')) {
         const nameCell = document.createElement('td');
@@ -337,7 +416,7 @@ function createErrorRow(index, metricName, error, visibleColumns = ['name', 'val
     
     const errorCell = document.createElement('td');
     errorCell.setAttribute('data-column', 'value');
-    errorCell.colSpan = visibleColumns.length + 1; // +1 for index column
+    errorCell.colSpan = visibleColumns.length; // Span remaining columns
     errorCell.appendChild(createErrorElement(metricName, error));
     row.appendChild(errorCell);
     

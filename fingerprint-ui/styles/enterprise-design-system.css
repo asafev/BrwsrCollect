@@ -778,9 +778,23 @@
     padding: var(--fp-space-1) var(--fp-space-2);
     border-radius: var(--fp-radius-sm);
     color: var(--fp-neutral-foreground-2);
-    word-break: break-word;
     max-width: 280px;
     display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* Visual feedback on hover for copy action */
+.fp-metric-value:hover {
+    background: var(--fp-neutral-background-4);
+}
+
+/* Tooltip shows full value */
+.fp-metric-value[title] {
+    cursor: pointer;
 }
 
 .fp-metric-value--success { 

@@ -41,3 +41,9 @@ export { createScrollNavigator } from './ScrollNavigator.js';
 
 // Category Sidebar - Persistent left navigation panel
 export { createCategorySidebar } from './CategorySidebar.js';
+
+// Research Workspace - Focus-driven two-panel interface
+export { createResearchWorkspace } from './ResearchWorkspace.js';
+
+// Research Workspace v2.0 - Enterprise Analysis Interface
+export { createResearchWorkspace as createResearchWorkspaceV2 } from './ResearchWorkspaceV2.js';

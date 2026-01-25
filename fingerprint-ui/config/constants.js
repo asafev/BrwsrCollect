@@ -46,13 +46,6 @@ export const CATEGORY_CONFIG = {
         description: 'JavaScript API availability and behavior',
         color: '#F59E0B'
     },
-    graphics: {
-        get icon() { return getIcon('graphics'); },
-        iconType: 'svg',
-        label: 'Graphics & Rendering',
-        description: 'Canvas and graphics rendering capabilities',
-        color: '#8B5CF6'
-    },
     performance: {
         get icon() { return getIcon('performance'); },
         iconType: 'svg',

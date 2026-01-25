@@ -81,7 +81,6 @@ function safeAnalysis(analysisFn, categoryName) {
 // New modular detectors for extended fingerprinting
 import { NetworkCapabilitiesDetector } from './detectors/networkCapabilities.js';
 import { BatteryStorageDetector } from './detectors/batteryStorage.js';
-import { ActiveMeasurementsDetector } from './detectors/activeMeasurements.js';
 import { AudioFingerprintDetector } from './detectors/audioFingerprint.js';
 import { WebRTCLeakDetector } from './detectors/webRTCLeak.js';
 import { WebGLFingerprintDetector } from './detectors/webGLfingerprint.js';
@@ -92,6 +91,7 @@ import { WorkerSignalsDetector } from './detectors/workerSignals.js';
 import { FontsDetector } from './detectors/fonts.js';
 import { PerformanceTimingDetector } from './detectors/performanceTiming.js';
 import { KeyboardLayoutDetector } from './detectors/keyboardLayout.js';
+import { PermissionsDetector } from './detectors/permissionsDetector.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -334,13 +334,13 @@ class SuspiciousIndicatorDetector {
      * @private
      */
     _checkWebGLIndicators(metrics) {
-        const webglRenderer = metrics.graphics?.webglRenderer?.value;
+        const webglRenderer = metrics.webgl?.unmaskedRenderer?.value;
         if (webglRenderer && typeof webglRenderer === 'string') {
             const suspiciousPattern = /swiftshader|subzero/i;
             if (suspiciousPattern.test(webglRenderer)) {
                 this._addIndicator({
                     name: 'webgl_suspicious_renderer',
-                    category: 'Graphics',
+                    category: 'WebGL',
                     description: 'WebGL renderer indicates software rendering (sandbox/headless)',
                     value: webglRenderer,
                     riskLevel: 'HIGH',
@@ -675,7 +675,6 @@ class BrowserFingerprintAnalyzer {
         // New modular detectors - with safe instantiation
         this.networkCapabilitiesDetector = this._safeCreateDetector(() => new NetworkCapabilitiesDetector(), 'NetworkCapabilitiesDetector');
         this.batteryStorageDetector = this._safeCreateDetector(() => new BatteryStorageDetector(), 'BatteryStorageDetector');
-        this.activeMeasurementsDetector = this._safeCreateDetector(() => new ActiveMeasurementsDetector(options.activeMeasurements || {}), 'ActiveMeasurementsDetector');
         this.audioFingerprintDetector = this._safeCreateDetector(() => new AudioFingerprintDetector(options.audioFingerprint || {}), 'AudioFingerprintDetector');
         this.webRTCLeakDetector = this._safeCreateDetector(() => new WebRTCLeakDetector(options.webRTC || {}), 'WebRTCLeakDetector');
         this.webGLFingerprintDetector = this._safeCreateDetector(() => new WebGLFingerprintDetector(options.webgl || {}), 'WebGLFingerprintDetector');
@@ -686,6 +685,7 @@ class BrowserFingerprintAnalyzer {
         this.fontsDetector = this._safeCreateDetector(() => new FontsDetector(options.fonts || {}), 'FontsDetector');
         this.performanceTimingDetector = this._safeCreateDetector(() => new PerformanceTimingDetector(options.performanceTiming || {}), 'PerformanceTimingDetector');
         this.keyboardLayoutDetector = this._safeCreateDetector(() => new KeyboardLayoutDetector(options.keyboardLayout || {}), 'KeyboardLayoutDetector');
+        this.permissionsDetector = this._safeCreateDetector(() => new PermissionsDetector(), 'PermissionsDetector');
         
         // Initialize performance timing detector early to catch first-input
         if (this.performanceTimingDetector) {
@@ -694,12 +694,6 @@ class BrowserFingerprintAnalyzer {
         
         // Configuration options
         this.options = {
-            // Enable/disable active measurements (may take time and make network requests)
-            enableActiveMeasurements: options.enableActiveMeasurements ?? false,
-            // Custom URLs for active measurements
-            activeMeasurements: options.activeMeasurements || {},
-            // Timeout for network measurements (default 5 seconds)
-            networkTimeout: options.networkTimeout ?? 5000,
             // Timeout for individual detectors (default 3 seconds)
             detectorTimeout: options.detectorTimeout ?? 3000,
             // Enable periodic known agents detection (default: true)
@@ -792,20 +786,14 @@ class BrowserFingerprintAnalyzer {
             // JavaScript Environment
             jsEnvironment: safeAnalysis(() => this._analyzeJSEnvironment(), 'JS Environment'),
             
-            // WebGL & Graphics
-            graphics: safeAnalysis(() => this._analyzeGraphics(), 'Graphics'),
-            
             // Performance & Memory
             performance: safeAnalysis(() => this._analyzePerformance(), 'Performance'),
             
-            // Web APIs & Features
+            // Web APIs, Features & Security
             webApis: safeAnalysis(() => this._analyzeWebAPIs(), 'Web APIs'),
             
             // Document Properties
-            document: safeAnalysis(() => this._analyzeDocument(), 'Document'),
-            
-            // Security & Privacy
-            security: safeAnalysis(() => this._analyzeSecurity(), 'Security')
+            document: safeAnalysis(() => this._analyzeDocument(), 'Document')
             
             // Note: API Override Detection is now handled by FunctionIntegrityDetector
             // which provides comprehensive cross-realm checks and only shows violations
@@ -1051,6 +1039,29 @@ class BrowserFingerprintAnalyzer {
         categoryTiming.keyboardLayout = Math.round(performance.now() - keyboardStartTime);
         this._reportProgress('keyboardLayout', 'complete', { message: 'Keyboard layout analyzed' });
 
+        // Run Permissions detection (async - queries all browser permission states) - WITH TIMEOUT
+        this._reportProgress('permissions', 'starting', { message: 'Analyzing permissions...' });
+        console.log('🔐 Analyzing permissions...');
+        const permissionsStartTime = performance.now();
+        if (this.permissionsDetector) {
+            try {
+                const permissionsMetrics = await this._withTimeout(
+                    this.permissionsDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Permissions detection'
+                );
+                this.metrics.permissions = permissionsMetrics;
+                console.log('🔐 Permissions analysis complete:', permissionsMetrics);
+            } catch (error) {
+                console.warn('⚠️ Permissions detection failed:', error.message);
+                this.metrics.permissions = { error: { value: error.message, description: 'Permissions detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.permissions = { error: { value: 'Detector not available', description: 'Permissions detector failed to initialize', risk: 'N/A' } };
+        }
+        categoryTiming.permissions = Math.round(performance.now() - permissionsStartTime);
+        this._reportProgress('permissions', 'complete', { message: 'Permissions analyzed' });
+
         // Run WebGL Fingerprint detection - WITH TIMEOUT
         this._reportProgress('webgl', 'starting', { message: 'Analyzing WebGL fingerprint...' });
         console.log('🎨 Analyzing WebGL fingerprint...');
@@ -1092,41 +1103,6 @@ class BrowserFingerprintAnalyzer {
         }
         categoryTiming.mediaDevices = Math.round(performance.now() - mediaStartTime);
         this._reportProgress('media', 'complete', { message: 'Media devices analyzed' });
-
-        // Run Active Network Measurements (optional, makes network requests) - WITH TIMEOUT
-        const activeMeasurementsStartTime = performance.now();
-        if (this.options.enableActiveMeasurements && this.activeMeasurementsDetector) {
-            this._reportProgress('activeMeasurements', 'starting', { message: 'Running network speed test (may take a few seconds)...' });
-            console.log('⚡ Running active network measurements...');
-            try {
-                // Use timeout to prevent indefinite blocking
-                const activeMeasurements = await this._withTimeout(
-                    this.activeMeasurementsDetector.analyze(this.options.activeMeasurements),
-                    this.options.networkTimeout,
-                    'Network speed test'
-                );
-                this.metrics.activeMeasurements = activeMeasurements;
-                
-                // Compare with Connection API if available
-                if (this.metrics.networkCapabilities && navigator.connection) {
-                    const comparison = this.activeMeasurementsDetector.compareWithConnectionAPI(navigator.connection);
-                    this.metrics.networkComparison = comparison;
-                }
-                
-                console.log('⚡ Active network measurements complete:', activeMeasurements);
-                this._reportProgress('activeMeasurements', 'complete', { message: 'Network speed test complete' });
-            } catch (error) {
-                console.warn('⚠️ Active measurements failed:', error.message);
-                this.metrics.activeMeasurements = { 
-                    error: { value: error.message, description: 'Active measurement error (timed out or failed)', risk: 'N/A' },
-                    skipped: { value: true, description: 'Network test was skipped due to timeout or error', risk: 'N/A' }
-                };
-                this._reportProgress('activeMeasurements', 'error', { message: 'Network test skipped (timeout/error)', error: error.message });
-            }
-            categoryTiming.activeMeasurements = Math.round(performance.now() - activeMeasurementsStartTime);
-        } else {
-            this._reportProgress('activeMeasurements', 'skipped', { message: 'Network speed test disabled' });
-        }
 
         // Run Function Integrity Detection
         this._reportProgress('functionIntegrity', 'starting', { message: 'Running function integrity detection...' });
@@ -1262,7 +1238,6 @@ class BrowserFingerprintAnalyzer {
             keyboardLayout: 'Keyboard layout detection time',
             webgl: 'WebGL fingerprint detection time',
             mediaDevices: 'Media devices enumeration time',
-            activeMeasurements: 'Active network measurements time',
             functionIntegrity: 'Function integrity detection time',
             stringSignature: 'String signature detection time',
             knownAgents: 'Known agents detection time',
@@ -1326,19 +1301,6 @@ class BrowserFingerprintAnalyzer {
                 const batteryStorageIndicators = this.batteryStorageDetector.getSuspiciousIndicators();
                 if (batteryStorageIndicators) {
                     this.suspiciousIndicators = [...this.suspiciousIndicators, ...batteryStorageIndicators];
-                }
-            } catch (e) {
-                // Ignore if not available
-            }
-        }
-
-        // Active measurements indicators (if enabled and available)
-        if (this.options.enableActiveMeasurements && this.activeMeasurementsDetector) {
-            try {
-                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-                const activeMeasurementIndicators = this.activeMeasurementsDetector.getSuspiciousIndicators(connection);
-                if (activeMeasurementIndicators) {
-                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...activeMeasurementIndicators];
                 }
             } catch (e) {
                 // Ignore if not available
@@ -2235,48 +2197,6 @@ class BrowserFingerprintAnalyzer {
     }
 
     /**
-     * Analyze Graphics capabilities
-     * @private
-     */
-    _analyzeGraphics() {
-        let webglRenderer = 'Not available';
-        try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            if (gl) {
-                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                if (debugInfo) {
-                    webglRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                }
-            }
-        } catch (e) {
-            webglRenderer = 'Error accessing WebGL';
-        }
-
-        return {
-            webglRenderer: {
-                value: webglRenderer,
-                description: 'WebGL renderer information'
-            },
-            canvas: {
-                value: typeof document.createElement('canvas').getContext !== 'undefined',
-                description: 'Canvas API availability'
-            },
-            webgl: {
-                value: (() => {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
-                    } catch (e) {
-                        return false;
-                    }
-                })(),
-                description: 'WebGL support availability'
-            }
-        };
-    }
-
-    /**
      * Analyze Performance metrics
      * @private
      */
@@ -2449,6 +2369,40 @@ class BrowserFingerprintAnalyzer {
             hasEnumerateDevices: {
                 value: !!(nav.mediaDevices && nav.mediaDevices.enumerateDevices),
                 description: 'enumerateDevices API availability'
+            },
+            // Security & Context Properties
+            isSecureContext: {
+                value: window.isSecureContext,
+                description: 'Secure context (HTTPS) status'
+            },
+            locationProtocol: {
+                value: window.location.protocol,
+                description: 'Current page protocol'
+            },
+            activeXObject: {
+                value: typeof window.ActiveXObject !== 'undefined',
+                description: 'ActiveXObject availability (IE legacy)',
+                risk: typeof window.ActiveXObject !== 'undefined' ? 'MEDIUM' : 'LOW'
+            },
+            msCredentials: {
+                value: typeof window.MSCredentials !== 'undefined',
+                description: 'Microsoft Credentials API availability'
+            },
+            ontouchstart: {
+                value: typeof window.ontouchstart !== 'undefined',
+                description: 'Touch events support'
+            },
+            ondevicelight: {
+                value: typeof window.ondevicelight !== 'undefined',
+                description: 'Device light sensor API availability'
+            },
+            persistent: {
+                value: typeof window.PERSISTENT !== 'undefined',
+                description: 'Persistent storage constant availability'
+            },
+            temporary: {
+                value: typeof window.TEMPORARY !== 'undefined',
+                description: 'Temporary storage constant availability'
             }
         };
     }
@@ -2713,48 +2667,6 @@ class BrowserFingerprintAnalyzer {
             hasCreateRange: {
                 value: typeof doc.createRange === 'function',
                 description: 'createRange availability' // j288
-            }
-        };
-    }
-
-    /**
-     * Analyze Security properties
-     * @private
-     */
-    _analyzeSecurity() {
-        return {
-            isSecureContext: {
-                value: window.isSecureContext,
-                description: 'Secure context (HTTPS) status'
-            },
-            locationProtocol: {
-                value: window.location.protocol,
-                description: 'Current page protocol'
-            },
-            activeXObject: {
-                value: typeof window.ActiveXObject !== 'undefined',
-                description: 'ActiveXObject availability (IE legacy)',
-                risk: typeof window.ActiveXObject !== 'undefined' ? 'MEDIUM' : 'LOW'
-            },
-            msCredentials: {
-                value: typeof window.MSCredentials !== 'undefined',
-                description: 'Microsoft Credentials API availability'
-            },
-            ontouchstart: {
-                value: typeof window.ontouchstart !== 'undefined',
-                description: 'Touch events support'
-            },
-            ondevicelight: {
-                value: typeof window.ondevicelight !== 'undefined',
-                description: 'Device light sensor API availability'
-            },
-            persistent: {
-                value: typeof window.PERSISTENT !== 'undefined',
-                description: 'Persistent storage constant availability'
-            },
-            temporary: {
-                value: typeof window.TEMPORARY !== 'undefined',
-                description: 'Temporary storage constant availability'
             }
         };
     }
@@ -3196,12 +3108,12 @@ export {
     // New modular detectors
     NetworkCapabilitiesDetector,
     BatteryStorageDetector,
-    ActiveMeasurementsDetector,
     AudioFingerprintDetector,
     WebRTCLeakDetector,
     WebGLFingerprintDetector,
     SpeechSynthesisDetector,
     LanguageDetector,
     CssComputedStyleDetector,
-    WorkerSignalsDetector
+    WorkerSignalsDetector,
+    PermissionsDetector
 };

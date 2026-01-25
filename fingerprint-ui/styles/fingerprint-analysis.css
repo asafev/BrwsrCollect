@@ -505,9 +505,23 @@
     padding: var(--fp-spacing-xs) var(--fp-spacing-sm);
     border-radius: var(--fp-radius-sm);
     color: var(--fp-gray-700);
-    word-break: break-all;
     max-width: 300px;
     display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* Visual feedback on hover for copy action */
+.fp-metric-value:hover {
+    background: var(--fp-gray-200);
+}
+
+/* Tooltip shows full value */
+.fp-metric-value[title] {
+    cursor: pointer;
 }
 
 .fp-metric-value--success { background: var(--fp-success-50); color: var(--fp-success-700); }

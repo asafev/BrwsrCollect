@@ -11,9 +11,13 @@ import { fnv1a32 } from './audioFingerprint.js';
 import { normalizeLocale } from './languageDetector.js';
 
 const WORKER_CONFIG = {
-    dedicatedTimeoutMs: 1200,
-    sharedTimeoutMs: 1500,
-    serviceTimeoutMs: 2000
+    // Aggressive timeouts - workers respond in <100ms on modern browsers
+    dedicatedTimeoutMs: 300,
+    serviceTimeoutMs: 800,
+    // Skip service worker by default (expensive registration)
+    skipServiceWorker: true,
+    // Skip shared worker (causes FPs and adds latency)
+    skipSharedWorker: true
 };
 
 function normalizeList(list) {
@@ -62,31 +66,133 @@ class WorkerSignalsDetector {
         this.config = { ...WORKER_CONFIG, ...config };
         this.metrics = {};
         this.result = null;
+        // Timing breakdown for performance analysis
+        this.timings = {};
+    }
+
+    _markTime(label) {
+        this.timings[label] = performance.now();
+    }
+
+    _measureTime(startLabel, endLabel) {
+        const start = this.timings[startLabel];
+        const end = this.timings[endLabel];
+        if (start !== undefined && end !== undefined) {
+            return Math.round((end - start) * 100) / 100;
+        }
+        return null;
     }
 
     async analyze() {
+        this._markTime('analyze_start');
         const result = await this.collect();
+        this._markTime('analyze_end');
         this.result = result;
         this.metrics = this._formatMetrics(result);
         return this.metrics;
     }
 
     async collect() {
+        this._markTime('collect_start');
+
+        // Measure window profile collection
+        this._markTime('windowProfile_start');
         const windowProfile = this._getWindowProfile();
+        this._markTime('windowProfile_end');
 
-        const dedicated = await this._getDedicatedWorkerProfile();
-        const shared = await this._getSharedWorkerProfile();
-        const service = await this._getServiceWorkerProfile();
+        // Test Web Worker capability first (without creating actual worker)
+        this._markTime('capabilityTest_start');
+        const workerCapability = this._testWebWorkerCapability();
+        this._markTime('capabilityTest_end');
 
+        let dedicated, service;
+
+        if (!workerCapability.supported) {
+            // Workers not supported or blocked - skip worker creation entirely
+            dedicated = {
+                supported: false,
+                status: 'unsupported',
+                reason: workerCapability.reason,
+                data: null,
+                durationMs: 0
+            };
+        } else {
+            // Measure blob creation
+            this._markTime('blobCreate_start');
+            const workerScript = this._buildWorkerScript();
+            const blob = new Blob([workerScript], { type: 'application/javascript' });
+            const blobUrl = URL.createObjectURL(blob);
+            this._markTime('blobCreate_end');
+
+            // Get dedicated worker profile
+            this._markTime('dedicated_start');
+            dedicated = await this._getDedicatedWorkerProfile(blobUrl);
+            this._markTime('dedicated_end');
+
+            // Cleanup blob URL
+            URL.revokeObjectURL(blobUrl);
+        }
+
+        // Service worker (usually skipped for performance)
+        this._markTime('service_start');
+        service = this.config.skipServiceWorker
+            ? { supported: true, status: 'skipped', reason: 'Skipped for performance', data: null, durationMs: 0 }
+            : await this._getServiceWorkerProfile();
+        this._markTime('service_end');
+
+        this._markTime('comparison_start');
         const comparison = this._compareProfiles(windowProfile, dedicated.data);
+        this._markTime('comparison_end');
+        
+        this._markTime('collect_end');
+
+        // Build timing breakdown
+        const timingBreakdown = {
+            totalCollectMs: this._measureTime('collect_start', 'collect_end'),
+            windowProfileMs: this._measureTime('windowProfile_start', 'windowProfile_end'),
+            capabilityTestMs: this._measureTime('capabilityTest_start', 'capabilityTest_end'),
+            blobCreateMs: this._measureTime('blobCreate_start', 'blobCreate_end'),
+            comparisonMs: this._measureTime('comparison_start', 'comparison_end'),
+            // Individual worker timings (from worker results)
+            dedicatedWorkerMs: dedicated.durationMs || null,
+            serviceWorkerMs: service.durationMs || null,
+            // Block timings
+            dedicatedBlockMs: this._measureTime('dedicated_start', 'dedicated_end'),
+            serviceBlockMs: this._measureTime('service_start', 'service_end')
+        };
 
         return {
             windowProfile,
             dedicated,
-            shared,
+            workerCapability,
             service,
-            comparison
+            comparison,
+            timingBreakdown
         };
+    }
+
+    /**
+     * Test if Web Workers are supported and functional without creating the full worker.
+     * This is a lightweight check that validates all required APIs exist.
+     * The actual worker is only created once during profiling, avoiding double creation.
+     * 
+     * @returns {Object} - { supported: boolean, reason: string|null }
+     */
+    _testWebWorkerCapability() {
+        // Check all required APIs exist
+        if (typeof Worker === 'undefined') {
+            return { supported: false, reason: 'Worker constructor not available' };
+        }
+        if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+            return { supported: false, reason: 'URL.createObjectURL not available' };
+        }
+        if (typeof Blob === 'undefined') {
+            return { supported: false, reason: 'Blob constructor not available' };
+        }
+
+        // All APIs exist - worker creation will be tested during actual profiling
+        // This avoids double worker creation while still detecting API availability
+        return { supported: true, reason: null };
     }
 
     _getWindowProfile() {
@@ -289,61 +395,72 @@ class WorkerSignalsDetector {
         `;
     }
 
-    _getDedicatedWorkerProfile() {
+    _getDedicatedWorkerProfile(blobUrl) {
+        const startTime = performance.now();
         return new Promise((resolve) => {
             if (typeof Worker === 'undefined') {
                 return resolve({
                     supported: false,
                     status: 'unsupported',
                     reason: 'Worker constructor not available',
-                    data: null
+                    data: null,
+                    durationMs: Math.round((performance.now() - startTime) * 100) / 100
                 });
             }
 
-            const blob = new Blob([this._buildWorkerScript()], { type: 'application/javascript' });
-            const url = URL.createObjectURL(blob);
-            const worker = new Worker(url);
+            // Use provided blob URL or create one
+            const needsCleanup = !blobUrl;
+            if (!blobUrl) {
+                const blob = new Blob([this._buildWorkerScript()], { type: 'application/javascript' });
+                blobUrl = URL.createObjectURL(blob);
+            }
+
+            const worker = new Worker(blobUrl);
             const timeout = setTimeout(() => {
                 worker.terminate();
-                URL.revokeObjectURL(url);
+                if (needsCleanup) URL.revokeObjectURL(blobUrl);
                 resolve({
                     supported: true,
                     status: 'timeout',
                     reason: 'Dedicated worker timed out',
-                    data: null
+                    data: null,
+                    durationMs: Math.round((performance.now() - startTime) * 100) / 100
                 });
             }, this.config.dedicatedTimeoutMs);
 
             worker.onmessage = (event) => {
                 clearTimeout(timeout);
                 worker.terminate();
-                URL.revokeObjectURL(url);
+                if (needsCleanup) URL.revokeObjectURL(blobUrl);
                 const payload = event.data || {};
                 if (!payload.ok) {
                     return resolve({
                         supported: true,
                         status: 'error',
                         reason: payload.error || 'worker-error',
-                        data: null
+                        data: null,
+                        durationMs: Math.round((performance.now() - startTime) * 100) / 100
                     });
                 }
                 resolve({
                     supported: true,
                     status: 'ok',
                     reason: null,
-                    data: this._normalizeProfile(this._normalizeWorkerData(payload.data))
+                    data: this._normalizeProfile(this._normalizeWorkerData(payload.data)),
+                    durationMs: Math.round((performance.now() - startTime) * 100) / 100
                 });
             };
 
             worker.onerror = (event) => {
                 clearTimeout(timeout);
                 worker.terminate();
-                URL.revokeObjectURL(url);
+                if (needsCleanup) URL.revokeObjectURL(blobUrl);
                 resolve({
                     supported: true,
                     status: 'error',
                     reason: event.message || 'worker-error',
-                    data: null
+                    data: null,
+                    durationMs: Math.round((performance.now() - startTime) * 100) / 100
                 });
             };
 
@@ -351,75 +468,16 @@ class WorkerSignalsDetector {
         });
     }
 
-    _getSharedWorkerProfile() {
-        return new Promise((resolve) => {
-            if (typeof SharedWorker === 'undefined') {
-                return resolve({
-                    supported: false,
-                    status: 'unsupported',
-                    reason: 'SharedWorker constructor not available',
-                    data: null
-                });
-            }
-
-            const blob = new Blob([this._buildWorkerScript()], { type: 'application/javascript' });
-            const url = URL.createObjectURL(blob);
-            let worker;
-            try {
-                worker = new SharedWorker(url);
-            } catch (error) {
-                URL.revokeObjectURL(url);
-                return resolve({
-                    supported: true,
-                    status: 'error',
-                    reason: error.message || 'shared-worker-error',
-                    data: null
-                });
-            }
-
-            const timeout = setTimeout(() => {
-                worker.port.close();
-                URL.revokeObjectURL(url);
-                resolve({
-                    supported: true,
-                    status: 'timeout',
-                    reason: 'Shared worker timed out',
-                    data: null
-                });
-            }, this.config.sharedTimeoutMs);
-
-            worker.port.onmessage = (event) => {
-                clearTimeout(timeout);
-                worker.port.close();
-                URL.revokeObjectURL(url);
-                const payload = event.data || {};
-                if (!payload.ok) {
-                    return resolve({
-                        supported: true,
-                        status: 'error',
-                        reason: payload.error || 'shared-worker-error',
-                        data: null
-                    });
-                }
-                resolve({
-                    supported: true,
-                    status: 'ok',
-                    reason: null,
-                    data: this._normalizeProfile(this._normalizeWorkerData(payload.data))
-                });
-            };
-
-            worker.port.start();
-        });
-    }
-
     async _getServiceWorkerProfile() {
+        const startTime = performance.now();
+        
         if (!('serviceWorker' in navigator) || !navigator.serviceWorker.register) {
             return {
                 supported: false,
                 status: 'unsupported',
                 reason: 'ServiceWorker API not available',
-                data: null
+                data: null,
+                durationMs: Math.round((performance.now() - startTime) * 100) / 100
             };
         }
 
@@ -428,7 +486,8 @@ class WorkerSignalsDetector {
                 supported: true,
                 status: 'blocked',
                 reason: 'ServiceWorker requires a secure context',
-                data: null
+                data: null,
+                durationMs: Math.round((performance.now() - startTime) * 100) / 100
             };
         }
 
@@ -441,7 +500,8 @@ class WorkerSignalsDetector {
                 supported: true,
                 status: 'error',
                 reason: error.message || 'service-worker-register-error',
-                data: null
+                data: null,
+                durationMs: Math.round((performance.now() - startTime) * 100) / 100
             };
         }
 
@@ -457,7 +517,8 @@ class WorkerSignalsDetector {
                     supported: true,
                     status: 'error',
                     reason: 'service-worker-not-active',
-                    data: null
+                    data: null,
+                    durationMs: Math.round((performance.now() - startTime) * 100) / 100
                 };
             }
 
@@ -480,7 +541,8 @@ class WorkerSignalsDetector {
                     supported: true,
                     status: 'error',
                     reason: data.error || 'service-worker-error',
-                    data: null
+                    data: null,
+                    durationMs: Math.round((performance.now() - startTime) * 100) / 100
                 };
             }
 
@@ -488,7 +550,8 @@ class WorkerSignalsDetector {
                 supported: true,
                 status: 'ok',
                 reason: null,
-                data: this._normalizeProfile(this._normalizeWorkerData(data.data))
+                data: this._normalizeProfile(this._normalizeWorkerData(data.data)),
+                durationMs: Math.round((performance.now() - startTime) * 100) / 100
             };
         } catch (error) {
             clearTimeout(timeout);
@@ -501,7 +564,8 @@ class WorkerSignalsDetector {
                 supported: true,
                 status: 'error',
                 reason: error.message || 'service-worker-error',
-                data: null
+                data: null,
+                durationMs: Math.round((performance.now() - startTime) * 100) / 100
             };
         }
     }
@@ -584,8 +648,47 @@ class WorkerSignalsDetector {
     _formatMetrics(result) {
         const comparison = result.comparison || {};
         const perField = comparison.perField || {};
+        const timing = result.timingBreakdown || {};
+        const capability = result.workerCapability || {};
 
         const metrics = {
+            // === TIMING BREAKDOWN (for performance analysis) ===
+            workerTimingTotalMs: {
+                value: timing.totalCollectMs ?? 'N/A',
+                description: 'Total time for worker signals collection',
+                risk: 'N/A'
+            },
+            workerTimingWindowProfileMs: {
+                value: timing.windowProfileMs ?? 'N/A',
+                description: 'Time to collect window profile',
+                risk: 'N/A'
+            },
+            workerTimingCapabilityTestMs: {
+                value: timing.capabilityTestMs ?? 'N/A',
+                description: 'Time to test worker capability',
+                risk: 'N/A'
+            },
+            workerTimingBlobCreateMs: {
+                value: timing.blobCreateMs ?? 'N/A',
+                description: 'Time to create worker blob URL',
+                risk: 'N/A'
+            },
+            workerTimingDedicatedMs: {
+                value: timing.dedicatedWorkerMs ?? 'N/A',
+                description: 'Dedicated worker response time',
+                risk: 'N/A'
+            },
+            workerTimingServiceMs: {
+                value: timing.serviceWorkerMs ?? 'N/A',
+                description: 'Service worker response time',
+                risk: 'N/A'
+            },
+            workerTimingComparisonMs: {
+                value: timing.comparisonMs ?? 'N/A',
+                description: 'Time to compare window/worker profiles',
+                risk: 'N/A'
+            },
+            // === EXISTING METRICS ===
             workerWindowProfileHash: {
                 value: comparison.windowProfileHash || 'Not available',
                 description: 'FNV-1a hash of window profile',
@@ -621,15 +724,15 @@ class WorkerSignalsDetector {
                 description: 'Dedicated worker failure reason (if any)',
                 risk: result.dedicated.reason ? 'LOW' : 'N/A'
             },
-            sharedWorkerStatus: {
-                value: result.shared.status,
-                description: 'Shared worker collection status',
-                risk: result.shared.status === 'ok' ? 'N/A' : 'LOW'
+            workerCapabilitySupported: {
+                value: capability.supported ?? 'N/A',
+                description: 'Whether Web Workers are supported and functional',
+                risk: capability.supported === false ? 'MEDIUM' : 'N/A'
             },
-            sharedWorkerStatusReason: {
-                value: result.shared.reason || 'None',
-                description: 'Shared worker failure reason (if any)',
-                risk: result.shared.reason ? 'LOW' : 'N/A'
+            workerCapabilityReason: {
+                value: capability.reason || 'None',
+                description: 'Reason for worker capability failure (if any)',
+                risk: capability.reason ? 'MEDIUM' : 'N/A'
             },
             serviceWorkerStatus: {
                 value: result.service.status,

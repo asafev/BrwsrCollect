@@ -19,3 +19,4 @@ export { WorkerSignalsDetector } from './workerSignals.js';
 export { FontsDetector } from './fonts.js';
 export { PerformanceTimingDetector, PERFORMANCE_TIMING_CONFIG } from './performanceTiming.js';
 export { KeyboardLayoutDetector } from './keyboardLayout.js';
+export { PermissionsDetector, PERMISSION_NAMES } from './permissionsDetector.js';
