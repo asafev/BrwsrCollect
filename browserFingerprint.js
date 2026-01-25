@@ -822,13 +822,17 @@ class BrowserFingerprintAnalyzer {
         categoryTiming.networkCapabilities = Math.round(performance.now() - networkStartTime);
         this._reportProgress('network', 'complete', { message: 'Network capabilities analyzed' });
 
-        // Run Performance Timing detection (sync - collects navigation, paint, and first-input metrics)
+        // Run Performance Timing detection (async - waits for animation frame analysis)
         this._reportProgress('performanceTiming', 'starting', { message: 'Analyzing performance timing metrics...' });
         console.log('⏱️ Analyzing performance timing metrics...');
         const perfTimingStartTime = performance.now();
         if (this.performanceTimingDetector) {
             try {
-                const performanceTimingMetrics = this.performanceTimingDetector.analyze();
+                const performanceTimingMetrics = await this._withTimeout(
+                    this.performanceTimingDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Performance timing detection'
+                );
                 this.metrics.performanceTiming = performanceTimingMetrics;
                 console.log('⏱️ Performance timing analysis complete:', performanceTimingMetrics);
             } catch (error) {

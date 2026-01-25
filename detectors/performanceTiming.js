@@ -2,13 +2,16 @@
  * Performance Timing Detector Module
  * Collects critical performance timing metrics from the Performance API
  * 
- * Focuses on three key performance entry types:
+ * Focuses on key performance entry types:
  * - navigation: Page load and DOM timing metrics
  * - paint: First paint and first contentful paint
  * - first-input: User's first interaction timing
+ * - animation frames: Frame timing statistical analysis
+ * - execution speed: JS benchmark for environment fingerprinting
  * 
  * These metrics help cluster and identify specific actors based on
- * their page load patterns and interaction timing signatures.
+ * their page load patterns, interaction timing signatures, and
+ * execution environment characteristics.
  * 
  * @module detectors/performanceTiming
  */
@@ -26,7 +29,13 @@ export const PERFORMANCE_TIMING_CONFIG = {
     // Whether to setup PerformanceObserver for first-input
     observeFirstInput: true,
     // Timeout for first-input observation (ms)
-    firstInputTimeout: 5000
+    firstInputTimeout: 5000,
+    // Animation frame analysis settings
+    collectAnimationFrames: true,
+    animationFrameCount: 30,  // Number of frames to analyze (reduced for faster collection)
+    // Execution speed benchmark settings
+    collectExecutionSpeed: true,
+    benchmarkIterations: 5000
 };
 
 /**
@@ -43,6 +52,13 @@ export class PerformanceTimingDetector {
         this.firstInputData = null;
         this.firstInputObserver = null;
         this.isInitialized = false;
+        
+        // Animation frame analysis state
+        this.animationFrameAnalysis = null;
+        
+        // Reference timestamps for timing
+        this.startTime = Date.now();
+        this.perfStartTime = this._getPerfNow();
     }
 
     /**
@@ -57,7 +73,27 @@ export class PerformanceTimingDetector {
             this._setupFirstInputObserver();
         }
         
+        // Start animation frame analysis early (async, non-blocking)
+        // Store the promise so we can wait for it in analyze() if needed
+        if (this.config.collectAnimationFrames) {
+            this._animationFramePromise = this._startAnimationFrameAnalysis();
+        }
+        
         this.isInitialized = true;
+    }
+
+    /**
+     * Get high-resolution timestamp with fallback
+     * @private
+     * @returns {number} High-resolution timestamp
+     */
+    _getPerfNow() {
+        try {
+            if (typeof performance !== 'undefined' && performance.now) {
+                return performance.now();
+            }
+        } catch (e) {}
+        return Date.now() - this.startTime;
     }
 
     /**
@@ -94,9 +130,9 @@ export class PerformanceTimingDetector {
 
     /**
      * Run performance timing analysis
-     * @returns {Object} Performance timing metrics
+     * @returns {Promise<Object>} Performance timing metrics
      */
-    analyze() {
+    async analyze() {
         this.metrics = {};
 
         // Collect navigation timing
@@ -112,6 +148,24 @@ export class PerformanceTimingDetector {
         // Collect first-input timing
         if (this.config.collectFirstInput) {
             Object.assign(this.metrics, this._collectFirstInputTiming());
+        }
+
+        // Wait for and collect animation frame analysis
+        if (this.config.collectAnimationFrames) {
+            // Wait for animation frame analysis to complete if still running
+            if (this._animationFramePromise) {
+                try {
+                    await this._animationFramePromise;
+                } catch (e) {
+                    // Analysis failed, animationFrameAnalysis will be null or have error
+                }
+            }
+            Object.assign(this.metrics, this._getAnimationFrameMetrics());
+        }
+
+        // Collect execution speed benchmark
+        if (this.config.collectExecutionSpeed) {
+            Object.assign(this.metrics, this._collectExecutionSpeed());
         }
 
         // Add collection metadata
@@ -559,6 +613,289 @@ export class PerformanceTimingDetector {
         } catch (e) {
             return false;
         }
+    }
+
+    // =========================================================================
+    // Animation Frame Analysis (Bot Detection)
+    // =========================================================================
+
+    /**
+     * Start animation frame analysis asynchronously
+     * Called during init() to begin collecting frame data early
+     * @private
+     * @returns {Promise<Object>} Promise that resolves when frame analysis is complete
+     */
+    _startAnimationFrameAnalysis() {
+        return new Promise((resolve) => {
+            if (typeof requestAnimationFrame === 'undefined') {
+                this.animationFrameAnalysis = { supported: false };
+                resolve(this.animationFrameAnalysis);
+                return;
+            }
+
+            const frames = [];
+            const maxFrames = this.config.animationFrameCount;
+            let frameCount = 0;
+
+            const recordFrame = (timestamp) => {
+                frames.push({
+                    index: frameCount,
+                    timestamp,
+                    delta: frameCount > 0 ? timestamp - frames[frameCount - 1].timestamp : 0
+                });
+
+                frameCount++;
+
+                if (frameCount < maxFrames) {
+                    requestAnimationFrame(recordFrame);
+                } else {
+                    // Analysis complete
+                    this.animationFrameAnalysis = this._computeFrameAnalysis(frames);
+                    resolve(this.animationFrameAnalysis);
+                }
+            };
+
+            requestAnimationFrame(recordFrame);
+        });
+    }
+
+    /**
+     * Compute statistical analysis of animation frame timing
+     * Bots often have unusual/consistent frame timing patterns
+     * @private
+     * @param {Array} frames - Collected frame data
+     * @returns {Object} Frame analysis results
+     */
+    _computeFrameAnalysis(frames) {
+        if (frames.length < 2) {
+            return { frames: 0, supported: true };
+        }
+
+        const deltas = frames.slice(1).map(f => f.delta);
+
+        // Calculate statistics
+        const sum = deltas.reduce((a, b) => a + b, 0);
+        const mean = sum / deltas.length;
+
+        const squaredDiffs = deltas.map(d => Math.pow(d - mean, 2));
+        const variance = squaredDiffs.reduce((a, b) => a + b, 0) / deltas.length;
+        const stdDev = Math.sqrt(variance);
+
+        const min = Math.min(...deltas);
+        const max = Math.max(...deltas);
+
+        // Sort for percentiles
+        const sorted = [...deltas].sort((a, b) => a - b);
+        const p50 = sorted[Math.floor(sorted.length * 0.5)];
+        const p95 = sorted[Math.floor(sorted.length * 0.95)];
+
+        return {
+            supported: true,
+            frames: frames.length,
+            totalTime: Math.round(frames[frames.length - 1].timestamp - frames[0].timestamp),
+            avgFps: Math.round((1000 / mean) * 10) / 10,
+            mean: Math.round(mean * 100) / 100,
+            stdDev: Math.round(stdDev * 100) / 100,
+            min: Math.round(min * 100) / 100,
+            max: Math.round(max * 100) / 100,
+            p50: Math.round(p50 * 100) / 100,
+            p95: Math.round(p95 * 100) / 100,
+            // Coefficient of variation for additional insight
+            coefficientOfVariation: mean > 0 ? Math.round((stdDev / mean) * 1000) / 1000 : 0
+        };
+    }
+
+    /**
+     * Get animation frame metrics for the result object
+     * @private
+     * @returns {Object} Animation frame metrics
+     */
+    _getAnimationFrameMetrics() {
+        const metrics = {};
+        const analysis = this.animationFrameAnalysis;
+
+        if (!analysis) {
+            metrics.animationFrameAnalysis = {
+                value: 'Pending',
+                description: 'Animation frame analysis still collecting data',
+                risk: 'N/A'
+            };
+            return metrics;
+        }
+
+        if (!analysis.supported) {
+            metrics.animationFrameSupported = {
+                value: false,
+                description: 'requestAnimationFrame not available',
+                risk: 'N/A'
+            };
+            return metrics;
+        }
+
+        metrics.animationFrameCount = {
+            value: analysis.frames,
+            description: 'Number of animation frames analyzed',
+            risk: 'N/A',
+            code: 'requestAnimationFrame loop count'
+        };
+
+        metrics.animationAvgFps = {
+            value: analysis.avgFps,
+            description: 'Average frames per second based on frame deltas',
+            risk: 'N/A',
+            code: '1000 / meanFrameDelta'
+        };
+
+        metrics.animationFrameMean = {
+            value: analysis.mean,
+            description: 'Mean frame delta time (ms)',
+            risk: 'N/A',
+            code: 'average of frame deltas'
+        };
+
+        metrics.animationFrameStdDev = {
+            value: analysis.stdDev,
+            description: 'Standard deviation of frame timing (ms)',
+            risk: 'N/A',
+            code: 'Math.sqrt(variance of frame deltas)'
+        };
+
+        metrics.animationFrameMin = {
+            value: analysis.min,
+            description: 'Minimum frame delta (ms)',
+            risk: 'N/A',
+            code: 'Math.min(...frameDeltas)'
+        };
+
+        metrics.animationFrameMax = {
+            value: analysis.max,
+            description: 'Maximum frame delta (ms)',
+            risk: 'N/A',
+            code: 'Math.max(...frameDeltas)'
+        };
+
+        metrics.animationFrameP50 = {
+            value: analysis.p50,
+            description: 'Median (p50) frame delta (ms)',
+            risk: 'N/A',
+            code: 'percentile 50 of frame deltas'
+        };
+
+        metrics.animationFrameP95 = {
+            value: analysis.p95,
+            description: '95th percentile frame delta (ms)',
+            risk: 'N/A',
+            code: 'percentile 95 of frame deltas'
+        };
+
+        metrics.animationFrameCV = {
+            value: analysis.coefficientOfVariation,
+            description: 'Coefficient of variation (stdDev/mean) - measures relative variability',
+            risk: 'N/A',
+            code: 'stdDev / mean'
+        };
+
+        metrics.animationTotalTime = {
+            value: analysis.totalTime,
+            description: 'Total time to collect all frames (ms)',
+            risk: 'N/A',
+            code: 'lastTimestamp - firstTimestamp'
+        };
+
+        return metrics;
+    }
+
+    // =========================================================================
+    // Execution Speed Benchmark (VM/Environment Detection)
+    // =========================================================================
+
+    /**
+     * Measure JavaScript execution speed
+     * Collects execution timing for different operation types - useful for environment fingerprinting
+     * @private
+     * @returns {Object} Execution speed metrics
+     */
+    _collectExecutionSpeed() {
+        const metrics = {};
+        const iterations = this.config.benchmarkIterations;
+
+        try {
+            const operations = [];
+
+            // Measure math operations (sensitive to CPU differences)
+            const mathStart = this._getPerfNow();
+            let mathResult = 0;
+            for (let i = 0; i < iterations; i++) {
+                mathResult = Math.sqrt(i) * Math.sin(i);
+            }
+            const mathTime = this._getPerfNow() - mathStart;
+            operations.push({ name: 'math', time: Math.round(mathTime * 100) / 100 });
+
+            // Measure string operations
+            const strStart = this._getPerfNow();
+            let strResult = '';
+            for (let i = 0; i < iterations / 10; i++) {
+                strResult = 'benchmark'.repeat(10);
+            }
+            const strTime = this._getPerfNow() - strStart;
+            operations.push({ name: 'string', time: Math.round(strTime * 100) / 100 });
+
+            // Measure array operations
+            const arrStart = this._getPerfNow();
+            const arrResult = [];
+            for (let i = 0; i < iterations / 10; i++) {
+                arrResult.push(i);
+            }
+            const arrTime = this._getPerfNow() - arrStart;
+            operations.push({ name: 'array', time: Math.round(arrTime * 100) / 100 });
+
+            // Prevent dead code elimination
+            void (mathResult + strResult.length + arrResult.length);
+
+            // Calculate total and operations per millisecond
+            const totalTime = operations.reduce((sum, op) => sum + op.time, 0);
+            const opsPerMs = Math.round(iterations / totalTime);
+
+            metrics.executionMathTime = {
+                value: operations.find(o => o.name === 'math')?.time,
+                description: 'Math operations benchmark time (ms)',
+                risk: 'N/A',
+                code: 'Math.sqrt/sin loop timing'
+            };
+
+            metrics.executionStringTime = {
+                value: operations.find(o => o.name === 'string')?.time,
+                description: 'String operations benchmark time (ms)',
+                risk: 'N/A',
+                code: 'String.repeat loop timing'
+            };
+
+            metrics.executionArrayTime = {
+                value: operations.find(o => o.name === 'array')?.time,
+                description: 'Array operations benchmark time (ms)',
+                risk: 'N/A',
+                code: 'Array.push loop timing'
+            };
+
+            metrics.executionOpsPerMs = {
+                value: opsPerMs,
+                description: 'Operations per millisecond - baseline execution speed',
+                risk: 'N/A',
+                code: 'iterations / totalTime'
+            };
+
+            metrics.executionTotalTime = {
+                value: Math.round(totalTime * 100) / 100,
+                description: 'Total benchmark execution time (ms)',
+                risk: 'N/A',
+                code: 'sum of all operation times'
+            };
+
+        } catch (e) {
+            metrics.executionSpeedError = this._createErrorMetric(e.message);
+        }
+
+        return metrics;
     }
 
     // =========================================================================
