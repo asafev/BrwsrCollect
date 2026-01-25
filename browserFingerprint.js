@@ -1838,6 +1838,306 @@ class BrowserFingerprintAnalyzer {
                 hasConnection: {
                     value: safeGet(() => !!nav.connection, false),
                     description: 'Network Information API availability'
+                },
+                // ==========================================
+                // API Availability Checks (Bot Detection)
+                // ==========================================
+                
+                // Priority 3 - Critical APIs
+                hasNotification: {
+                    value: safeGet(() => typeof Notification !== 'undefined', false),
+                    description: 'Notification API availability'
+                },
+                
+                // Priority 2 - Important APIs
+                hasServiceWorker: {
+                    value: safeGet(() => !!nav.serviceWorker, false),
+                    description: 'Service Worker API availability'
+                },
+                hasClipboard: {
+                    value: safeGet(() => !!nav.clipboard, false),
+                    description: 'Clipboard API availability'
+                },
+                hasWebGL: {
+                    value: safeGet(() => typeof WebGLRenderingContext !== 'undefined', false),
+                    description: 'WebGL API availability'
+                },
+                hasWebAudio: {
+                    value: safeGet(() => typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined', false),
+                    description: 'Web Audio API availability'
+                },
+                hasSpeechSynthesis: {
+                    value: safeGet(() => typeof speechSynthesis !== 'undefined', false),
+                    description: 'Speech Synthesis API availability'
+                },
+                hasStorage: {
+                    value: safeGet(() => !!nav.storage, false),
+                    description: 'Storage Manager API availability'
+                },
+                hasPermissions: {
+                    value: safeGet(() => !!nav.permissions, false),
+                    description: 'Permissions API availability'
+                },
+                hasMediaDevices: {
+                    value: safeGet(() => !!nav.mediaDevices, false),
+                    description: 'MediaDevices API availability'
+                },
+                
+                // Priority 2 - Browser Detection
+                hasChrome: {
+                    value: safeGet(() => !!window.chrome, false),
+                    description: 'Chrome browser object availability'
+                },
+                hasChromeRuntime: {
+                    value: safeGet(() => !!(window.chrome && window.chrome.runtime), false),
+                    description: 'Chrome runtime API availability'
+                },
+                
+                // Priority 1 - Extended APIs
+                hasWebGL2: {
+                    value: safeGet(() => typeof WebGL2RenderingContext !== 'undefined', false),
+                    description: 'WebGL2 API availability'
+                },
+                hasWebRTC: {
+                    value: safeGet(() => typeof RTCPeerConnection !== 'undefined' || typeof webkitRTCPeerConnection !== 'undefined', false),
+                    description: 'WebRTC API availability'
+                },
+                hasWebCrypto: {
+                    value: safeGet(() => !!(window.crypto && window.crypto.subtle), false),
+                    description: 'Web Crypto API availability'
+                },
+                hasBluetooth: {
+                    value: safeGet(() => !!nav.bluetooth, false),
+                    description: 'Web Bluetooth API availability'
+                },
+                hasUSB: {
+                    value: safeGet(() => !!nav.usb, false),
+                    description: 'WebUSB API availability'
+                },
+                hasPayment: {
+                    value: safeGet(() => typeof PaymentRequest !== 'undefined', false),
+                    description: 'Payment Request API availability'
+                },
+                hasSpeechRecognition: {
+                    value: safeGet(() => typeof SpeechRecognition !== 'undefined' || typeof webkitSpeechRecognition !== 'undefined', false),
+                    description: 'Speech Recognition API availability'
+                },
+                hasDeviceOrientation: {
+                    value: safeGet(() => typeof DeviceOrientationEvent !== 'undefined', false),
+                    description: 'Device Orientation API availability'
+                },
+                hasDeviceMotion: {
+                    value: safeGet(() => typeof DeviceMotionEvent !== 'undefined', false),
+                    description: 'Device Motion API availability'
+                },
+                hasPointerEvent: {
+                    value: safeGet(() => typeof PointerEvent !== 'undefined', false),
+                    description: 'Pointer Events API availability'
+                },
+                hasGamepad: {
+                    value: safeGet(() => typeof nav.getGamepads === 'function', false),
+                    description: 'Gamepad API availability'
+                },
+                hasVR: {
+                    value: safeGet(() => typeof nav.getVRDisplays === 'function', false),
+                    description: 'WebVR API availability (deprecated)'
+                },
+                hasXR: {
+                    value: safeGet(() => !!nav.xr, false),
+                    description: 'WebXR API availability'
+                },
+                hasShare: {
+                    value: safeGet(() => typeof nav.share === 'function', false),
+                    description: 'Web Share API availability'
+                },
+                hasCredentials: {
+                    value: safeGet(() => !!nav.credentials, false),
+                    description: 'Credentials Management API availability'
+                },
+                hasLocks: {
+                    value: safeGet(() => !!nav.locks, false),
+                    description: 'Web Locks API availability'
+                },
+                hasWakeLock: {
+                    value: safeGet(() => !!nav.wakeLock, false),
+                    description: 'Screen Wake Lock API availability'
+                },
+                hasSerial: {
+                    value: safeGet(() => !!nav.serial, false),
+                    description: 'Web Serial API availability'
+                },
+                hasHID: {
+                    value: safeGet(() => !!nav.hid, false),
+                    description: 'WebHID API availability'
+                },
+                hasKeyboard: {
+                    value: safeGet(() => !!nav.keyboard, false),
+                    description: 'Keyboard API availability'
+                },
+                hasWebAuthn: {
+                    value: safeGet(() => typeof PublicKeyCredential !== 'undefined', false),
+                    description: 'Web Authentication API availability'
+                },
+                hasCustomElements: {
+                    value: safeGet(() => typeof customElements !== 'undefined', false),
+                    description: 'Custom Elements API availability'
+                },
+                
+                // ==========================================
+                // Computed API Capability Signature
+                // ==========================================
+                apiCapabilitySignature: {
+                    value: (() => {
+                        // Build a compact string signature of all API capabilities
+                        // Format: abbrev:T/F separated by |
+                        // This makes it easy to compare platform differences
+                        const caps = [];
+                        
+                        // Priority 3 - Critical (uppercase)
+                        caps.push(`NT:${typeof Notification !== 'undefined' ? 'T' : 'F'}`);
+                        
+                        // Priority 2 - Important
+                        caps.push(`SW:${!!nav.serviceWorker ? 'T' : 'F'}`);
+                        caps.push(`CB:${!!nav.clipboard ? 'T' : 'F'}`);
+                        caps.push(`GL:${typeof WebGLRenderingContext !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`AU:${(typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') ? 'T' : 'F'}`);
+                        caps.push(`SS:${typeof speechSynthesis !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`ST:${!!nav.storage ? 'T' : 'F'}`);
+                        caps.push(`PM:${!!nav.permissions ? 'T' : 'F'}`);
+                        caps.push(`MD:${!!nav.mediaDevices ? 'T' : 'F'}`);
+                        caps.push(`CH:${!!window.chrome ? 'T' : 'F'}`);
+                        caps.push(`CR:${!!(window.chrome && window.chrome.runtime) ? 'T' : 'F'}`);
+                        
+                        // Priority 1 - Extended
+                        caps.push(`G2:${typeof WebGL2RenderingContext !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`RT:${(typeof RTCPeerConnection !== 'undefined' || typeof webkitRTCPeerConnection !== 'undefined') ? 'T' : 'F'}`);
+                        caps.push(`CY:${!!(window.crypto && window.crypto.subtle) ? 'T' : 'F'}`);
+                        caps.push(`BT:${!!nav.bluetooth ? 'T' : 'F'}`);
+                        caps.push(`US:${!!nav.usb ? 'T' : 'F'}`);
+                        caps.push(`PY:${typeof PaymentRequest !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`SR:${(typeof SpeechRecognition !== 'undefined' || typeof webkitSpeechRecognition !== 'undefined') ? 'T' : 'F'}`);
+                        caps.push(`DO:${typeof DeviceOrientationEvent !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`DM:${typeof DeviceMotionEvent !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`PE:${typeof PointerEvent !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`GP:${typeof nav.getGamepads === 'function' ? 'T' : 'F'}`);
+                        caps.push(`VR:${typeof nav.getVRDisplays === 'function' ? 'T' : 'F'}`);
+                        caps.push(`XR:${!!nav.xr ? 'T' : 'F'}`);
+                        caps.push(`SH:${typeof nav.share === 'function' ? 'T' : 'F'}`);
+                        caps.push(`CD:${!!nav.credentials ? 'T' : 'F'}`);
+                        caps.push(`LK:${!!nav.locks ? 'T' : 'F'}`);
+                        caps.push(`WL:${!!nav.wakeLock ? 'T' : 'F'}`);
+                        caps.push(`SE:${!!nav.serial ? 'T' : 'F'}`);
+                        caps.push(`HD:${!!nav.hid ? 'T' : 'F'}`);
+                        caps.push(`KB:${!!nav.keyboard ? 'T' : 'F'}`);
+                        caps.push(`WA:${typeof PublicKeyCredential !== 'undefined' ? 'T' : 'F'}`);
+                        caps.push(`CE:${typeof customElements !== 'undefined' ? 'T' : 'F'}`);
+                        
+                        // Also include legacy APIs we already tracked
+                        caps.push(`VB:${!!nav.vibrate ? 'T' : 'F'}`);
+                        caps.push(`BA:${!!nav.getBattery ? 'T' : 'F'}`);
+                        caps.push(`CN:${!!nav.connection ? 'T' : 'F'}`);
+                        
+                        return caps.join('|');
+                    })(),
+                    description: 'Compact API capability signature for platform comparison. Legend: NT=Notification, SW=ServiceWorker, CB=Clipboard, GL=WebGL, AU=WebAudio, SS=SpeechSynthesis, ST=Storage, PM=Permissions, MD=MediaDevices, CH=Chrome, CR=ChromeRuntime, G2=WebGL2, RT=WebRTC, CY=Crypto, BT=Bluetooth, US=USB, PY=Payment, SR=SpeechRecognition, DO=DeviceOrientation, DM=DeviceMotion, PE=PointerEvent, GP=Gamepad, VR=WebVR, XR=WebXR, SH=Share, CD=Credentials, LK=Locks, WL=WakeLock, SE=Serial, HD=HID, KB=Keyboard, WA=WebAuthn, CE=CustomElements, VB=Vibrate, BA=Battery, CN=Connection'
+                },
+                
+                // Also add a hash of the signature for quick comparison
+                apiCapabilityHash: {
+                    value: (() => {
+                        const caps = [];
+                        caps.push(typeof Notification !== 'undefined' ? '1' : '0');
+                        caps.push(!!nav.serviceWorker ? '1' : '0');
+                        caps.push(!!nav.clipboard ? '1' : '0');
+                        caps.push(typeof WebGLRenderingContext !== 'undefined' ? '1' : '0');
+                        caps.push((typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') ? '1' : '0');
+                        caps.push(typeof speechSynthesis !== 'undefined' ? '1' : '0');
+                        caps.push(!!nav.storage ? '1' : '0');
+                        caps.push(!!nav.permissions ? '1' : '0');
+                        caps.push(!!nav.mediaDevices ? '1' : '0');
+                        caps.push(!!window.chrome ? '1' : '0');
+                        caps.push(!!(window.chrome && window.chrome.runtime) ? '1' : '0');
+                        caps.push(typeof WebGL2RenderingContext !== 'undefined' ? '1' : '0');
+                        caps.push((typeof RTCPeerConnection !== 'undefined' || typeof webkitRTCPeerConnection !== 'undefined') ? '1' : '0');
+                        caps.push(!!(window.crypto && window.crypto.subtle) ? '1' : '0');
+                        caps.push(!!nav.bluetooth ? '1' : '0');
+                        caps.push(!!nav.usb ? '1' : '0');
+                        caps.push(typeof PaymentRequest !== 'undefined' ? '1' : '0');
+                        caps.push((typeof SpeechRecognition !== 'undefined' || typeof webkitSpeechRecognition !== 'undefined') ? '1' : '0');
+                        caps.push(typeof DeviceOrientationEvent !== 'undefined' ? '1' : '0');
+                        caps.push(typeof DeviceMotionEvent !== 'undefined' ? '1' : '0');
+                        caps.push(typeof PointerEvent !== 'undefined' ? '1' : '0');
+                        caps.push(typeof nav.getGamepads === 'function' ? '1' : '0');
+                        caps.push(typeof nav.getVRDisplays === 'function' ? '1' : '0');
+                        caps.push(!!nav.xr ? '1' : '0');
+                        caps.push(typeof nav.share === 'function' ? '1' : '0');
+                        caps.push(!!nav.credentials ? '1' : '0');
+                        caps.push(!!nav.locks ? '1' : '0');
+                        caps.push(!!nav.wakeLock ? '1' : '0');
+                        caps.push(!!nav.serial ? '1' : '0');
+                        caps.push(!!nav.hid ? '1' : '0');
+                        caps.push(!!nav.keyboard ? '1' : '0');
+                        caps.push(typeof PublicKeyCredential !== 'undefined' ? '1' : '0');
+                        caps.push(typeof customElements !== 'undefined' ? '1' : '0');
+                        caps.push(!!nav.vibrate ? '1' : '0');
+                        caps.push(!!nav.getBattery ? '1' : '0');
+                        caps.push(!!nav.connection ? '1' : '0');
+                        
+                        // Convert binary string to hex for compact representation
+                        const binStr = caps.join('');
+                        let hex = '';
+                        for (let i = 0; i < binStr.length; i += 4) {
+                            const chunk = binStr.substr(i, 4).padEnd(4, '0');
+                            hex += parseInt(chunk, 2).toString(16);
+                        }
+                        return hex.toUpperCase();
+                    })(),
+                    description: 'Hex hash of API capabilities bitmap (36 bits). Each bit represents one API availability in order of signature.'
+                },
+                
+                // Count of available APIs for quick comparison
+                apiCapabilityCount: {
+                    value: (() => {
+                        let count = 0;
+                        if (typeof Notification !== 'undefined') count++;
+                        if (!!nav.serviceWorker) count++;
+                        if (!!nav.clipboard) count++;
+                        if (typeof WebGLRenderingContext !== 'undefined') count++;
+                        if (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') count++;
+                        if (typeof speechSynthesis !== 'undefined') count++;
+                        if (!!nav.storage) count++;
+                        if (!!nav.permissions) count++;
+                        if (!!nav.mediaDevices) count++;
+                        if (!!window.chrome) count++;
+                        if (!!(window.chrome && window.chrome.runtime)) count++;
+                        if (typeof WebGL2RenderingContext !== 'undefined') count++;
+                        if (typeof RTCPeerConnection !== 'undefined' || typeof webkitRTCPeerConnection !== 'undefined') count++;
+                        if (!!(window.crypto && window.crypto.subtle)) count++;
+                        if (!!nav.bluetooth) count++;
+                        if (!!nav.usb) count++;
+                        if (typeof PaymentRequest !== 'undefined') count++;
+                        if (typeof SpeechRecognition !== 'undefined' || typeof webkitSpeechRecognition !== 'undefined') count++;
+                        if (typeof DeviceOrientationEvent !== 'undefined') count++;
+                        if (typeof DeviceMotionEvent !== 'undefined') count++;
+                        if (typeof PointerEvent !== 'undefined') count++;
+                        if (typeof nav.getGamepads === 'function') count++;
+                        if (typeof nav.getVRDisplays === 'function') count++;
+                        if (!!nav.xr) count++;
+                        if (typeof nav.share === 'function') count++;
+                        if (!!nav.credentials) count++;
+                        if (!!nav.locks) count++;
+                        if (!!nav.wakeLock) count++;
+                        if (!!nav.serial) count++;
+                        if (!!nav.hid) count++;
+                        if (!!nav.keyboard) count++;
+                        if (typeof PublicKeyCredential !== 'undefined') count++;
+                        if (typeof customElements !== 'undefined') count++;
+                        if (!!nav.vibrate) count++;
+                        if (!!nav.getBattery) count++;
+                        if (!!nav.connection) count++;
+                        return count;
+                    })(),
+                    description: 'Total count of available APIs out of 36 checked'
                 }
             };
         } catch (error) {
