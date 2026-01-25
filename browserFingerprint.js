@@ -92,6 +92,7 @@ import { FontsDetector } from './detectors/fonts.js';
 import { PerformanceTimingDetector } from './detectors/performanceTiming.js';
 import { KeyboardLayoutDetector } from './detectors/keyboardLayout.js';
 import { PermissionsDetector } from './detectors/permissionsDetector.js';
+import { CodecSupportDetector } from './detectors/codecSupport.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -686,6 +687,7 @@ class BrowserFingerprintAnalyzer {
         this.performanceTimingDetector = this._safeCreateDetector(() => new PerformanceTimingDetector(options.performanceTiming || {}), 'PerformanceTimingDetector');
         this.keyboardLayoutDetector = this._safeCreateDetector(() => new KeyboardLayoutDetector(options.keyboardLayout || {}), 'KeyboardLayoutDetector');
         this.permissionsDetector = this._safeCreateDetector(() => new PermissionsDetector(), 'PermissionsDetector');
+        this.codecSupportDetector = this._safeCreateDetector(() => new CodecSupportDetector(options.codecSupport || {}), 'CodecSupportDetector');
         
         // Initialize performance timing detector early to catch first-input
         if (this.performanceTimingDetector) {
@@ -717,8 +719,8 @@ class BrowserFingerprintAnalyzer {
                     phase,
                     status, // 'starting', 'complete', 'error', 'skipped'
                     completedPhases: [...this.completedPhases],
-                    totalPhases: 19, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout)
-                    percentage: Math.round((this.completedPhases.length / 18) * 100),
+                    totalPhases: 20, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout, codecSupport)
+                    percentage: Math.round((this.completedPhases.length / 20) * 100),
                     ...details
                 });
             } catch (e) {
@@ -908,6 +910,29 @@ class BrowserFingerprintAnalyzer {
         }
         categoryTiming.speechSynthesis = Math.round(performance.now() - speechStartTime);
         this._reportProgress('speech', 'complete', { message: 'Speech synthesis analyzed' });
+
+        // Run Codec Support detection (async - uses RTCRtpReceiver.getCapabilities) - WITH TIMEOUT
+        this._reportProgress('codec', 'starting', { message: 'Analyzing codec support...' });
+        console.log('🎬 Analyzing codec support...');
+        const codecStartTime = performance.now();
+        if (this.codecSupportDetector) {
+            try {
+                const codecMetrics = await this._withTimeout(
+                    this.codecSupportDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Codec support detection'
+                );
+                this.metrics.codecSupport = codecMetrics;
+                console.log('🎬 Codec support analysis complete:', codecMetrics);
+            } catch (error) {
+                console.warn('⚠️ Codec support detection failed:', error.message);
+                this.metrics.codecSupport = { error: { value: error.message, description: 'Codec support detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.codecSupport = { error: { value: 'Detector not available', description: 'Codec support detector failed to initialize', risk: 'N/A' } };
+        }
+        categoryTiming.codecSupport = Math.round(performance.now() - codecStartTime);
+        this._reportProgress('codec', 'complete', { message: 'Codec support analyzed' });
 
         // Run Language detection (sync)
         this._reportProgress('language', 'starting', { message: 'Analyzing language signals...' });
@@ -1313,6 +1338,18 @@ class BrowserFingerprintAnalyzer {
                 const audioIndicators = this.audioFingerprintDetector.getSuspiciousIndicators();
                 if (audioIndicators) {
                     this.suspiciousIndicators = [...this.suspiciousIndicators, ...audioIndicators];
+                }
+            } catch (e) {
+                // Ignore if not available
+            }
+        }
+
+        // Codec support indicators
+        if (this.codecSupportDetector) {
+            try {
+                const codecIndicators = this.codecSupportDetector.getSuspiciousIndicators();
+                if (codecIndicators) {
+                    this.suspiciousIndicators = [...this.suspiciousIndicators, ...codecIndicators];
                 }
             } catch (e) {
                 // Ignore if not available
@@ -3115,5 +3152,6 @@ export {
     LanguageDetector,
     CssComputedStyleDetector,
     WorkerSignalsDetector,
-    PermissionsDetector
+    PermissionsDetector,
+    CodecSupportDetector
 };

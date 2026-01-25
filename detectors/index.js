@@ -20,3 +20,4 @@ export { FontsDetector } from './fonts.js';
 export { PerformanceTimingDetector, PERFORMANCE_TIMING_CONFIG } from './performanceTiming.js';
 export { KeyboardLayoutDetector } from './keyboardLayout.js';
 export { PermissionsDetector, PERMISSION_NAMES } from './permissionsDetector.js';
+export { CodecSupportDetector, CODEC_CONFIG } from './codecSupport.js';

@@ -59,6 +59,7 @@ const RESEARCH_CATEGORIES = {
         categories: [
             { key: 'webgl', label: 'WebGL / GPU', icon: 'gpu' },
             { key: 'audio', label: 'Audio Context', icon: 'audio' },
+            { key: 'codecSupport', label: 'Codec Support', icon: 'audio' },
             { key: 'display', label: 'Display Properties', icon: 'display' },
             { key: 'battery', label: 'Battery Status', icon: 'battery' },
             { key: 'mediaDevices', label: 'Media Devices', icon: 'mediaDevices' }
@@ -142,6 +143,7 @@ const CATEGORY_CONFIG = {
     jsEnvironment: { label: 'JS Environment', description: 'JavaScript runtime characteristics' },
     webgl: { label: 'WebGL / GPU', description: 'Graphics and GPU fingerprinting' },
     audio: { label: 'Audio Context', description: 'Audio processing fingerprint' },
+    codecSupport: { label: 'Codec Support', description: 'Audio/video codec detection & RTC capabilities' },
     display: { label: 'Display Properties', description: 'Screen and display configuration' },
     battery: { label: 'Battery Status', description: 'Battery API information' },
     mediaDevices: { label: 'Media Devices', description: 'Available cameras and microphones' },
