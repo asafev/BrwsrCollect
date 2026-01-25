@@ -192,6 +192,13 @@ export const CATEGORY_CONFIG = {
         label: 'Keyboard Layout',
         description: 'Physical keyboard locale fingerprint (hard to spoof)',
         color: '#8B5CF6'
+    },
+    collectionTiming: {
+        get icon() { return getIcon('collectionTiming'); },
+        iconType: 'svg',
+        label: 'Collection Timing',
+        description: 'Time taken by each fingerprint detector during analysis',
+        color: '#F97316'
     }
 };
 

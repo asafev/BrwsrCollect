@@ -358,6 +358,7 @@ const CATEGORY_ICONS = {
     behavioralTelemetry: 'chart',
     performanceTiming: 'timer',
     performance: 'chart',
+    collectionTiming: 'timer',
     
     // Misc
     permissions: 'permissions',

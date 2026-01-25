@@ -224,6 +224,7 @@ export function sortCategories(categories) {
         'webgl',
         'performance',
         'performanceTiming',
+        'collectionTiming',
         'webApis',
         'webRTCLeak',
         'jsEnvironment',

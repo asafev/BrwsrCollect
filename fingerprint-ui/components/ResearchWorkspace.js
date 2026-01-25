@@ -48,7 +48,7 @@ const CATEGORY_GROUPS = {
     },
     'behavior': {
         label: 'Behavior',
-        categories: ['behavioralIndicators', 'behavioralTelemetry', 'performanceTiming']
+        categories: ['behavioralIndicators', 'behavioralTelemetry', 'performanceTiming', 'collectionTiming']
     }
 };
 
@@ -114,6 +114,8 @@ export function createResearchWorkspace(container, data, options = {}) {
     function buildCategoryMetadata(data) {
         const result = {};
         const metrics = data.metrics || {};
+        
+        console.log('📊 Building category metadata. Available metric keys:', Object.keys(metrics));
         
         // Process each metrics category
         for (const [key, categoryMetrics] of Object.entries(metrics)) {

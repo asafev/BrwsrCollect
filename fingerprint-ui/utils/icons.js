@@ -217,6 +217,15 @@ export function getCategoryIcon(categoryKey) {
             <line x1="14" y1="12" x2="14" y2="12"></line>
             <line x1="18" y1="12" x2="18" y2="12"></line>
             <line x1="6" y1="16" x2="18" y2="16"></line>
+        </svg>`,
+        
+        collectionTiming: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4"></path>
+            <path d="M12 18v4"></path>
+            <circle cx="12" cy="12" r="8"></circle>
+            <path d="M12 8v4l2 2"></path>
+            <path d="M4.93 4.93l2.83 2.83"></path>
+            <path d="M16.24 16.24l2.83 2.83"></path>
         </svg>`
     };
     
