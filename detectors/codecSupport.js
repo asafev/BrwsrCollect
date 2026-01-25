@@ -333,7 +333,17 @@ class CodecSupportDetector {
             videoCodecCount: 0,
             audioHash: null,
             videoHash: null,
-            combinedHash: null
+            combinedHash: null,
+            // Advanced video codec analysis
+            videoCodecsLength: 0,
+            hasH265: false,
+            hasAV1: false,
+            vp9Profiles: [],
+            vp9ProfileCount: 0,
+            h264ProfileCount: 0,
+            hasH264High64001f: false,
+            codecFamilyCount: 0,
+            codecFamilies: []
         };
 
         try {
@@ -385,6 +395,10 @@ class CodecSupportDetector {
                             sdpFmtpLine: c.sdpFmtpLine
                         }));
                         result.videoCodecCount = videoCapabilities.codecs.length;
+                        result.videoCodecsLength = videoCapabilities.codecs.length;
+                        
+                        // Advanced codec analysis
+                        this._analyzeVideoCodecs(videoCapabilities.codecs, result);
                     }
                     
                     result.videoHash = fnv1a32(JSON.stringify(videoCapabilities));
@@ -405,6 +419,104 @@ class CodecSupportDetector {
         }
 
         return result;
+    }
+
+    /**
+     * Analyze video codecs for detailed fingerprinting
+     * Extracts H.265, AV1, VP9 profiles, H.264 profiles, and codec families
+     * @private
+     * @param {Array} codecs - Array of codec objects from RTCRtpReceiver
+     * @param {Object} result - Result object to populate
+     */
+    _analyzeVideoCodecs(codecs, result) {
+        const codecFamilies = new Set();
+        const vp9Profiles = new Set();
+        let h264ProfileCount = 0;
+        
+        for (const codec of codecs) {
+            const mimeType = (codec.mimeType || '').toLowerCase();
+            const sdpFmtpLine = codec.sdpFmtpLine || '';
+            
+            // Detect H.265/HEVC
+            if (mimeType.includes('h265') || mimeType.includes('hevc')) {
+                result.hasH265 = true;
+                codecFamilies.add('H.265');
+            }
+            
+            // Detect AV1
+            if (mimeType.includes('av1') || mimeType === 'video/av1') {
+                result.hasAV1 = true;
+                codecFamilies.add('AV1');
+            }
+            
+            // Detect and analyze VP9 profiles
+            if (mimeType.includes('vp9') || mimeType === 'video/vp9') {
+                codecFamilies.add('VP9');
+                
+                // Extract profile-id from sdpFmtpLine (e.g., "profile-id=0" or "profile-id=2")
+                const profileMatch = sdpFmtpLine.match(/profile-id=(\d+)/i);
+                if (profileMatch) {
+                    vp9Profiles.add(parseInt(profileMatch[1], 10));
+                } else {
+                    // If no profile specified, assume profile 0 (baseline)
+                    vp9Profiles.add(0);
+                }
+            }
+            
+            // Detect and analyze VP8
+            if (mimeType.includes('vp8') || mimeType === 'video/vp8') {
+                codecFamilies.add('VP8');
+            }
+            
+            // Detect and analyze H.264/AVC profiles
+            if (mimeType.includes('h264') || mimeType.includes('avc')) {
+                codecFamilies.add('H.264');
+                h264ProfileCount++;
+                
+                // Check for specific H.264 High profile (64001f)
+                // This is typically in sdpFmtpLine as "profile-level-id=64001f" or similar
+                const profileLevelMatch = sdpFmtpLine.match(/profile-level-id=([0-9a-fA-F]+)/i);
+                if (profileLevelMatch) {
+                    const profileLevelId = profileLevelMatch[1].toLowerCase();
+                    // 64001f = High profile, Level 3.1
+                    // 640 = High profile prefix
+                    if (profileLevelId === '64001f' || profileLevelId.startsWith('64001f')) {
+                        result.hasH264High64001f = true;
+                    }
+                }
+            }
+            
+            // Detect RTX (retransmission)
+            if (mimeType.includes('rtx')) {
+                codecFamilies.add('RTX');
+            }
+            
+            // Detect RED (redundant encoding)
+            if (mimeType.includes('red')) {
+                codecFamilies.add('RED');
+            }
+            
+            // Detect ULPFEC (forward error correction)
+            if (mimeType.includes('ulpfec')) {
+                codecFamilies.add('ULPFEC');
+            }
+            
+            // Detect FlexFEC
+            if (mimeType.includes('flexfec')) {
+                codecFamilies.add('FlexFEC');
+            }
+        }
+        
+        // Store VP9 profiles sorted
+        result.vp9Profiles = Array.from(vp9Profiles).sort((a, b) => a - b);
+        result.vp9ProfileCount = result.vp9Profiles.length;
+        
+        // Store H.264 profile count
+        result.h264ProfileCount = h264ProfileCount;
+        
+        // Store codec families
+        result.codecFamilies = Array.from(codecFamilies).sort();
+        result.codecFamilyCount = codecFamilies.size;
     }
 
     /**
@@ -577,6 +689,53 @@ class CodecSupportDetector {
             rtcCombinedHash: {
                 value: result.rtcCapabilities.combinedHash,
                 description: 'Combined hash of all RTC capabilities',
+                risk: 'N/A'
+            },
+
+            // === Advanced RTC Video Codec Analysis ===
+            rtcVideoCodecsLength: {
+                value: result.rtcCapabilities.videoCodecsLength,
+                description: 'Total number of RTC video codecs (including profiles)',
+                risk: 'N/A'
+            },
+            rtcHasH265: {
+                value: result.rtcCapabilities.hasH265,
+                description: 'H.265/HEVC codec support in WebRTC',
+                risk: 'N/A'
+            },
+            rtcHasAV1: {
+                value: result.rtcCapabilities.hasAV1,
+                description: 'AV1 codec support in WebRTC',
+                risk: 'N/A'
+            },
+            rtcVp9Profiles: {
+                value: formatList(result.rtcCapabilities.vp9Profiles.map(p => `Profile ${p}`)),
+                description: 'VP9 profiles supported (0=baseline, 2=10-bit)',
+                risk: 'N/A'
+            },
+            rtcVp9ProfileCount: {
+                value: result.rtcCapabilities.vp9ProfileCount,
+                description: 'Number of VP9 profiles supported',
+                risk: 'N/A'
+            },
+            rtcH264ProfileCount: {
+                value: result.rtcCapabilities.h264ProfileCount,
+                description: 'Number of H.264/AVC profile entries',
+                risk: 'N/A'
+            },
+            rtcHasH264High64001f: {
+                value: result.rtcCapabilities.hasH264High64001f,
+                description: 'H.264 High profile Level 3.1 (64001f) support',
+                risk: 'N/A'
+            },
+            rtcCodecFamilies: {
+                value: formatList(result.rtcCapabilities.codecFamilies),
+                description: 'Unique codec families detected (H.264, VP8, VP9, AV1, etc.)',
+                risk: 'N/A'
+            },
+            rtcCodecFamilyCount: {
+                value: result.rtcCapabilities.codecFamilyCount,
+                description: 'Number of unique codec families',
                 risk: 'N/A'
             },
 
