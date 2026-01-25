@@ -174,7 +174,7 @@ class KeyboardLayoutDetector {
             const layoutMap = await navigator.keyboard.getLayoutMap();
             const keyCodes = getStandardKeyCodes();
             
-            // Collect all mappings
+            // Collect mappings from our predefined list
             const mappings = {};
             let fingerprint = '';
             
@@ -187,6 +187,25 @@ class KeyboardLayoutDetector {
                 }
             });
 
+            // === RESEARCH: Capture ALL keys from the layoutMap itself ===
+            // This reveals exactly what keys the browser reports, regardless of our list
+            const allMappings = {};
+            const allKeyCodes = [];
+            
+            // layoutMap is iterable - get all entries directly from the browser
+            for (const [code, key] of layoutMap.entries()) {
+                allMappings[code] = key;
+                allKeyCodes.push(code);
+            }
+            
+            // Find keys we're missing (in browser but not in our list)
+            const ourKeySet = new Set(keyCodes);
+            const missingFromOurList = allKeyCodes.filter(k => !ourKeySet.has(k));
+            
+            // Find keys we test but browser doesn't have
+            const browserKeySet = new Set(allKeyCodes);
+            const notInBrowser = keyCodes.filter(k => !browserKeySet.has(k));
+
             // Calculate hash
             const fingerprintHash = calculateFingerprintHash(fingerprint);
             
@@ -195,6 +214,7 @@ class KeyboardLayoutDetector {
             
             // Count mapped keys
             const totalMappedKeys = Object.keys(mappings).length;
+            const totalBrowserKeys = allKeyCodes.length;
 
             return {
                 supported: true,
@@ -204,6 +224,14 @@ class KeyboardLayoutDetector {
                 fingerprint,
                 totalMappedKeys,
                 mappings,
+                
+                // === RESEARCH DATA: For comparing with other tools ===
+                totalBrowserKeys,           // Total keys the browser actually reports
+                allMappings,                 // All key->char mappings from browser
+                allKeyCodes,                 // All key codes the browser knows about (sorted for comparison)
+                missingFromOurList,          // Keys browser has but we don't test
+                notInBrowser,                // Keys we test but browser doesn't have
+                
                 // Key differentiators for fingerprinting
                 keySemicolon: mappings.Semicolon || null,
                 keyQuote: mappings.Quote || null,
@@ -283,9 +311,37 @@ class KeyboardLayoutDetector {
             },
             totalMappedKeys: {
                 value: result.totalMappedKeys,
-                description: 'Number of keys with valid mappings',
+                description: 'Number of keys with valid mappings (from our predefined list)',
                 risk: result.totalMappedKeys === 0 ? 'HIGH' : 'N/A'
             },
+            
+            // === RESEARCH METRICS: For comparing with other tools ===
+            totalBrowserKeys: {
+                value: result.totalBrowserKeys,
+                description: 'Total keys the browser actually reports in layoutMap',
+                risk: 'N/A'
+            },
+            missingFromOurList: {
+                value: result.missingFromOurList,
+                description: 'Keys browser has but we don\'t test (add these to match other tools)',
+                risk: 'N/A'
+            },
+            notInBrowser: {
+                value: result.notInBrowser,
+                description: 'Keys we test but browser doesn\'t have (expected for some keys)',
+                risk: 'N/A'
+            },
+            allKeyCodes: {
+                value: result.allKeyCodes,
+                description: 'All key codes from browser layoutMap (for comparison)',
+                risk: 'N/A'
+            },
+            allMappings: {
+                value: result.allMappings,
+                description: 'Complete key->char mapping from browser (for diff analysis)',
+                risk: 'N/A'
+            },
+            
             keySemicolon: {
                 value: result.keySemicolon || '(unmapped)',
                 description: 'Semicolon key mapping (differs across layouts: ; vs ñ vs ö)',
