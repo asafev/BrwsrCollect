@@ -1,6 +1,6 @@
 /**
  * CSS Computed Style Detector Module
- * Samples a curated set of computed CSS properties for stable hashing
+ * Focuses on system styles, CSS features, and media queries for browser fingerprinting
  * Inspired by CreepJS src/css/index.ts (system styles/computed style)
  *
  * @module detectors/cssComputedStyle
@@ -9,42 +9,7 @@
 
 import { fnv1a32 } from './audioFingerprint.js';
 
-const STYLE_PROPERTIES = [
-    'font-family',
-    'font-size',
-    'font-weight',
-    'font-style',
-    'font-variant',
-    'line-height',
-    'letter-spacing',
-    'word-spacing',
-    'text-rendering',
-    'text-transform',
-    'text-decoration-line',
-    'text-decoration-style',
-    'color',
-    'background-color',
-    'border-top-color',
-    'border-top-style',
-    'border-top-width',
-    'border-radius',
-    'box-shadow',
-    'text-shadow',
-    'opacity',
-    'display',
-    'position',
-    'float',
-    'visibility',
-    'pointer-events',
-    'transform',
-    'transform-origin',
-    'filter',
-    'outline-style',
-    'outline-width',
-    'outline-color'
-];
-
-// System color keywords (CSS spec)
+// System color keywords (CSS spec) - critical for OS/theme fingerprinting
 const SYSTEM_COLORS = [
     'ActiveBorder', 'ActiveCaption', 'ActiveText', 'AppWorkspace',
     'Background', 'ButtonBorder', 'ButtonFace', 'ButtonHighlight',
@@ -58,95 +23,138 @@ const SYSTEM_COLORS = [
     'ThreeDShadow', 'VisitedText', 'Window', 'WindowFrame', 'WindowText'
 ];
 
-// System font keywords (CSS spec)
+// System font keywords (CSS spec) - reveals OS default fonts
 const SYSTEM_FONTS = [
     'caption', 'icon', 'menu', 'message-box', 'small-caption', 'status-bar'
 ];
 
-// Modern CSS features to detect (critical for bot detection)
+// Modern CSS features - critical for browser version/bot detection
 const CSS_FEATURES = [
     'aspect-ratio',
     'backdrop-filter',
-    'container-queries',
+    'container-type',  // container queries
     'accent-color',
     'scrollbar-color',
     'scrollbar-width',
-    'color-mix()',
-    'color-contrast()',
-    '@property'
+    'content-visibility',
+    'contain-intrinsic-size',
+    'overscroll-behavior',
+    'scroll-behavior',
+    'touch-action',
+    'user-select',
+    'text-wrap',
+    'hanging-punctuation'
 ];
 
-// Blink-specific rendering quirks
+// CSS functions to test support
+const CSS_FUNCTIONS = [
+    { name: 'color-mix', test: 'background-color: color-mix(in srgb, red 50%, blue)' },
+    { name: 'oklch', test: 'color: oklch(70% 0.15 200)' },
+    { name: 'lch', test: 'color: lch(50% 50 200)' },
+    { name: 'lab', test: 'color: lab(50% 50 50)' },
+    { name: 'hwb', test: 'color: hwb(200 20% 20%)' },
+    { name: 'clamp', test: 'width: clamp(10px, 50%, 100px)' },
+    { name: 'min', test: 'width: min(10px, 50%)' },
+    { name: 'max', test: 'width: max(10px, 50%)' },
+    { name: 'env', test: 'padding: env(safe-area-inset-top, 0px)' }
+];
+
+// Media queries - reveals user preferences, device capabilities, and OS settings
+const MEDIA_QUERIES = [
+    // User preferences (OS settings)
+    { query: '(prefers-color-scheme: dark)', name: 'colorSchemeDark', group: 'colorScheme' },
+    { query: '(prefers-color-scheme: light)', name: 'colorSchemeLight', group: 'colorScheme' },
+    { query: '(prefers-reduced-motion: reduce)', name: 'reducedMotion', group: 'motion' },
+    { query: '(prefers-reduced-transparency: reduce)', name: 'reducedTransparency', group: 'transparency' },
+    { query: '(prefers-contrast: more)', name: 'highContrast', group: 'contrast' },
+    { query: '(prefers-contrast: less)', name: 'lowContrast', group: 'contrast' },
+    { query: '(forced-colors: active)', name: 'forcedColors', group: 'forcedColors' },
+    { query: '(inverted-colors: inverted)', name: 'invertedColors', group: 'invertedColors' },
+    
+    // Device capabilities
+    { query: '(hover: hover)', name: 'hoverCapable', group: 'hover' },
+    { query: '(hover: none)', name: 'hoverNone', group: 'hover' },
+    { query: '(pointer: fine)', name: 'pointerFine', group: 'pointer' },
+    { query: '(pointer: coarse)', name: 'pointerCoarse', group: 'pointer' },
+    { query: '(pointer: none)', name: 'pointerNone', group: 'pointer' },
+    { query: '(any-hover: hover)', name: 'anyHover', group: 'anyHover' },
+    { query: '(any-pointer: fine)', name: 'anyPointerFine', group: 'anyPointer' },
+    
+    // Display modes
+    { query: '(display-mode: standalone)', name: 'displayStandalone', group: 'displayMode' },
+    { query: '(display-mode: fullscreen)', name: 'displayFullscreen', group: 'displayMode' },
+    { query: '(display-mode: browser)', name: 'displayBrowser', group: 'displayMode' },
+    
+    // Screen characteristics
+    { query: '(orientation: portrait)', name: 'orientationPortrait', group: 'orientation' },
+    { query: '(orientation: landscape)', name: 'orientationLandscape', group: 'orientation' },
+    { query: '(color-gamut: srgb)', name: 'colorGamutSrgb', group: 'colorGamut' },
+    { query: '(color-gamut: p3)', name: 'colorGamutP3', group: 'colorGamut' },
+    { query: '(color-gamut: rec2020)', name: 'colorGamutRec2020', group: 'colorGamut' },
+    { query: '(dynamic-range: high)', name: 'hdrDisplay', group: 'dynamicRange' },
+    
+    // Scripting
+    { query: '(scripting: enabled)', name: 'scriptingEnabled', group: 'scripting' },
+    
+    // Update frequency
+    { query: '(update: fast)', name: 'updateFast', group: 'update' },
+    { query: '(update: slow)', name: 'updateSlow', group: 'update' },
+    { query: '(update: none)', name: 'updateNone', group: 'update' }
+];
+
+// Blink-specific rendering quirks - critical for engine detection
 const BLINK_QUIRKS = [
     'text-size-adjust',
-    // '-webkit-font-smoothing',
     '-webkit-tap-highlight-color',
     '-webkit-text-stroke-width',
+    '-webkit-font-smoothing',  // Critical for macOS detection
     'zoom',
     'user-select',
     'touch-action',
     'overscroll-behavior'
 ];
 
-// Media queries to test
-const MEDIA_QUERIES = [
-    'prefers-color-scheme',
-    'prefers-reduced-motion',
-    'prefers-contrast',
-    'forced-colors',
-    'inverted-colors',
-    'hover',
-    'pointer',
-    'display-mode'
-];
-
-function normalizeValue(value) {
-    if (value === null || value === undefined) return '';
-    return String(value).replace(/\s+/g, ' ').trim();
-}
-
-function buildStyleHash(entries) {
-    const serialized = entries.map(({ prop, value }) => `${prop}:${value || 'missing'}`).join('|');
-    return fnv1a32(serialized);
-}
-
+/**
+ * Get system styles (colors and fonts) - reveals OS theme and default fonts
+ */
 function getSystemStyles(element) {
     const originalStyle = element.getAttribute('style');
     
     try {
-        const results = {
-            colors: [],
-            fonts: []
-        };
+        const colors = {};
+        const fonts = {};
 
-        // Test system colors
+        // Test system colors - each maps to OS theme colors
         for (const color of SYSTEM_COLORS) {
             try {
                 element.style.cssText = `background-color: ${color} !important`;
                 const computedColor = getComputedStyle(element).backgroundColor;
-                results.colors.push({ [color]: computedColor });
+                colors[color] = computedColor;
             } catch (e) {
-                results.colors.push({ [color]: 'error' });
+                colors[color] = 'error';
             }
         }
 
-        // Test system fonts
+        // Test system fonts - reveals OS default font stack
         for (const font of SYSTEM_FONTS) {
             try {
                 element.style.cssText = `font: ${font} !important`;
                 const cs = getComputedStyle(element);
-                const fontValue = `${cs.fontSize} ${cs.fontFamily}`;
-                results.fonts.push({ [font]: fontValue });
+                fonts[font] = {
+                    family: cs.fontFamily,
+                    size: cs.fontSize,
+                    weight: cs.fontWeight,
+                    style: cs.fontStyle
+                };
             } catch (e) {
-                results.fonts.push({ [font]: 'error' });
+                fonts[font] = { error: true };
             }
         }
 
-        return results;
+        return { colors, fonts };
     } catch (error) {
-        return { colors: [], fonts: [], error: error.message };
+        return { colors: {}, fonts: {}, error: error.message };
     } finally {
-        // Restore original style
         if (originalStyle) {
             element.setAttribute('style', originalStyle);
         } else {
@@ -156,211 +164,230 @@ function getSystemStyles(element) {
 }
 
 /**
- * Test modern CSS features support (critical for bot detection)
+ * Test CSS property support using CSS.supports()
  */
 function testCssFeatures() {
+    const supported = [];
+    const unsupported = [];
+    const details = {};
+    
     try {
-        const supported = [];
-        const unsupported = [];
+        if (!CSS || !CSS.supports) {
+            return {
+                supported: [],
+                unsupported: CSS_FEATURES,
+                details: {},
+                hasRegisterProperty: false,
+                error: 'CSS.supports not available'
+            };
+        }
         
-        if (CSS && CSS.supports) {
-            for (const feature of CSS_FEATURES) {
-                let isSupported = false;
-                
-                if (feature === 'container-queries') {
-                    isSupported = CSS.supports('container-type', 'inline-size');
-                } else if (feature === 'color-mix()') {
-                    isSupported = CSS.supports('background-color', 'color-mix(in srgb, red, blue)');
-                } else if (feature === 'color-contrast()') {
-                    isSupported = CSS.supports('color', 'color-contrast(white vs red, blue)');
-                } else if (feature === '@property') {
-                    isSupported = 'registerProperty' in CSS;
-                } else {
-                    isSupported = CSS.supports(feature, 'auto') || CSS.supports(feature, 'initial');
-                }
-                
-                if (isSupported) {
-                    supported.push(feature);
-                } else {
-                    unsupported.push(feature);
-                }
+        // Test CSS properties
+        for (const feature of CSS_FEATURES) {
+            const isSupported = CSS.supports(feature, 'auto') || 
+                               CSS.supports(feature, 'initial') ||
+                               CSS.supports(feature, 'normal');
+            details[feature] = isSupported;
+            if (isSupported) {
+                supported.push(feature);
+            } else {
+                unsupported.push(feature);
             }
+        }
+        
+        // Test CSS functions
+        for (const func of CSS_FUNCTIONS) {
+            try {
+                const [prop, val] = func.test.split(':').map(s => s.trim());
+                const isSupported = CSS.supports(prop, val);
+                details[`fn:${func.name}`] = isSupported;
+                if (isSupported) {
+                    supported.push(`fn:${func.name}`);
+                } else {
+                    unsupported.push(`fn:${func.name}`);
+                }
+            } catch (e) {
+                details[`fn:${func.name}`] = false;
+                unsupported.push(`fn:${func.name}`);
+            }
+        }
+        
+        // Check @property support (CSS Houdini)
+        const hasRegisterProperty = 'registerProperty' in CSS;
+        details['@property'] = hasRegisterProperty;
+        if (hasRegisterProperty) {
+            supported.push('@property');
+        } else {
+            unsupported.push('@property');
         }
         
         return {
             supported,
             unsupported,
-            supportedCount: supported.length,
-            totalCount: CSS_FEATURES.length
+            details,
+            hasRegisterProperty
         };
     } catch (error) {
         return {
             supported: [],
             unsupported: CSS_FEATURES,
-            supportedCount: 0,
-            totalCount: CSS_FEATURES.length,
+            details: {},
+            hasRegisterProperty: false,
             error: error.message
         };
     }
 }
 
 /**
- * Test CSS custom properties resolution
- */
-function testCssVariables() {
-    try {
-        const probe = document.createElement('div');
-        probe.style.cssText = '--test: 16px; font-size: var(--test);';
-        document.body.appendChild(probe);
-        
-        const computed = getComputedStyle(probe).fontSize;
-        const works = computed === '16px';
-        
-        probe.remove();
-        
-        return {
-            works,
-            computed,
-            expected: '16px'
-        };
-    } catch (error) {
-        return {
-            works: false,
-            error: error.message
-        };
-    }
-}
-
-/**
- * Test media query detection
+ * Test media queries - reveals user preferences and device capabilities
+ * Now includes active value detection per group
  */
 function testMediaQueries() {
+    const results = {};
+    const matches = [];
+    const noMatches = [];
+    const activeValues = {};  // Which value is active per group
+    
     try {
-        const results = {};
-        
-        for (const query of MEDIA_QUERIES) {
+        for (const { query, name, group } of MEDIA_QUERIES) {
             try {
-                const mq = window.matchMedia(`(${query})`);
-                results[query] = {
-                    matches: mq.matches,
-                    media: mq.media
-                };
+                const mq = window.matchMedia(query);
+                results[name] = mq.matches;
+                if (mq.matches) {
+                    matches.push(name);
+                    activeValues[group] = name;  // Track active value per group
+                } else {
+                    noMatches.push(name);
+                }
             } catch (e) {
-                results[query] = {
-                    error: e.message || 'unsupported'
-                };
+                results[name] = 'error';
             }
         }
         
-        return results;
+        return {
+            details: results,
+            matches,
+            noMatches,
+            activeValues  // e.g., { colorScheme: 'colorSchemeDark', pointer: 'pointerFine' }
+        };
     } catch (error) {
-        return { error: error.message };
+        return {
+            details: {},
+            matches: [],
+            noMatches: [],
+            activeValues: {},
+            error: error.message
+        };
     }
 }
 
 /**
- * Detect Blink-specific quirks
+ * Test Blink-specific quirks - engine detection
  */
-function testBlinkQuirks(element) {
+function testBlinkQuirks() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;';
+    document.body.appendChild(probe);
+    
+    const quirks = {};
     try {
-        const probe = element || document.createElement('div');
-        const addedToBody = !element;
-        
-        if (addedToBody) {
-            document.body.appendChild(probe);
-        }
-        
         const computed = getComputedStyle(probe);
-        const quirks = {};
-        
         for (const prop of BLINK_QUIRKS) {
             try {
-                const value = computed.getPropertyValue(prop);
-                quirks[prop] = normalizeValue(value) || 'not-set';
+                quirks[prop] = computed.getPropertyValue(prop) || 'not-set';
             } catch (e) {
                 quirks[prop] = 'error';
             }
         }
-        
-        if (addedToBody) {
-            probe.remove();
-        }
-        
-        return quirks;
-    } catch (error) {
-        return { error: error.message };
-    }
-}
-
-/**
- * Font rendering detection (critical for fingerprinting)
- */
-function detectFontRendering() {
-    try {
-        const probe = document.createElement('span');
-        probe.textContent = 'mmmmmmmmmmlli';
-        probe.style.cssText = `
-            position: absolute;
-            left: -9999px;
-            font-size: 72px;
-            font-family: monospace;
-        `;
-        
-        document.body.appendChild(probe);
-        const rect = probe.getBoundingClientRect();
-        
-        const result = {
-            width: rect.width,
-            height: rect.height,
-            hash: fnv1a32(`${rect.width}x${rect.height}`)
-        };
-        
+    } finally {
         probe.remove();
-        return result;
-    } catch (error) {
-        return {
-            width: null,
-            height: null,
-            hash: fnv1a32('error'),
-            error: error.message
-        };
     }
+    
+    return quirks;
 }
 
 /**
- * Detect getComputedStyle anomalies/lies
+ * Test CSS variable edge cases - bots often fail these
+ */
+function testCssVariables() {
+    const probe = document.createElement('div');
+    document.body.appendChild(probe);
+    const tests = {};
+    
+    try {
+        // Test 1: Basic variable resolution
+        probe.style.cssText = '--test-var: 42px; width: var(--test-var);';
+        tests.basicResolution = getComputedStyle(probe).width === '42px';
+        
+        // Test 2: Fallback values
+        probe.style.cssText = 'width: var(--undefined-var, 100px);';
+        tests.fallbackWorks = getComputedStyle(probe).width === '100px';
+        
+        // Test 3: Nested variables
+        probe.style.cssText = '--a: 10px; --b: var(--a); width: var(--b);';
+        tests.nestedResolution = getComputedStyle(probe).width === '10px';
+        
+        // Test 4: calc() with variables
+        probe.style.cssText = '--size: 50px; width: calc(var(--size) * 2);';
+        tests.calcWithVars = getComputedStyle(probe).width === '100px';
+        
+    } catch (e) {
+        tests.error = e.message;
+    } finally {
+        probe.remove();
+    }
+    
+    return tests;
+}
+
+/**
+ * Detect automation via getComputedStyle inconsistencies and prototype checks
  */
 function detectComputedStyleLies() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'width:123.456px;height:78.901px;opacity:0.5;';
+    document.body.appendChild(probe);
+    
+    const lies = [];
+    const checks = {};
+    
     try {
-        const probe = document.createElement('div');
-        probe.style.cssText = 'width: 100px; height: 100px;';
-        document.body.appendChild(probe);
-        
         const computed = getComputedStyle(probe);
-        const width1 = computed.width;
-        const width2 = computed.getPropertyValue('width');
-        const height1 = computed.height;
-        const height2 = computed.getPropertyValue('height');
         
+        // Getter consistency checks
+        checks.widthConsistent = computed.width === computed.getPropertyValue('width');
+        if (!checks.widthConsistent) lies.push('width-getter-mismatch');
+        
+        checks.heightConsistent = computed.height === computed.getPropertyValue('height');
+        if (!checks.heightConsistent) lies.push('height-getter-mismatch');
+        
+        // cssText check
+        checks.cssTextLength = computed.cssText?.length || 0;
+        if (checks.cssTextLength === 0) lies.push('empty-cssText');
+        
+        // Length property check
+        checks.hasLength = 'length' in computed;
+        if (!checks.hasLength) lies.push('missing-length-property');
+        
+        // Prototype chain check - critical for detecting spoofed objects
+        const proto = Object.getPrototypeOf(computed);
+        checks.protoName = proto?.constructor?.name || 'unknown';
+        if (checks.protoName !== 'CSSStyleDeclaration') {
+            lies.push('invalid-prototype');
+        }
+        
+        // Check if toString is native
+        checks.toStringNative = computed.toString.toString().includes('[native code]');
+        
+    } finally {
         probe.remove();
-        
-        return {
-            widthMismatch: width1 !== width2,
-            heightMismatch: height1 !== height2,
-            width1,
-            width2,
-            height1,
-            height2,
-            hasLies: width1 !== width2 || height1 !== height2
-        };
-    } catch (error) {
-        return {
-            widthMismatch: false,
-            heightMismatch: false,
-            hasLies: false,
-            error: error.message
-        };
     }
+    
+    return {
+        hasLies: lies.length > 0,
+        lies,
+        checks
+    };
 }
 
 class CssComputedStyleDetector {
@@ -380,265 +407,345 @@ class CssComputedStyleDetector {
         if (typeof document === 'undefined' || typeof getComputedStyle === 'undefined') {
             return {
                 supported: false,
-                propertyCount: STYLE_PROPERTIES.length,
-                missingCount: STYLE_PROPERTIES.length,
-                missingProperties: STYLE_PROPERTIES,
-                computedStyleHash: fnv1a32('unsupported'),
                 systemStyles: null,
                 systemStylesHash: fnv1a32('unsupported'),
                 cssFeatures: null,
                 cssFeaturesHash: fnv1a32('unsupported'),
-                cssVariables: null,
                 mediaQueries: null,
                 mediaQueriesHash: fnv1a32('unsupported'),
-                blinkQuirks: null,
-                blinkQuirksHash: fnv1a32('unsupported'),
-                fontRendering: null,
-                computedStyleLies: null,
-                diffFlags: ['unsupported'],
                 error: 'getComputedStyle-unsupported'
             };
         }
 
+        // Create probe element for system styles detection
         const probe = document.createElement('div');
-        probe.style.cssText = [
-            'position:absolute',
-            'left:-9999px',
-            'top:-9999px',
-            'width:12px',
-            'height:12px',
-            'opacity:0',
-            'pointer-events:none',
-            'font: 16px/1.2 serif',
-            'color: rgb(10, 20, 30)',
-            'background-color: rgb(40, 50, 60)',
-            'border: 1px solid rgb(70, 80, 90)',
-            'border-radius: 4px',
-            'padding: 2px',
-            'margin: 1px',
-            'letter-spacing: 0.5px',
-            'word-spacing: 1px',
-            'text-transform: uppercase',
-            'text-decoration: underline',
-            'box-shadow: rgb(0, 0, 0) 1px 1px 0px',
-            'text-shadow: rgb(0, 0, 0) 1px 1px 0px',
-            'transform: translateZ(0) rotate(1deg)',
-            'filter: blur(0px)',
-            'outline: 1px solid rgb(0, 0, 0)'
-        ].join(';');
+        probe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
 
-        let computed;
         try {
             document.body.appendChild(probe);
-            computed = getComputedStyle(probe);
         } catch (error) {
-            if (probe.parentNode) {
-                probe.parentNode.removeChild(probe);
-            }
             return {
-                supported: true,
-                propertyCount: STYLE_PROPERTIES.length,
-                missingCount: STYLE_PROPERTIES.length,
-                missingProperties: STYLE_PROPERTIES,
-                computedStyleHash: fnv1a32('error'),
+                supported: false,
+                systemStyles: null,
+                systemStylesHash: fnv1a32('error'),
                 cssFeatures: null,
-                cssVariables: null,
+                cssFeaturesHash: fnv1a32('error'),
                 mediaQueries: null,
-                blinkQuirks: null,
-                fontRendering: null,
-                computedStyleLies: null,
-                diffFlags: ['error'],
-                error: error.message || 'computed-style-error'
+                mediaQueriesHash: fnv1a32('error'),
+                error: error.message || 'probe-append-error'
             };
         }
 
-        const entries = [];
-        const missing = [];
-
-        for (const prop of STYLE_PROPERTIES) {
-            const value = normalizeValue(computed.getPropertyValue(prop));
-            entries.push({ prop, value });
-            if (!value) {
-                missing.push(prop);
-            }
-        }
-
-        // Collect system styles (CreepJS enhancement) - now with proper cleanup
+        // 1. Collect system styles (colors + fonts) - reveals OS theme
         const systemStyles = getSystemStyles(probe);
         const systemStylesHash = systemStyles && !systemStyles.error 
             ? fnv1a32(JSON.stringify(systemStyles))
             : fnv1a32('system-styles-error');
 
-        // Test modern CSS features (critical for bot detection)
+        // 2. Test CSS features support - reveals browser version/capabilities
         const cssFeatures = testCssFeatures();
-        const cssFeaturesHash = fnv1a32(JSON.stringify(cssFeatures.supported));
+        const cssFeaturesHash = fnv1a32(JSON.stringify(cssFeatures.details));
 
-        // Test CSS variables
-        const cssVariables = testCssVariables();
-
-        // Test media queries
+        // 3. Test media queries - reveals user preferences and device
         const mediaQueries = testMediaQueries();
-        const mediaQueriesHash = fnv1a32(JSON.stringify(mediaQueries));
+        const mediaQueriesHash = fnv1a32(JSON.stringify(mediaQueries.details));
 
-        // Test Blink quirks
-        const blinkQuirks = testBlinkQuirks(probe);
+        // 4. Test Blink quirks - engine detection
+        const blinkQuirks = testBlinkQuirks();
         const blinkQuirksHash = fnv1a32(JSON.stringify(blinkQuirks));
 
-        // Test font rendering
-        const fontRendering = detectFontRendering();
+        // 5. Test CSS variable edge cases - bot detection
+        const cssVariables = testCssVariables();
 
-        // Test computed style lies
+        // 6. Detect computed style lies - automation detection
         const computedStyleLies = detectComputedStyleLies();
 
+        // Cleanup
         if (probe.parentNode) {
             probe.parentNode.removeChild(probe);
         }
 
-        const diffFlags = [];
-        if (missing.length) {
-            diffFlags.push('missing-properties');
-        }
-        if (systemStyles && systemStyles.error) {
-            diffFlags.push('system-styles-error');
-        }
-        if (cssFeatures.error) {
-            diffFlags.push('css-features-error');
-        }
-        if (!cssVariables.works) {
-            diffFlags.push('css-variables-broken');
-        }
-        if (computedStyleLies.hasLies) {
-            diffFlags.push('computed-style-lies');
-        }
-
         return {
             supported: true,
-            propertyCount: STYLE_PROPERTIES.length,
-            missingCount: missing.length,
-            missingProperties: missing,
-            computedStyleHash: buildStyleHash(entries),
             systemStyles,
             systemStylesHash,
             cssFeatures,
             cssFeaturesHash,
-            cssVariables,
             mediaQueries,
             mediaQueriesHash,
             blinkQuirks,
             blinkQuirksHash,
-            fontRendering,
+            cssVariables,
             computedStyleLies,
-            diffFlags,
             error: null
         };
     }
 
     _formatMetrics(result) {
-        const systemColorsCount = result.systemStyles ? result.systemStyles.colors.length : 0;
-        const systemFontsCount = result.systemStyles ? result.systemStyles.fonts.length : 0;
+        const metrics = {};
+        
+        // === SYSTEM STYLES (OS Theme Fingerprinting) ===
+        metrics.cssSystemStylesHash = {
+            value: result.systemStylesHash,
+            description: 'FNV-1a hash of system colors and fonts - unique per OS theme',
+            risk: 'N/A'
+        };
+        
+        // Expose individual system colors for research
+        if (result.systemStyles && result.systemStyles.colors) {
+            const colors = result.systemStyles.colors;
+            
+            // Key system colors that differ between OS/themes
+            const keyColors = ['Canvas', 'CanvasText', 'ButtonFace', 'ButtonText', 'Highlight', 'HighlightText', 'Field', 'FieldText'];
+            for (const colorName of keyColors) {
+                if (colors[colorName]) {
+                    metrics[`cssSystemColor_${colorName}`] = {
+                        value: colors[colorName],
+                        description: `System color: ${colorName} - OS theme dependent`,
+                        risk: 'N/A'
+                    };
+                }
+            }
+            
+            // Full color signature for deep comparison
+            metrics.cssSystemColorsSignature = {
+                value: Object.entries(colors).map(([k, v]) => `${k}:${v}`).join('|').substring(0, 500),
+                description: 'Full system colors signature (truncated)',
+                risk: 'N/A'
+            };
+        }
+        
+        // Expose system fonts for research
+        if (result.systemStyles && result.systemStyles.fonts) {
+            const fonts = result.systemStyles.fonts;
+            
+            for (const [fontName, fontData] of Object.entries(fonts)) {
+                if (fontData && !fontData.error) {
+                    metrics[`cssSystemFont_${fontName}`] = {
+                        value: `${fontData.family} | ${fontData.size} | ${fontData.weight}`,
+                        description: `System font: ${fontName} - reveals OS default fonts`,
+                        risk: 'N/A'
+                    };
+                }
+            }
+        }
 
-        return {
-            cssComputedStyleSupported: {
-                value: result.supported,
-                description: 'Computed style API availability',
-                risk: result.supported ? 'N/A' : 'LOW'
-            },
-            cssComputedStylePropertyCount: {
-                value: result.propertyCount,
-                description: 'Number of CSS properties sampled',
+        // === CSS FEATURES (Browser Version Detection) ===
+        metrics.cssFeaturesHash = {
+            value: result.cssFeaturesHash || fnv1a32('none'),
+            description: 'Hash of CSS feature support - reveals browser version',
+            risk: 'N/A'
+        };
+        
+        if (result.cssFeatures) {
+            metrics.cssFeaturesSupported = {
+                value: result.cssFeatures.supported.join(', ') || 'none',
+                description: 'CSS features/functions supported by this browser',
                 risk: 'N/A'
-            },
-            cssComputedStyleMissingCount: {
-                value: result.missingCount,
-                description: 'Number of properties missing from computed style',
-                risk: result.missingCount ? 'MEDIUM' : 'N/A'
-            },
-            cssComputedStyleMissingProperties: {
-                value: result.missingProperties.length ? result.missingProperties.slice(0, 6) : [],
-                description: 'Sample of missing computed style properties',
-                risk: result.missingCount ? 'MEDIUM' : 'N/A'
-            },
-            cssComputedStyleHash: {
-                value: result.computedStyleHash,
-                description: 'FNV-1a hash of curated computed style values',
+            };
+            
+            metrics.cssFeaturesUnsupported = {
+                value: result.cssFeatures.unsupported.join(', ') || 'none',
+                description: 'CSS features/functions NOT supported - useful for version detection',
                 risk: 'N/A'
-            },
-            cssSystemColorsCount: {
-                value: systemColorsCount,
-                description: 'Number of system color keywords tested',
+            };
+            
+            metrics.cssFeaturesCount = {
+                value: `${result.cssFeatures.supported.length}/${result.cssFeatures.supported.length + result.cssFeatures.unsupported.length}`,
+                description: 'Supported/total CSS features ratio',
                 risk: 'N/A'
-            },
-            cssSystemFontsCount: {
-                value: systemFontsCount,
-                description: 'Number of system font keywords tested',
+            };
+            
+            metrics.cssHasRegisterProperty = {
+                value: result.cssFeatures.hasRegisterProperty,
+                description: 'CSS @property (Houdini) support - modern browser indicator',
                 risk: 'N/A'
-            },
-            cssSystemStylesHash: {
-                value: result.systemStylesHash,
-                description: 'FNV-1a hash of system colors and fonts (CreepJS method)',
+            };
+            
+            // Individual feature flags for detailed analysis
+            if (result.cssFeatures.details) {
+                for (const [feature, supported] of Object.entries(result.cssFeatures.details)) {
+                    metrics[`cssFeature_${feature.replace(/[^a-zA-Z0-9]/g, '_')}`] = {
+                        value: supported,
+                        description: `CSS feature: ${feature}`,
+                        risk: 'N/A'
+                    };
+                }
+            }
+        }
+
+        // === MEDIA QUERIES (User Preferences & Device) ===
+        metrics.cssMediaQueriesHash = {
+            value: result.mediaQueriesHash || fnv1a32('none'),
+            description: 'Hash of media query states - reveals user preferences',
+            risk: 'N/A'
+        };
+        
+        if (result.mediaQueries) {
+            metrics.cssMediaQueriesMatched = {
+                value: result.mediaQueries.matches.join(', ') || 'none',
+                description: 'Media queries that matched - active user preferences',
                 risk: 'N/A'
-            },
-            cssFeaturesSupported: {
-                value: result.cssFeatures ? result.cssFeatures.supportedCount : 0,
-                description: 'Modern CSS features supported (critical for bot detection)',
-                risk: result.cssFeatures && result.cssFeatures.supportedCount < 3 ? 'HIGH' : 'N/A'
-            },
-            cssFeaturesTotal: {
-                value: result.cssFeatures ? result.cssFeatures.totalCount : 0,
-                description: 'Total modern CSS features tested',
-                risk: 'N/A'
-            },
-            cssFeaturesHash: {
-                value: result.cssFeaturesHash || fnv1a32('none'),
-                description: 'Hash of supported modern CSS features',
-                risk: 'N/A'
-            },
-            cssVariablesWork: {
-                value: result.cssVariables ? result.cssVariables.works : false,
-                description: 'CSS custom properties resolution',
-                risk: result.cssVariables && !result.cssVariables.works ? 'HIGH' : 'N/A'
-            },
-            cssMediaQueriesHash: {
-                value: result.mediaQueriesHash || fnv1a32('none'),
-                description: 'Hash of media query states',
-                risk: 'N/A'
-            },
-            cssBlinkQuirksHash: {
+            };
+            
+            // Individual media query results for research
+            if (result.mediaQueries.details) {
+                // Group by category for clarity
+                const userPrefs = ['colorSchemeDark', 'colorSchemeLight', 'reducedMotion', 'reducedTransparency', 'highContrast', 'lowContrast', 'forcedColors', 'invertedColors'];
+                const deviceCaps = ['hoverCapable', 'hoverNone', 'pointerFine', 'pointerCoarse', 'pointerNone', 'anyHover', 'anyPointerFine'];
+                const display = ['displayStandalone', 'displayFullscreen', 'displayBrowser', 'orientationPortrait', 'orientationLandscape'];
+                const colorCaps = ['colorGamutSrgb', 'colorGamutP3', 'colorGamutRec2020', 'hdrDisplay'];
+                
+                // User preferences (high value for fingerprinting)
+                for (const mq of userPrefs) {
+                    if (result.mediaQueries.details[mq] !== undefined) {
+                        metrics[`cssMQ_${mq}`] = {
+                            value: result.mediaQueries.details[mq],
+                            description: `Media query: ${mq}`,
+                            risk: 'N/A'
+                        };
+                    }
+                }
+                
+                // Device capabilities
+                for (const mq of deviceCaps) {
+                    if (result.mediaQueries.details[mq] !== undefined) {
+                        metrics[`cssMQ_${mq}`] = {
+                            value: result.mediaQueries.details[mq],
+                            description: `Device capability: ${mq}`,
+                            risk: 'N/A'
+                        };
+                    }
+                }
+                
+                // Display characteristics
+                for (const mq of display) {
+                    if (result.mediaQueries.details[mq] !== undefined) {
+                        metrics[`cssMQ_${mq}`] = {
+                            value: result.mediaQueries.details[mq],
+                            description: `Display mode: ${mq}`,
+                            risk: 'N/A'
+                        };
+                    }
+                }
+                
+                // Color capabilities
+                for (const mq of colorCaps) {
+                    if (result.mediaQueries.details[mq] !== undefined) {
+                        metrics[`cssMQ_${mq}`] = {
+                            value: result.mediaQueries.details[mq],
+                            description: `Color capability: ${mq}`,
+                            risk: 'N/A'
+                        };
+                    }
+                }
+            }
+            
+            // Active values per group - shows which preference is currently active
+            if (result.mediaQueries.activeValues) {
+                metrics.cssMQ_activeValues = {
+                    value: JSON.stringify(result.mediaQueries.activeValues),
+                    description: 'Active media query values per category',
+                    risk: 'N/A'
+                };
+            }
+        }
+
+        // === BLINK QUIRKS (Engine Detection) ===
+        if (result.blinkQuirks) {
+            metrics.cssBlinkQuirksHash = {
                 value: result.blinkQuirksHash || fnv1a32('none'),
                 description: 'Hash of Blink-specific rendering quirks',
                 risk: 'N/A'
-            },
-            cssFontRenderingWidth: {
-                value: result.fontRendering ? result.fontRendering.width : null,
-                description: 'Font rendering width (critical fingerprint)',
-                risk: 'N/A'
-            },
-            cssFontRenderingHeight: {
-                value: result.fontRendering ? result.fontRendering.height : null,
-                description: 'Font rendering height (critical fingerprint)',
-                risk: 'N/A'
-            },
-            cssFontRenderingHash: {
-                value: result.fontRendering ? result.fontRendering.hash : fnv1a32('none'),
-                description: 'Hash of font rendering metrics',
-                risk: 'N/A'
-            },
-            cssComputedStyleHasLies: {
-                value: result.computedStyleLies ? result.computedStyleLies.hasLies : false,
-                description: 'Detected getComputedStyle inconsistencies (bot signal)',
-                risk: result.computedStyleLies && result.computedStyleLies.hasLies ? 'CRITICAL' : 'N/A'
-            },
-            cssComputedStyleDiffFlags: {
-                value: result.diffFlags.length ? result.diffFlags.join(', ') : 'None',
-                description: 'Flags indicating computed style anomalies',
-                risk: result.diffFlags.length ? 'LOW' : 'N/A'
-            },
-            cssComputedStyleError: {
-                value: result.error || 'None',
-                description: 'Computed style collection error (if any)',
-                risk: result.error ? 'MEDIUM' : 'N/A'
+            };
+            
+            // Key quirks for research
+            for (const [prop, value] of Object.entries(result.blinkQuirks)) {
+                metrics[`cssQuirk_${prop.replace(/[^a-zA-Z0-9]/g, '_')}`] = {
+                    value: value,
+                    description: `Blink quirk: ${prop}`,
+                    risk: 'N/A'
+                };
             }
-        };
+        }
+
+        // === CSS VARIABLES (Bot Detection) ===
+        if (result.cssVariables) {
+            const varTests = result.cssVariables;
+            const allPassed = varTests.basicResolution && varTests.fallbackWorks && 
+                             varTests.nestedResolution && varTests.calcWithVars;
+            
+            metrics.cssVariablesAllPass = {
+                value: allPassed,
+                description: 'All CSS variable edge case tests passed',
+                risk: allPassed ? 'N/A' : 'HIGH'
+            };
+            
+            metrics.cssVar_basicResolution = {
+                value: varTests.basicResolution,
+                description: 'Basic CSS variable resolution works',
+                risk: varTests.basicResolution ? 'N/A' : 'HIGH'
+            };
+            
+            metrics.cssVar_fallbackWorks = {
+                value: varTests.fallbackWorks,
+                description: 'CSS variable fallback values work',
+                risk: varTests.fallbackWorks ? 'N/A' : 'MEDIUM'
+            };
+            
+            metrics.cssVar_nestedResolution = {
+                value: varTests.nestedResolution,
+                description: 'Nested CSS variables resolve correctly',
+                risk: varTests.nestedResolution ? 'N/A' : 'HIGH'
+            };
+            
+            metrics.cssVar_calcWithVars = {
+                value: varTests.calcWithVars,
+                description: 'calc() with CSS variables works',
+                risk: varTests.calcWithVars ? 'N/A' : 'MEDIUM'
+            };
+        }
+
+        // === COMPUTED STYLE LIES (Automation Detection) ===
+        if (result.computedStyleLies) {
+            metrics.cssComputedStyleHasLies = {
+                value: result.computedStyleLies.hasLies,
+                description: 'Detected getComputedStyle inconsistencies (automation signal)',
+                risk: result.computedStyleLies.hasLies ? 'CRITICAL' : 'N/A'
+            };
+            
+            if (result.computedStyleLies.lies.length > 0) {
+                metrics.cssComputedStyleLies = {
+                    value: result.computedStyleLies.lies.join(', '),
+                    description: 'Specific lies detected in getComputedStyle',
+                    risk: 'CRITICAL'
+                };
+            }
+            
+            // Prototype check - critical for detecting spoofed objects
+            metrics.cssProtoName = {
+                value: result.computedStyleLies.checks.protoName,
+                description: 'CSSStyleDeclaration prototype constructor name',
+                risk: result.computedStyleLies.checks.protoName !== 'CSSStyleDeclaration' ? 'CRITICAL' : 'N/A'
+            };
+            
+            metrics.cssToStringNative = {
+                value: result.computedStyleLies.checks.toStringNative,
+                description: 'CSSStyleDeclaration.toString is native',
+                risk: result.computedStyleLies.checks.toStringNative ? 'N/A' : 'HIGH'
+            };
+        }
+        
+        // === ERROR REPORTING ===
+        if (result.error) {
+            metrics.cssDetectorError = {
+                value: result.error,
+                description: 'CSS detector error (if any)',
+                risk: 'MEDIUM'
+            };
+        }
+
+        return metrics;
     }
 }
 

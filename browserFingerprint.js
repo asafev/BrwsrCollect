@@ -2960,6 +2960,23 @@ class BrowserFingerprintAnalyzer {
                 })(),
                 description: 'Element at point (0,0) child count'
             },
+            elementFromPointTag: {
+                value: (() => {
+                    try {
+                        const element = doc.elementFromPoint(0, 0);
+                        if (!element) return 'Not available';
+                        const tagName = element.tagName ? element.tagName.toLowerCase() : 'unknown';
+                        const id = element.id ? `#${element.id}` : '';
+                        const classes = element.className && typeof element.className === 'string' 
+                            ? `.${element.className.trim().split(/\s+/).join('.')}` 
+                            : '';
+                        return `${tagName}${id}${classes}`.replace(/\.$/, '');
+                    } catch (e) {
+                        return 'Error';
+                    }
+                })(),
+                description: 'Element at point (0,0) tag identifier (tagName#id.classes) for research'
+            },
             textNode: {
                 value: doc.TEXT_NODE,
                 description: 'Document TEXT_NODE constant'
