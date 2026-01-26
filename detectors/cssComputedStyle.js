@@ -60,6 +60,7 @@ const CSS_FUNCTIONS = [
 ];
 
 // Media queries - reveals user preferences, device capabilities, and OS settings
+// Note: Order matters for hierarchical groups - strongest/most specific first
 const MEDIA_QUERIES = [
     // User preferences (OS settings)
     { query: '(prefers-color-scheme: dark)', name: 'colorSchemeDark', group: 'colorScheme' },
@@ -88,19 +89,23 @@ const MEDIA_QUERIES = [
     // Screen characteristics
     { query: '(orientation: portrait)', name: 'orientationPortrait', group: 'orientation' },
     { query: '(orientation: landscape)', name: 'orientationLandscape', group: 'orientation' },
-    { query: '(color-gamut: srgb)', name: 'colorGamutSrgb', group: 'colorGamut' },
-    { query: '(color-gamut: p3)', name: 'colorGamutP3', group: 'colorGamut' },
-    { query: '(color-gamut: rec2020)', name: 'colorGamutRec2020', group: 'colorGamut' },
+    // Color gamut: strongest first (rec2020 > p3 > srgb) - first match wins
+    { query: '(color-gamut: rec2020)', name: 'colorGamutRec2020', group: 'colorGamut', priority: 1 },
+    { query: '(color-gamut: p3)', name: 'colorGamutP3', group: 'colorGamut', priority: 2 },
+    { query: '(color-gamut: srgb)', name: 'colorGamutSrgb', group: 'colorGamut', priority: 3 },
     { query: '(dynamic-range: high)', name: 'hdrDisplay', group: 'dynamicRange' },
     
     // Scripting
     { query: '(scripting: enabled)', name: 'scriptingEnabled', group: 'scripting' },
     
-    // Update frequency
-    { query: '(update: fast)', name: 'updateFast', group: 'update' },
-    { query: '(update: slow)', name: 'updateSlow', group: 'update' },
-    { query: '(update: none)', name: 'updateNone', group: 'update' }
+    // Update frequency: strongest first (fast > slow > none)
+    { query: '(update: fast)', name: 'updateFast', group: 'update', priority: 1 },
+    { query: '(update: slow)', name: 'updateSlow', group: 'update', priority: 2 },
+    { query: '(update: none)', name: 'updateNone', group: 'update', priority: 3 }
 ];
+
+// Groups where first match wins (hierarchical - strongest listed first in MEDIA_QUERIES)
+const FIRST_MATCH_GROUPS = new Set(['colorGamut', 'update']);
 
 // Blink-specific rendering quirks - critical for engine detection
 const BLINK_QUIRKS = [
@@ -240,7 +245,7 @@ function testCssFeatures() {
 
 /**
  * Test media queries - reveals user preferences and device capabilities
- * Now includes active value detection per group
+ * Uses "first match wins" for hierarchical groups (colorGamut, update)
  */
 function testMediaQueries() {
     const results = {};
@@ -255,7 +260,15 @@ function testMediaQueries() {
                 results[name] = mq.matches;
                 if (mq.matches) {
                     matches.push(name);
-                    activeValues[group] = name;  // Track active value per group
+                    // For hierarchical groups (colorGamut, update): first match wins
+                    // For other groups: last match wins (normal behavior)
+                    if (FIRST_MATCH_GROUPS.has(group)) {
+                        if (!activeValues[group]) {
+                            activeValues[group] = name;  // Only set if not already set
+                        }
+                    } else {
+                        activeValues[group] = name;  // Last match wins
+                    }
                 } else {
                     noMatches.push(name);
                 }
@@ -268,7 +281,7 @@ function testMediaQueries() {
             details: results,
             matches,
             noMatches,
-            activeValues  // e.g., { colorScheme: 'colorSchemeDark', pointer: 'pointerFine' }
+            activeValues  // e.g., { colorScheme: 'colorSchemeDark', colorGamut: 'colorGamutP3' }
         };
     } catch (error) {
         return {
