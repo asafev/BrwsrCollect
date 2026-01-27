@@ -48,7 +48,8 @@ const RESEARCH_CATEGORIES = {
             { key: 'navigator', label: 'Navigator API', icon: 'navigator' },
             { key: 'window', label: 'Window Object', icon: 'window' },
             { key: 'document', label: 'Document State', icon: 'document' },
-            { key: 'jsEnvironment', label: 'JS Environment', icon: 'code' }
+            { key: 'jsEnvironment', label: 'JS Environment', icon: 'code' },
+            { key: 'webApis', label: 'Web APIs', icon: 'api' }
         ]
     },
     hardware: {
@@ -58,10 +59,10 @@ const RESEARCH_CATEGORIES = {
         collapsed: false,
         categories: [
             { key: 'webgl', label: 'WebGL / GPU', icon: 'gpu' },
-            { key: 'audio', label: 'Audio Context', icon: 'audio' },
+            { key: 'audioFingerprint', label: 'Audio Context', icon: 'audio' },
             { key: 'codecSupport', label: 'Codec Support', icon: 'audio' },
             { key: 'display', label: 'Display Properties', icon: 'display' },
-            { key: 'battery', label: 'Battery Status', icon: 'battery' },
+            { key: 'batteryStorage', label: 'Battery Status', icon: 'battery' },
             { key: 'mediaDevices', label: 'Media Devices', icon: 'mediaDevices' }
         ]
     },
@@ -125,7 +126,8 @@ const RESEARCH_CATEGORIES = {
             { key: 'behavioralIndicators', label: 'Behavior Signals', icon: 'activity' },
             { key: 'behavioralTelemetry', label: 'Telemetry Data', icon: 'chart' },
             { key: 'performanceTiming', label: 'Timing Analysis', icon: 'timer' },
-            { key: 'performance', label: 'Performance', icon: 'chart' }
+            { key: 'performance', label: 'Performance', icon: 'chart' },
+            { key: 'collectionTiming', label: 'Collection Timing', icon: 'timer' }
         ]
     }
 };
@@ -142,11 +144,14 @@ const CATEGORY_CONFIG = {
     window: { label: 'Window Object', description: 'Window dimensions and properties' },
     document: { label: 'Document State', description: 'DOM and document properties' },
     jsEnvironment: { label: 'JS Environment', description: 'JavaScript runtime characteristics' },
+    webApis: { label: 'Web APIs', description: 'Web API availability and features' },
     webgl: { label: 'WebGL / GPU', description: 'Graphics and GPU fingerprinting' },
     audio: { label: 'Audio Context', description: 'Audio processing fingerprint' },
+    audioFingerprint: { label: 'Audio Fingerprint', description: 'Audio system parameters and fingerprint' },
     codecSupport: { label: 'Codec Support', description: 'Audio/video codec detection & RTC capabilities' },
     display: { label: 'Display Properties', description: 'Screen and display configuration' },
     battery: { label: 'Battery Status', description: 'Battery API information' },
+    batteryStorage: { label: 'Battery & Storage', description: 'Battery and storage API information' },
     mediaDevices: { label: 'Media Devices', description: 'Available cameras and microphones' },
     network: { label: 'Network Info', description: 'Network connection properties' },
     networkCapabilities: { label: 'Capabilities', description: 'Network feature detection' },
@@ -166,10 +171,12 @@ const CATEGORY_CONFIG = {
     stringSignatureAutomation: { label: 'Signature Analysis', description: 'Automation signature detection' },
     cdpSignals: { label: 'CDP Signals', description: 'Chrome DevTools Protocol detection' },
     workerSignals: { label: 'Worker Threads', description: 'Web Worker characteristics' },
+    stackTraceFingerprint: { label: 'Stack Trace Analysis', description: 'Stack trace patterns for browser/environment detection' },
     behavioralIndicators: { label: 'Behavior Signals', description: 'User interaction patterns' },
     behavioralTelemetry: { label: 'Telemetry Data', description: 'Raw behavioral measurements' },
     performanceTiming: { label: 'Timing Analysis', description: 'Navigation and paint timing' },
-    performance: { label: 'Performance', description: 'Performance metrics' }
+    performance: { label: 'Performance', description: 'Performance metrics' },
+    collectionTiming: { label: 'Collection Timing', description: 'Time taken for each fingerprint category' }
 };
 
 /**
