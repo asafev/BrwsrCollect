@@ -25,10 +25,11 @@ class BatteryStorageDetector {
      * @returns {Promise<Object>} Battery and storage metrics
      */
     async analyze() {
-        const [batteryMetrics, storageMetrics, timingMetrics] = await Promise.all([
+        const [batteryMetrics, storageMetrics, timingMetrics, stackMetrics] = await Promise.all([
             this._analyzeBattery(),
             this._analyzeStorage(),
-            this._analyzeTimingResolution()
+            this._analyzeTimingResolution(),
+            this._analyzeStackSize()
         ]);
 
         this.metrics = {
@@ -36,7 +37,7 @@ class BatteryStorageDetector {
             ...storageMetrics,
             ...timingMetrics,
             ...this._analyzeMemory(),
-            ...this._analyzeStackSize()
+            ...stackMetrics
         };
 
         return this.metrics;
@@ -355,33 +356,216 @@ class BatteryStorageDetector {
     }
 
     /**
-     * Analyze JavaScript stack size limit
+     * Analyze JavaScript stack size limit using multiple methods
+     * Collects raw metrics for later analysis and clustering
      * @private
-     * @returns {Object} Stack size metrics
+     * @returns {Promise<Object>} Stack size metrics from different measurement contexts
      */
-    _analyzeStackSize() {
-        let stackSize = 0;
-        
-        try {
-            const countStack = (n) => {
-                try {
-                    return countStack(n + 1);
-                } catch (e) {
-                    return n;
-                }
-            };
-            stackSize = countStack(0);
-        } catch (e) {
-            stackSize = 'Error measuring';
-        }
+    async _analyzeStackSize() {
+        // Collect stack measurements from different contexts
+        const directMeasurement = this._measureStackDirect();
+        const strictMeasurement = this._measureStackStrict();
+        const asyncMeasurement = await this._measureStackAsync();
+        const closureMeasurement = this._measureStackClosure();
 
         return {
+            // Primary measurement (direct recursion)
             stackSizeLimit: {
-                value: stackSize,
-                description: 'JavaScript call stack size limit',
-                risk: this._assessStackSizeRisk(stackSize)
+                value: directMeasurement.depth,
+                description: 'JavaScript call stack size limit (direct recursion)',
+                risk: 'N/A'
+            },
+            stackSizeErrorName: {
+                value: directMeasurement.error?.name || null,
+                description: 'Error type when stack overflow occurs',
+                risk: 'N/A'
+            },
+            stackSizeErrorMessage: {
+                value: directMeasurement.error?.message || null,
+                description: 'Error message when stack overflow occurs',
+                risk: 'N/A'
+            },
+            
+            // Alternative measurement (closure-based)
+            stackSizeClosure: {
+                value: closureMeasurement.depth,
+                description: 'Stack size limit using closure recursion method',
+                risk: 'N/A'
+            },
+            stackSizeClosureError: {
+                value: closureMeasurement.error?.name || null,
+                description: 'Error type from closure recursion measurement',
+                risk: 'N/A'
+            },
+            
+            // Async context measurement
+            stackSizeAsync: {
+                value: asyncMeasurement.depth,
+                description: 'Stack size limit measured in async (setTimeout) context',
+                risk: 'N/A'
+            },
+            stackSizeAsyncError: {
+                value: asyncMeasurement.error?.name || null,
+                description: 'Error type from async context measurement',
+                risk: 'N/A'
+            },
+            
+            // Strict mode measurement
+            stackSizeStrict: {
+                value: strictMeasurement.depth,
+                description: 'Stack size limit measured in strict mode',
+                risk: 'N/A'
+            },
+            stackSizeStrictError: {
+                value: strictMeasurement.error?.name || null,
+                description: 'Error type from strict mode measurement',
+                risk: 'N/A'
+            },
+            
+            // Comparison metrics for clustering
+            stackSizeMethodDiff: {
+                value: directMeasurement.depth !== null && closureMeasurement.depth !== null 
+                    ? directMeasurement.depth - closureMeasurement.depth 
+                    : null,
+                description: 'Difference between direct and closure recursion measurements',
+                risk: 'N/A'
+            },
+            stackSizeAsyncDiff: {
+                value: directMeasurement.depth !== null && asyncMeasurement.depth !== null 
+                    ? directMeasurement.depth - asyncMeasurement.depth 
+                    : null,
+                description: 'Difference between direct and async context measurements',
+                risk: 'N/A'
+            },
+            
+            // Raw data for detailed analysis
+            stackSizeRawData: {
+                value: {
+                    direct: directMeasurement,
+                    closure: closureMeasurement,
+                    async: asyncMeasurement,
+                    strict: strictMeasurement,
+                    timestamp: Date.now()
+                },
+                description: 'Complete stack size measurement data from all methods',
+                risk: 'N/A'
             }
         };
+    }
+
+    /**
+     * Measure stack size using direct recursion
+     * @private
+     * @returns {Object} Measurement result with depth and error info
+     */
+    _measureStackDirect() {
+        let depth = 0;
+        let error = null;
+        
+        const count = (n) => {
+            try {
+                depth = n;
+                return count(n + 1);
+            } catch (e) {
+                error = { name: e.name, message: e.message };
+                return n;
+            }
+        };
+        
+        try {
+            depth = count(0);
+        } catch (e) {
+            error = { name: e.name, message: e.message };
+        }
+        
+        return { depth, error, method: 'direct_recursion' };
+    }
+
+    /**
+     * Measure stack size using closure-based recursion
+     * @private
+     * @returns {Object} Measurement result with depth and error info
+     */
+    _measureStackClosure() {
+        let depth = 0;
+        let error = null;
+        const state = { count: 0 };
+        
+        const recurse = () => {
+            state.count++;
+            depth = state.count;
+            const innerFunc = () => recurse();
+            return innerFunc();
+        };
+        
+        try {
+            recurse();
+        } catch (e) {
+            error = { name: e.name, message: e.message };
+        }
+        
+        return { depth, error, method: 'closure_recursion' };
+    }
+
+    /**
+     * Measure stack size in async (setTimeout) context
+     * @private
+     * @returns {Promise<Object>} Measurement result with depth and error info
+     */
+    _measureStackAsync() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                let depth = 0;
+                let error = null;
+                
+                const count = (n) => {
+                    try {
+                        depth = n;
+                        return count(n + 1);
+                    } catch (e) {
+                        error = { name: e.name, message: e.message };
+                        return n;
+                    }
+                };
+                
+                try {
+                    depth = count(0);
+                } catch (e) {
+                    error = { name: e.name, message: e.message };
+                }
+                
+                resolve({ depth, error, method: 'async_context' });
+            }, 0);
+        });
+    }
+
+    /**
+     * Measure stack size in strict mode context
+     * @private
+     * @returns {Object} Measurement result with depth and error info
+     */
+    _measureStackStrict() {
+        'use strict';
+        let depth = 0;
+        let error = null;
+        
+        const count = (n) => {
+            try {
+                depth = n;
+                return count(n + 1);
+            } catch (e) {
+                error = { name: e.name, message: e.message };
+                return n;
+            }
+        };
+        
+        try {
+            depth = count(0);
+        } catch (e) {
+            error = { name: e.name, message: e.message };
+        }
+        
+        return { depth, error, method: 'strict_mode' };
     }
 
     /**
