@@ -199,6 +199,13 @@ export const CATEGORY_CONFIG = {
         label: 'Collection Timing',
         description: 'Time taken by each fingerprint detector during analysis',
         color: '#F97316'
+    },
+    stackTraceFingerprint: {
+        get icon() { return getIcon('stackTraceFingerprint'); },
+        iconType: 'svg',
+        label: 'Stack Trace Fingerprint',
+        description: 'Error.stack format analysis for emulated Chromium clustering',
+        color: '#9333EA'
     }
 };
 

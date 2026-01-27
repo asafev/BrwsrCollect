@@ -112,7 +112,8 @@ const RESEARCH_CATEGORIES = {
             { key: 'stringSignature', label: 'String Signatures', icon: 'signature' },
             { key: 'stringSignatureAutomation', label: 'Signature Analysis', icon: 'signature' },
             { key: 'cdpSignals', label: 'CDP Signals', icon: 'terminal' },
-            { key: 'workerSignals', label: 'Worker Threads', icon: 'worker' }
+            { key: 'workerSignals', label: 'Worker Threads', icon: 'worker' },
+            { key: 'stackTraceFingerprint', label: 'Stack Trace Analysis', icon: 'stackTraceFingerprint' }
         ]
     },
     behavioral: {

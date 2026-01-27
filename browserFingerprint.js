@@ -93,6 +93,7 @@ import { PerformanceTimingDetector } from './detectors/performanceTiming.js';
 import { KeyboardLayoutDetector } from './detectors/keyboardLayout.js';
 import { PermissionsDetector } from './detectors/permissionsDetector.js';
 import { CodecSupportDetector } from './detectors/codecSupport.js';
+import { StackTraceFingerprintDetector } from './detectors/stackTraceFingerprint.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -123,7 +124,8 @@ class SuspiciousIndicatorDetector {
                     'zero_window_dimensions',
                     'missing_plugins_mimetypes',
                     'fake_media_devices', // AI automation agents like browserUse
-                    'known_agent_detected' // Known agent signature match
+                    'known_agent_detected', // Known agent signature match
+                    'stack_trace_automation_framework' // Automation framework detected in stack traces
                 ]
             },
             
@@ -134,7 +136,9 @@ class SuspiciousIndicatorDetector {
                 indicators: [
                     'odd_hardware_concurrency',
                     'navigator_webdriver_true',
-                    'no_media_devices'
+                    'no_media_devices',
+                    'stack_trace_high_anomaly_score', // High anomaly score from stack trace analysis
+                    'stack_trace_automation_properties' // Automation properties found in globals
                 ]
             },
             
@@ -145,7 +149,9 @@ class SuspiciousIndicatorDetector {
                 indicators: [
                     'device_pixel_ratio_anomaly',
                     'dpr_float_noise_pattern',
-                    'zero_touch_points'
+                    'zero_touch_points',
+                    'stack_trace_eval_context', // Eval context in stack traces
+                    'stack_trace_vm_context' // VM context markers in stack traces
                 ]
             }
         };
@@ -178,6 +184,7 @@ class SuspiciousIndicatorDetector {
         this._checkHardwareConcurrencyIndicators(metrics);
         this._checkAPIOverrideIndicators(metrics);
         this._checkGeneralSandboxIndicators(metrics);
+        this._checkStackTraceFingerprintIndicators(metrics);
         
         // Apply importance-based filtering
         const filteredResults = this._applyImportanceFiltering();
@@ -562,6 +569,91 @@ class SuspiciousIndicatorDetector {
     }
 
     /**
+     * Check stack trace fingerprint for automation indicators
+     * @private
+     */
+    _checkStackTraceFingerprintIndicators(metrics) {
+        const stackTraceData = metrics.stackTraceFingerprint;
+        if (!stackTraceData || stackTraceData.error) return;
+
+        // Check for high anomaly score
+        const anomalyScore = stackTraceData.anomalyScore?.value;
+        if (typeof anomalyScore === 'number' && anomalyScore > 50) {
+            this._addIndicator({
+                name: 'stack_trace_high_anomaly_score',
+                category: 'StackTrace',
+                description: 'High automation anomaly score from stack trace analysis',
+                value: anomalyScore,
+                riskLevel: anomalyScore > 100 ? 'HIGH' : 'MEDIUM',
+                confidence: Math.min(0.9, 0.5 + (anomalyScore / 200)),
+                importance: anomalyScore > 100 ? 'CRITICAL' : 'STRONG',
+                details: `Anomaly score ${anomalyScore} exceeds threshold. Higher scores indicate more automation signals.`
+            });
+        }
+
+        // Check for automation framework in stack traces
+        const stackAnomalies = stackTraceData.stackAnomalies?.value || [];
+        if (stackAnomalies.includes('automation_framework_in_stack')) {
+            this._addIndicator({
+                name: 'stack_trace_automation_framework',
+                category: 'StackTrace',
+                description: 'Automation framework detected in stack traces',
+                value: 'puppeteer/playwright/selenium detected',
+                riskLevel: 'HIGH',
+                confidence: 0.95,
+                importance: 'CRITICAL',
+                details: 'Direct reference to automation framework found in Error.stack'
+            });
+        }
+
+        // Check for VM context (common in CDP-based automation)
+        if (stackAnomalies.includes('vm_context')) {
+            this._addIndicator({
+                name: 'stack_trace_vm_context',
+                category: 'StackTrace',
+                description: 'VM context markers found in stack traces',
+                value: 'VM context detected',
+                riskLevel: 'MEDIUM',
+                confidence: 0.7,
+                importance: 'WEAK',
+                details: 'Stack traces show VM context (common in evaluated code or automation)'
+            });
+        }
+
+        // Check for eval context
+        if (stackAnomalies.includes('eval_context')) {
+            this._addIndicator({
+                name: 'stack_trace_eval_context',
+                category: 'StackTrace',
+                description: 'Eval context detected in stack traces',
+                value: 'eval context detected',
+                riskLevel: 'MEDIUM',
+                confidence: 0.6,
+                importance: 'WEAK',
+                details: 'Stack traces indicate code running in eval context'
+            });
+        }
+
+        // Check for automation properties in global objects
+        const windowAutomationKeys = stackTraceData.windowAutomationKeys?.value || 0;
+        const navigatorAutomationKeys = stackTraceData.navigatorAutomationKeys?.value || 0;
+        const totalAutomationProps = windowAutomationKeys + navigatorAutomationKeys;
+        
+        if (totalAutomationProps > 0) {
+            this._addIndicator({
+                name: 'stack_trace_automation_properties',
+                category: 'StackTrace',
+                description: 'Automation-related properties found in global objects',
+                value: `window: ${windowAutomationKeys}, navigator: ${navigatorAutomationKeys}`,
+                riskLevel: totalAutomationProps > 3 ? 'HIGH' : 'MEDIUM',
+                confidence: Math.min(0.9, 0.5 + (totalAutomationProps * 0.1)),
+                importance: totalAutomationProps > 3 ? 'CRITICAL' : 'STRONG',
+                details: `Found ${totalAutomationProps} automation-related properties in window/navigator`
+            });
+        }
+    }
+
+    /**
      * Add a suspicious indicator to the collection
      * @private
      */
@@ -688,6 +780,7 @@ class BrowserFingerprintAnalyzer {
         this.keyboardLayoutDetector = this._safeCreateDetector(() => new KeyboardLayoutDetector(options.keyboardLayout || {}), 'KeyboardLayoutDetector');
         this.permissionsDetector = this._safeCreateDetector(() => new PermissionsDetector(), 'PermissionsDetector');
         this.codecSupportDetector = this._safeCreateDetector(() => new CodecSupportDetector(options.codecSupport || {}), 'CodecSupportDetector');
+        this.stackTraceFingerprintDetector = this._safeCreateDetector(() => new StackTraceFingerprintDetector(options.stackTraceFingerprint || {}), 'StackTraceFingerprintDetector');
         
         // Initialize performance timing detector early to catch first-input
         if (this.performanceTimingDetector) {
@@ -719,7 +812,7 @@ class BrowserFingerprintAnalyzer {
                     phase,
                     status, // 'starting', 'complete', 'error', 'skipped'
                     completedPhases: [...this.completedPhases],
-                    totalPhases: 20, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout, codecSupport)
+                    totalPhases: 21, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout, codecSupport, stackTraceFingerprint)
                     percentage: Math.round((this.completedPhases.length / 20) * 100),
                     ...details
                 });
@@ -1113,6 +1206,29 @@ class BrowserFingerprintAnalyzer {
         }
         categoryTiming.webgl = Math.round(performance.now() - webglStartTime);
         this._reportProgress('webgl', 'complete', { message: 'WebGL fingerprint analyzed' });
+
+        // Run Stack Trace Fingerprint detection (collects stack trace characteristics for clustering)
+        this._reportProgress('stackTraceFingerprint', 'starting', { message: 'Analyzing stack trace fingerprint...' });
+        console.log('📚 Analyzing stack trace fingerprint...');
+        const stackTraceStartTime = performance.now();
+        if (this.stackTraceFingerprintDetector) {
+            try {
+                const stackTraceMetrics = await this._withTimeout(
+                    this.stackTraceFingerprintDetector.analyze(),
+                    this.options.detectorTimeout,
+                    'Stack trace fingerprint detection'
+                );
+                this.metrics.stackTraceFingerprint = stackTraceMetrics;
+                console.log('📚 Stack trace fingerprint analysis complete:', stackTraceMetrics);
+            } catch (error) {
+                console.warn('⚠️ Stack trace fingerprint detection failed:', error.message);
+                this.metrics.stackTraceFingerprint = { error: { value: error.message, description: 'Stack trace fingerprint detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.stackTraceFingerprint = { error: { value: 'Detector not available', description: 'Stack trace fingerprint detector failed to initialize', risk: 'N/A' } };
+        }
+        categoryTiming.stackTraceFingerprint = Math.round(performance.now() - stackTraceStartTime);
+        this._reportProgress('stackTraceFingerprint', 'complete', { message: 'Stack trace fingerprint analyzed' });
 
         // Run Media Devices enumeration (async - enumerates available media devices) - WITH TIMEOUT
         this._reportProgress('media', 'starting', { message: 'Analyzing media devices...' });

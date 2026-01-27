@@ -226,6 +226,16 @@ export function getCategoryIcon(categoryKey) {
             <path d="M12 8v4l2 2"></path>
             <path d="M4.93 4.93l2.83 2.83"></path>
             <path d="M16.24 16.24l2.83 2.83"></path>
+        </svg>`,
+        
+        stackTraceFingerprint: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16v16H4z"></path>
+            <path d="M4 9h16"></path>
+            <path d="M9 4v16"></path>
+            <path d="M7 12h2"></path>
+            <path d="M7 15h4"></path>
+            <path d="M12 12h5"></path>
+            <path d="M12 15h5"></path>
         </svg>`
     };
     

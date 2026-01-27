@@ -21,3 +21,4 @@ export { PerformanceTimingDetector, PERFORMANCE_TIMING_CONFIG } from './performa
 export { KeyboardLayoutDetector } from './keyboardLayout.js';
 export { PermissionsDetector, PERMISSION_NAMES } from './permissionsDetector.js';
 export { CodecSupportDetector, CODEC_CONFIG } from './codecSupport.js';
+export { StackTraceFingerprintDetector, STACK_TRACE_FINGERPRINT_CONFIG } from './stackTraceFingerprint.js';
