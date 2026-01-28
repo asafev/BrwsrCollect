@@ -2649,8 +2649,186 @@ class BrowserFingerprintAnalyzer {
             hasJsonStringify: {
                 value: typeof JSON.stringify === 'function',
                 description: 'JSON.stringify availability' // j284
+            },
+            
+            // === Math Fingerprint ===
+            // Different JS engines (V8, SpiderMonkey, JavaScriptCore) produce
+            // slightly different floating-point results for transcendental functions.
+            // This creates a high-entropy fingerprint signal.
+            // @see https://gitlab.torproject.org/legacy/trac/-/issues/13018
+            mathFingerprint: {
+                value: this._collectMathFingerprint(),
+                description: 'Math function fingerprint (engine-specific floating point results)'
+            },
+            
+            // === Architecture Detection ===
+            // Detects 32-bit vs 64-bit architecture via NaN representation.
+            // On x86/x86-64, when floating-point subtraction of infinities produces NaN,
+            // the sign bit handling differs from ARM/other architectures.
+            // @see https://codebrowser.bddppq.com/pytorch/pytorch/third_party/XNNPACK/src/init.c.html#79
+            architecture: {
+                value: this._detectArchitecture(),
+                description: 'CPU architecture detection (NaN sign bit behavior)'
             }
         };
+    }
+    
+    /**
+     * Collect Math function fingerprint
+     * Different JavaScript engines have subtle differences in floating-point
+     * implementations of transcendental functions.
+     * 
+     * @private
+     * @returns {Object} Math fingerprint values
+     */
+    _collectMathFingerprint() {
+        const M = Math;
+        
+        // Fallback for missing functions (older browsers)
+        const fallbackFn = () => 0;
+        
+        // Native operations
+        const acos = M.acos || fallbackFn;
+        const acosh = M.acosh || fallbackFn;
+        const asin = M.asin || fallbackFn;
+        const asinh = M.asinh || fallbackFn;
+        const atanh = M.atanh || fallbackFn;
+        const atan = M.atan || fallbackFn;
+        const sin = M.sin || fallbackFn;
+        const sinh = M.sinh || fallbackFn;
+        const cos = M.cos || fallbackFn;
+        const cosh = M.cosh || fallbackFn;
+        const tan = M.tan || fallbackFn;
+        const tanh = M.tanh || fallbackFn;
+        const exp = M.exp || fallbackFn;
+        const expm1 = M.expm1 || fallbackFn;
+        const log1p = M.log1p || fallbackFn;
+        
+        // Polyfill versions (to detect if browser uses native vs polyfill)
+        const powPI = (value) => M.pow(M.PI, value);
+        const acoshPf = (value) => M.log(value + M.sqrt(value * value - 1));
+        const asinhPf = (value) => M.log(value + M.sqrt(value * value + 1));
+        const atanhPf = (value) => M.log((1 + value) / (1 - value)) / 2;
+        const sinhPf = (value) => (M.exp(value) - 1 / M.exp(value)) / 2;
+        const coshPf = (value) => (M.exp(value) + 1 / M.exp(value)) / 2;
+        const expm1Pf = (value) => M.exp(value) - 1;
+        const tanhPf = (value) => (M.exp(2 * value) - 1) / (M.exp(2 * value) + 1);
+        const log1pPf = (value) => M.log(1 + value);
+        
+        try {
+            // Empirical test values chosen to maximize cross-engine variance
+            const fingerprint = {
+                // Native function results
+                acos: acos(0.123124234234234242),
+                acosh: acosh(1e308),
+                asin: asin(0.123124234234234242),
+                asinh: asinh(1),
+                atanh: atanh(0.5),
+                atan: atan(0.5),
+                sin: sin(-1e300),
+                sinh: sinh(1),
+                cos: cos(10.000000000123),
+                cosh: cosh(1),
+                tan: tan(-1e300),
+                tanh: tanh(1),
+                exp: exp(1),
+                expm1: expm1(1),
+                log1p: log1p(10),
+                
+                // Polyfill comparisons (native vs calculated)
+                acoshPf: acoshPf(1e154), // Use smaller value to avoid Infinity
+                asinhPf: asinhPf(1),
+                atanhPf: atanhPf(0.5),
+                sinhPf: sinhPf(1),
+                coshPf: coshPf(1),
+                expm1Pf: expm1Pf(1),
+                tanhPf: tanhPf(1),
+                log1pPf: log1pPf(10),
+                powPI: powPI(-100)
+            };
+            
+            // Generate a combined hash string for quick comparison
+            const values = Object.values(fingerprint);
+            const hashStr = values.map(v => 
+                typeof v === 'number' ? v.toString() : String(v)
+            ).join('|');
+            
+            return {
+                values: fingerprint,
+                hash: this._simpleHash(hashStr)
+            };
+        } catch (e) {
+            return {
+                error: e.message,
+                values: null,
+                hash: null
+            };
+        }
+    }
+    
+    /**
+     * Detect CPU architecture via NaN representation
+     * 
+     * On x86/x86-64 architectures, when floating-point operations with no NaN
+     * arguments produce NaN output (like Infinity - Infinity), the output NaN
+     * has its sign bit set differently than on ARM and other architectures.
+     * 
+     * @private
+     * @returns {Object} Architecture detection result
+     */
+    _detectArchitecture() {
+        try {
+            const f = new Float32Array(1);
+            const u8 = new Uint8Array(f.buffer);
+            
+            // Set to Infinity
+            f[0] = Infinity;
+            
+            // Subtract Infinity from Infinity -> NaN (IEEE 754)
+            f[0] = f[0] - f[0];
+            
+            // The high byte of the NaN representation differs by architecture:
+            // - x86/x86-64: typically 255 (0xFF) - sign bit set
+            // - ARM/others: typically 127 (0x7F) - sign bit clear
+            const nanByte = u8[3];
+            
+            // Interpret the result
+            let archType;
+            if (nanByte === 255 || nanByte === 0xFF) {
+                archType = 'x86/x86-64';
+            } else if (nanByte === 127 || nanByte === 0x7F) {
+                archType = 'arm/other';
+            } else {
+                archType = 'unknown';
+            }
+            
+            return {
+                nanSignByte: nanByte,
+                archType: archType,
+                float32Supported: true
+            };
+        } catch (e) {
+            return {
+                error: e.message,
+                nanSignByte: null,
+                archType: 'detection-failed',
+                float32Supported: false
+            };
+        }
+    }
+    
+    /**
+     * Simple hash function for Math fingerprint
+     * @private
+     */
+    _simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash.toString(16);
     }
 
     /**

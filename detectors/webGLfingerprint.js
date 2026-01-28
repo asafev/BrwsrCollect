@@ -1,10 +1,15 @@
 /**
- * WebGL Fingerprint Detector Module
+ * WebGL & Canvas Fingerprint Detector Module
  * Implements BrowserLeaks-equivalent WebGL fingerprinting
  * Collects WebGL/WebGL2 parameters, extensions, and generates image hash
  * 
+ * Also includes Canvas 2D fingerprinting based on FingerprintJS approach:
+ * - Text rendering fingerprint (font rendering differences)
+ * - Geometry fingerprint (blending/winding differences)
+ * 
  * @module detectors/webGLfingerprint
  * @see https://browserleaks.com/webgl
+ * @see https://browserleaks.com/canvas
  */
 
 /**
@@ -75,6 +80,13 @@ const TRANSFORM_MATRIX = [
     0, 0, 1, 0,
     0.5, 0, 0, 1
 ];
+
+/**
+ * Canvas 2D Text for fingerprinting
+ * Uses a specific string with emoji that renders differently across browsers/OSes
+ * The 😃 emoji (U+1F603) is chosen for stability and cross-platform variance
+ */
+const CANVAS_TEXT_STRING = `Cwm fjordbank gly ${String.fromCharCode(55357, 56835)}`; // "Cwm fjordbank gly 😃"
 
 /**
  * Simple MD5 implementation (no external dependencies)
@@ -243,13 +255,21 @@ function md5(str) {
 }
 
 /**
- * WebGL Fingerprint Detector
+ * WebGL & Canvas 2D Fingerprint Detector
+ * 
+ * Collects:
+ * - WebGL/WebGL2 parameters and extensions
+ * - WebGL rendered scene hash
+ * - Canvas 2D text rendering fingerprint
+ * - Canvas 2D geometry fingerprint
  */
 class WebGLFingerprintDetector {
     constructor(config = {}) {
         this.config = {
             canvasWidth: 256,
             canvasHeight: 128,
+            canvas2dWidth: 240,
+            canvas2dHeight: 60,
             ...config
         };
         this.metrics = {};
@@ -258,12 +278,22 @@ class WebGLFingerprintDetector {
 
     /**
      * Main analysis method
-     * @returns {Promise<Object>} WebGL fingerprint data
+     * @returns {Promise<Object>} WebGL and Canvas 2D fingerprint data
      */
     async analyze() {
-        const result = await this.collectWebGLFingerprint();
-        this.metrics = this._formatMetrics(result);
-        this._analyzeForSuspiciousPatterns(result);
+        const [webglResult, canvas2dResult] = await Promise.all([
+            this.collectWebGLFingerprint(),
+            this.collectCanvas2DFingerprint()
+        ]);
+        
+        // Merge results
+        const combinedResult = {
+            ...webglResult,
+            canvas2d: canvas2dResult
+        };
+        
+        this.metrics = this._formatMetrics(combinedResult);
+        this._analyzeForSuspiciousPatterns(combinedResult);
         return this.metrics;
     }
 
@@ -378,6 +408,164 @@ class WebGLFingerprintDetector {
                 }
             };
         }
+    }
+
+    /**
+     * Collect Canvas 2D fingerprint
+     * Based on FingerprintJS approach - renders text and geometry to detect
+     * rendering differences across browsers, OSes, and GPU configurations.
+     * 
+     * Two separate images are generated:
+     * 1. Text image - affected by font rendering, anti-aliasing, emoji support
+     * 2. Geometry image - affected by canvas blending modes, arc rendering
+     * 
+     * @returns {Promise<Object>} Canvas 2D fingerprint data
+     */
+    async collectCanvas2DFingerprint() {
+        const startTime = performance.now();
+        
+        try {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (!context || !canvas.toDataURL) {
+                return {
+                    supported: false,
+                    error: 'canvas-2d-unsupported',
+                    timing: { totalMs: Math.round(performance.now() - startTime) }
+                };
+            }
+            
+            // Check winding support (canvas path winding rules)
+            const winding = this._checkWindingSupport(context);
+            
+            // Render text image and check for stability
+            const textResult = this._renderCanvas2DTextImage(canvas, context);
+            
+            // Check stability - render twice and compare (detects noise injection)
+            const textImage1 = canvas.toDataURL();
+            const textImage2 = canvas.toDataURL();
+            const textStable = textImage1 === textImage2;
+            
+            // Render geometry image (after text, reuses canvas)
+            const geometryResult = this._renderCanvas2DGeometryImage(canvas, context);
+            const geometryImage = canvas.toDataURL();
+            
+            // Generate hashes
+            const textHash = textStable ? md5(textImage1) : 'unstable';
+            const geometryHash = md5(geometryImage);
+            
+            // Combined fingerprint hash
+            const combinedHash = md5(`${textHash}|${geometryHash}|${winding}`);
+            
+            return {
+                supported: true,
+                winding,
+                textStable,
+                textHash,
+                textImage: textStable ? textImage1 : null,
+                geometryHash,
+                geometryImage,
+                combinedHash,
+                timing: {
+                    totalMs: Math.round(performance.now() - startTime)
+                }
+            };
+            
+        } catch (error) {
+            return {
+                supported: false,
+                error: error.message || 'canvas-2d-error',
+                timing: { totalMs: Math.round(performance.now() - startTime) }
+            };
+        }
+    }
+    
+    /**
+     * Check canvas winding rule support
+     * @private
+     * @see https://web.archive.org/web/20170825024655/http://blogs.adobe.com/webplatform/2013/01/30/winding-rules-in-canvas/
+     */
+    _checkWindingSupport(context) {
+        try {
+            context.rect(0, 0, 10, 10);
+            context.rect(2, 2, 6, 6);
+            return !context.isPointInPath(5, 5, 'evenodd');
+        } catch (e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Render Canvas 2D text fingerprint image
+     * Uses specific fonts, colors, and emoji to maximize cross-platform variance
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     */
+    _renderCanvas2DTextImage(canvas, context) {
+        // Resize canvas (this also clears it)
+        canvas.width = this.config.canvas2dWidth || 240;
+        canvas.height = this.config.canvas2dHeight || 60;
+        
+        // Orange background rectangle
+        context.textBaseline = 'alphabetic';
+        context.fillStyle = '#f60';
+        context.fillRect(100, 1, 62, 20);
+        
+        // Blue text with Times New Roman (built-in font)
+        context.fillStyle = '#069';
+        context.font = '11pt "Times New Roman"';
+        context.fillText(CANVAS_TEXT_STRING, 2, 15);
+        
+        // Semi-transparent green text with Arial
+        context.fillStyle = 'rgba(102, 204, 0, 0.2)';
+        context.font = '18pt Arial';
+        context.fillText(CANVAS_TEXT_STRING, 4, 45);
+        
+        return true;
+    }
+    
+    /**
+     * Render Canvas 2D geometry fingerprint image
+     * Uses blending modes and winding rules to detect GPU/driver differences
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     */
+    _renderCanvas2DGeometryImage(canvas, context) {
+        // Resize canvas (clears previous content)
+        canvas.width = 122;
+        canvas.height = 110;
+        
+        // Canvas blending with multiply mode
+        // Different GPUs/drivers compute blending slightly differently
+        context.globalCompositeOperation = 'multiply';
+        
+        const circles = [
+            ['#f2f', 40, 40], // Magenta
+            ['#2ff', 80, 40], // Cyan
+            ['#ff2', 60, 80]  // Yellow
+        ];
+        
+        for (const [color, x, y] of circles) {
+            context.fillStyle = color;
+            context.beginPath();
+            context.arc(x, y, 40, 0, Math.PI * 2, true);
+            context.closePath();
+            context.fill();
+        }
+        
+        // Canvas winding - nested arcs with evenodd fill
+        // Tests path winding implementation
+        context.fillStyle = '#f9c'; // Pink
+        context.arc(60, 60, 60, 0, Math.PI * 2, true);
+        context.arc(60, 60, 20, 0, Math.PI * 2, true);
+        context.fill('evenodd');
+        
+        return true;
     }
 
     /**
@@ -1160,6 +1348,83 @@ class WebGLFingerprintDetector {
             }
         }
 
+        // === Canvas 2D Fingerprint Metrics ===
+        if (result.canvas2d) {
+            const c2d = result.canvas2d;
+            
+            metrics.canvas2dSupported = {
+                value: c2d.supported,
+                description: 'Canvas 2D fingerprinting support',
+                risk: 'NONE'
+            };
+            
+            if (c2d.supported) {
+                metrics.canvas2dWinding = {
+                    value: c2d.winding,
+                    description: 'Canvas evenodd winding rule support',
+                    risk: 'NONE'
+                };
+                
+                metrics.canvas2dTextStable = {
+                    value: c2d.textStable,
+                    description: 'Canvas text rendering stability (no noise injection)',
+                    risk: c2d.textStable ? 'NONE' : 'LOW'
+                };
+                
+                metrics.canvas2dTextHash = {
+                    value: c2d.textHash,
+                    description: 'MD5 hash of Canvas 2D text rendering',
+                    risk: 'NONE'
+                };
+                
+                metrics.canvas2dGeometryHash = {
+                    value: c2d.geometryHash,
+                    description: 'MD5 hash of Canvas 2D geometry rendering (blending/winding)',
+                    risk: 'NONE'
+                };
+                
+                metrics.canvas2dCombinedHash = {
+                    value: c2d.combinedHash,
+                    description: 'Combined Canvas 2D fingerprint hash',
+                    risk: 'NONE'
+                };
+                
+                // Include geometry image for visual inspection
+                if (c2d.geometryImage) {
+                    metrics.canvas2dGeometryImage = {
+                        value: c2d.geometryImage,
+                        description: 'Canvas 2D geometry fingerprint image (data URL)',
+                        risk: 'NONE'
+                    };
+                }
+                
+                // Include text image if stable
+                if (c2d.textImage) {
+                    metrics.canvas2dTextImage = {
+                        value: c2d.textImage,
+                        description: 'Canvas 2D text fingerprint image (data URL)',
+                        risk: 'NONE'
+                    };
+                }
+                
+                if (c2d.timing) {
+                    metrics.canvas2dCollectionTimeMs = {
+                        value: c2d.timing.totalMs,
+                        description: 'Canvas 2D fingerprint collection time (ms)',
+                        risk: 'N/A'
+                    };
+                }
+            }
+            
+            if (c2d.error) {
+                metrics.canvas2dError = {
+                    value: c2d.error,
+                    description: 'Canvas 2D fingerprint error',
+                    risk: 'LOW'
+                };
+            }
+        }
+
         // Timing metrics
         if (result.timing) {
             metrics.collectionTimeMs = {
@@ -1266,6 +1531,37 @@ class WebGLFingerprintDetector {
                 importance: 'WEAK',
                 value: result.imageError
             });
+        }
+        
+        // === Canvas 2D Suspicious Patterns ===
+        if (result.canvas2d) {
+            const c2d = result.canvas2d;
+            
+            // Canvas 2D not supported is suspicious
+            if (!c2d.supported) {
+                this.suspiciousIndicators.push({
+                    name: 'canvas2d_unsupported',
+                    category: 'Canvas2D',
+                    description: 'Canvas 2D not supported - very rare in modern browsers',
+                    riskLevel: 'MEDIUM',
+                    confidence: 0.7,
+                    importance: 'STRONG',
+                    value: c2d.error || 'unsupported'
+                });
+            }
+            
+            // Text rendering unstable (noise injection detected - Safari 17+ privacy mode)
+            if (c2d.supported && !c2d.textStable) {
+                this.suspiciousIndicators.push({
+                    name: 'canvas2d_noise_detected',
+                    category: 'Canvas2D',
+                    description: 'Canvas noise injection detected (anti-fingerprinting mode)',
+                    riskLevel: 'LOW',
+                    confidence: 0.8,
+                    importance: 'WEAK',
+                    value: 'text rendering unstable'
+                });
+            }
         }
     }
 
