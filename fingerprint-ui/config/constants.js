@@ -206,6 +206,13 @@ export const CATEGORY_CONFIG = {
         label: 'Stack Trace Fingerprint',
         description: 'Error.stack format analysis for emulated Chromium clustering',
         color: '#9333EA'
+    },
+    iframeAnalysis: {
+        get icon() { return getIcon('iframeAnalysis'); },
+        iconType: 'svg',
+        label: 'Iframe Analysis',
+        description: 'Iframe contentWindow integrity and fresh window environment tests',
+        color: '#DC2626'
     }
 };
 

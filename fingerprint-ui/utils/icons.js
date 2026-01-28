@@ -236,6 +236,16 @@ export function getCategoryIcon(categoryKey) {
             <path d="M7 15h4"></path>
             <path d="M12 12h5"></path>
             <path d="M12 15h5"></path>
+        </svg>`,
+        
+        iframeAnalysis: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <rect x="5" y="7" width="14" height="10" rx="1"></rect>
+            <line x1="5" y1="10" x2="19" y2="10"></line>
+            <circle cx="7" cy="8.5" r="0.5" fill="currentColor"></circle>
+            <circle cx="9" cy="8.5" r="0.5" fill="currentColor"></circle>
+            <path d="M8 14l2-2 2 2"></path>
+            <path d="M14 12v4"></path>
         </svg>`
     };
     

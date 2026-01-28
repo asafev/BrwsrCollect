@@ -94,6 +94,7 @@ import { KeyboardLayoutDetector } from './detectors/keyboardLayout.js';
 import { PermissionsDetector } from './detectors/permissionsDetector.js';
 import { CodecSupportDetector } from './detectors/codecSupport.js';
 import { StackTraceFingerprintDetector } from './detectors/stackTraceFingerprint.js';
+import { IframeDetector } from './detectors/iframeDetector.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -125,7 +126,10 @@ class SuspiciousIndicatorDetector {
                     'missing_plugins_mimetypes',
                     'fake_media_devices', // AI automation agents like browserUse
                     'known_agent_detected', // Known agent signature match
-                    'stack_trace_automation_framework' // Automation framework detected in stack traces
+                    'stack_trace_automation_framework', // Automation framework detected in stack traces
+                    'iframe_contentwindow_tampered', // iframe contentWindow getter is not native
+                    'iframe_create_element_proxied', // document.createElement is proxied (stealth plugin)
+                    'iframe_automation_globals_polluted' // Automation globals found in fresh iframe
                 ]
             },
             
@@ -138,7 +142,10 @@ class SuspiciousIndicatorDetector {
                     'navigator_webdriver_true',
                     'no_media_devices',
                     'stack_trace_high_anomaly_score', // High anomaly score from stack trace analysis
-                    'stack_trace_automation_properties' // Automation properties found in globals
+                    'stack_trace_automation_properties', // Automation properties found in globals
+                    'iframe_top_leakage', // iframe.contentWindow.self === window.top
+                    'iframe_regexp_pollution', // RegExp static properties polluted
+                    'iframe_srcdoc_tampering' // srcdoc attribute has non-native accessor
                 ]
             },
             
@@ -151,7 +158,9 @@ class SuspiciousIndicatorDetector {
                     'dpr_float_noise_pattern',
                     'zero_touch_points',
                     'stack_trace_eval_context', // Eval context in stack traces
-                    'stack_trace_vm_context' // VM context markers in stack traces
+                    'stack_trace_vm_context', // VM context markers in stack traces
+                    'iframe_fresh_window_mismatch', // Property mismatches between main and fresh window
+                    'iframe_plugins_proxied' // navigator.plugins appears proxied
                 ]
             }
         };
@@ -185,6 +194,7 @@ class SuspiciousIndicatorDetector {
         this._checkAPIOverrideIndicators(metrics);
         this._checkGeneralSandboxIndicators(metrics);
         this._checkStackTraceFingerprintIndicators(metrics);
+        this._checkIframeAnalysisIndicators(metrics);
         
         // Apply importance-based filtering
         const filteredResults = this._applyImportanceFiltering();
@@ -654,6 +664,251 @@ class SuspiciousIndicatorDetector {
     }
 
     /**
+     * Check iframe analysis for behavioral micro-differences
+     * Based on vendor research (CHEQ, PerimeterX, DataDome) - behavioral approach
+     * Detects VMs, remote-rendered browsers, and automation through statistical patterns
+     * @private
+     */
+    _checkIframeAnalysisIndicators(metrics) {
+        const iframeData = metrics.iframeAnalysis;
+        if (!iframeData || iframeData.error) return;
+
+        // Helper to extract value from metric format
+        const getValue = (metric) => {
+            if (!metric) return null;
+            return typeof metric === 'object' && 'value' in metric ? metric.value : metric;
+        };
+
+        // ========== TIMING JITTER ANALYSIS ==========
+        const timingJitter = getValue(iframeData.timingJitter);
+        if (timingJitter && typeof timingJitter === 'object') {
+            // Check performance.now() precision (VMs often have coarser timing)
+            const performanceNow = timingJitter.performanceNow;
+            if (performanceNow && performanceNow.stdDev !== undefined) {
+                // Very low stdDev with many zero deltas suggests VM/remote
+                const zeroCount = performanceNow.samples?.filter(s => s === 0).length || 0;
+                if (performanceNow.stdDev < 0.001 || zeroCount > 20) {
+                    this._addIndicator({
+                        name: 'timing_precision_anomaly',
+                        category: 'IframeAnalysis',
+                        description: 'Abnormal performance.now() precision pattern',
+                        value: `stdDev: ${performanceNow.stdDev?.toFixed(4) || 'N/A'}, zeros: ${zeroCount}/50`,
+                        riskLevel: 'MEDIUM',
+                        confidence: 0.75,
+                        importance: 'STRONG',
+                        details: 'performance.now() shows unnaturally uniform timing. VMs and remote browsers often have coarser or more uniform timing than local Chrome.'
+                    });
+                }
+            }
+
+            // Check setTimeout jitter pattern
+            const setTimeout = timingJitter.setTimeout;
+            if (setTimeout && setTimeout.mean !== undefined) {
+                // setTimeout(0) in real browsers is typically 4-10ms, VMs can be very different
+                if (setTimeout.mean < 1 || setTimeout.mean > 50) {
+                    this._addIndicator({
+                        name: 'settimeout_jitter_anomaly',
+                        category: 'IframeAnalysis',
+                        description: 'Unusual setTimeout timing pattern',
+                        value: `mean: ${setTimeout.mean?.toFixed(2)}ms (expected ~4-10ms)`,
+                        riskLevel: 'MEDIUM',
+                        confidence: 0.7,
+                        importance: 'STRONG',
+                        details: 'setTimeout(0) timing deviates significantly from expected browser behavior. May indicate VM or throttled environment.'
+                    });
+                }
+            }
+
+            // Check rAF cadence
+            const rAFCadence = timingJitter.rAFCadence;
+            if (rAFCadence && rAFCadence.mean !== undefined) {
+                // rAF should be ~16.67ms for 60fps, with low stdDev
+                if (rAFCadence.stdDev > 5 || (rAFCadence.mean < 10 || rAFCadence.mean > 30)) {
+                    this._addIndicator({
+                        name: 'raf_cadence_anomaly',
+                        category: 'IframeAnalysis',
+                        description: 'Irregular requestAnimationFrame timing',
+                        value: `mean: ${rAFCadence.mean?.toFixed(2)}ms, stdDev: ${rAFCadence.stdDev?.toFixed(2)}ms`,
+                        riskLevel: 'LOW',
+                        confidence: 0.6,
+                        importance: 'WEAK',
+                        details: 'rAF timing should be stable around 16.67ms (60fps). High variance may indicate headless or backgrounded browser.'
+                    });
+                }
+            }
+        }
+
+        // ========== CROSS-REALM COHERENCE ==========
+        const crossRealm = getValue(iframeData.crossRealmCoherence);
+        if (crossRealm && typeof crossRealm === 'object') {
+            const coherenceScore = crossRealm.coherenceScore;
+            const mismatches = crossRealm.mismatches;
+
+            // Low coherence score indicates discrepancies between window/iframe/worker
+            if (coherenceScore !== undefined && coherenceScore < 0.9 && mismatches?.length > 0) {
+                this._addIndicator({
+                    name: 'cross_realm_coherence_low',
+                    category: 'IframeAnalysis',
+                    description: 'Cross-context property mismatches detected',
+                    value: `Score: ${(coherenceScore * 100).toFixed(1)}%, mismatches: ${mismatches.length}`,
+                    riskLevel: 'HIGH',
+                    confidence: 0.85,
+                    importance: 'CRITICAL',
+                    details: `Properties differ between window, iframe, and worker contexts: ${mismatches.slice(0, 3).map(m => m.property).join(', ')}. Stealth stacks often forget to synchronize across realms.`
+                });
+            }
+
+            // Specific hardware/device mismatches are very suspicious
+            const hardwareMismatches = mismatches?.filter(m => 
+                ['hardwareConcurrency', 'deviceMemory', 'screen.width', 'screen.height'].includes(m.property)
+            );
+            if (hardwareMismatches?.length > 0) {
+                this._addIndicator({
+                    name: 'hardware_coherence_mismatch',
+                    category: 'IframeAnalysis',
+                    description: 'Hardware properties differ across contexts',
+                    value: hardwareMismatches.map(m => m.property).join(', '),
+                    riskLevel: 'HIGH',
+                    confidence: 0.9,
+                    importance: 'CRITICAL',
+                    details: 'Hardware-related properties (CPU cores, memory, screen) should be identical across all JavaScript contexts. Mismatches indicate spoofing.'
+                });
+            }
+        }
+
+        // ========== WORKER REALM TESTING ==========
+        const workerRealm = getValue(iframeData.workerRealm);
+        if (workerRealm && typeof workerRealm === 'object') {
+            // Worker unavailable in automation is suspicious
+            if (workerRealm.available === false && workerRealm.error) {
+                this._addIndicator({
+                    name: 'worker_unavailable',
+                    category: 'IframeAnalysis',
+                    description: 'Web Workers are not functional',
+                    value: workerRealm.error || 'Worker creation failed',
+                    riskLevel: 'HIGH',
+                    confidence: 0.8,
+                    importance: 'STRONG',
+                    details: 'Web Workers failed to create or execute. Many stealth stacks do not properly support Workers.'
+                });
+            }
+
+            // Worker property mismatches
+            if (workerRealm.mismatches?.length > 0) {
+                this._addIndicator({
+                    name: 'worker_property_mismatch',
+                    category: 'IframeAnalysis',
+                    description: 'Worker and window properties do not match',
+                    value: `${workerRealm.mismatches.length} property differences`,
+                    riskLevel: 'HIGH',
+                    confidence: 0.85,
+                    importance: 'CRITICAL',
+                    details: `Worker context shows different values: ${workerRealm.mismatches.slice(0, 3).map(m => `${m.property}: ${m.window}→${m.worker}`).join(', ')}`
+                });
+            }
+        }
+
+        // ========== CANVAS STABILITY ==========
+        const canvasStability = getValue(iframeData.canvasStability);
+        if (canvasStability && typeof canvasStability === 'object') {
+            // Canvas should be perfectly stable on re-render
+            if (canvasStability.stable === false) {
+                this._addIndicator({
+                    name: 'canvas_unstable',
+                    category: 'IframeAnalysis',
+                    description: 'Canvas fingerprint is not stable across renders',
+                    value: `Hash mismatch detected`,
+                    riskLevel: 'HIGH',
+                    confidence: 0.9,
+                    importance: 'CRITICAL',
+                    details: 'The same canvas drawing produced different pixel hashes. This indicates environmental instability or canvas spoofing.'
+                });
+            }
+        }
+
+        // ========== FONT METRICS ==========
+        const fontMetrics = getValue(iframeData.fontMetrics);
+        if (fontMetrics && typeof fontMetrics === 'object') {
+            // Check for unusual font metric patterns
+            const fontWidths = fontMetrics.widths;
+            if (fontWidths) {
+                // All fonts having identical metrics is suspicious
+                const uniqueWidths = new Set(Object.values(fontWidths).map(w => w?.toFixed(2)));
+                if (uniqueWidths.size === 1 && Object.keys(fontWidths).length > 3) {
+                    this._addIndicator({
+                        name: 'font_metrics_uniform',
+                        category: 'IframeAnalysis',
+                        description: 'All fonts report identical metrics',
+                        value: 'No font variation detected',
+                        riskLevel: 'MEDIUM',
+                        confidence: 0.75,
+                        importance: 'STRONG',
+                        details: 'Text measurement returns identical widths for different fonts. This suggests font metrics are being spoofed or a fallback font is always used.'
+                    });
+                }
+            }
+        }
+
+        // ========== WebGL STABILITY ==========
+        const webglStability = getValue(iframeData.webglStability);
+        if (webglStability && typeof webglStability === 'object') {
+            if (webglStability.stable === false) {
+                this._addIndicator({
+                    name: 'webgl_unstable',
+                    category: 'IframeAnalysis',
+                    description: 'WebGL rendering is not stable',
+                    value: 'Shader output varies between renders',
+                    riskLevel: 'MEDIUM',
+                    confidence: 0.7,
+                    importance: 'STRONG',
+                    details: 'WebGL shader compilation or rendering produces inconsistent results. May indicate software rendering or GPU emulation.'
+                });
+            }
+        }
+
+        // ========== IFRAME ONLOAD TIMING ==========
+        const iframeLoadTiming = getValue(iframeData.iframeLoadTiming);
+        if (iframeLoadTiming && typeof iframeLoadTiming === 'object') {
+            // Suspiciously fast or slow iframe loads
+            if (iframeLoadTiming.loadTime !== undefined) {
+                if (iframeLoadTiming.loadTime < 1) {
+                    this._addIndicator({
+                        name: 'iframe_load_too_fast',
+                        category: 'IframeAnalysis',
+                        description: 'Iframe loaded suspiciously fast',
+                        value: `${iframeLoadTiming.loadTime}ms`,
+                        riskLevel: 'LOW',
+                        confidence: 0.5,
+                        importance: 'WEAK',
+                        details: 'Iframe onload fired almost instantly. May indicate pre-rendered or cached content manipulation.'
+                    });
+                }
+            }
+        }
+
+        // ========== OVERALL BEHAVIORAL SUMMARY ==========
+        const summary = getValue(iframeData.summary);
+        if (summary && typeof summary === 'object') {
+            const anomalyCount = summary.anomalyCount || 0;
+            const riskScore = summary.riskScore || 0;
+
+            // High overall risk score from behavioral analysis
+            if (riskScore > 0.7 || anomalyCount > 5) {
+                this._addIndicator({
+                    name: 'behavioral_analysis_high_risk',
+                    category: 'IframeAnalysis',
+                    description: 'Multiple behavioral anomalies detected',
+                    value: `Risk: ${(riskScore * 100).toFixed(0)}%, anomalies: ${anomalyCount}`,
+                    riskLevel: 'HIGH',
+                    confidence: 0.85,
+                    importance: 'CRITICAL',
+                    details: 'Combined behavioral signals suggest non-genuine browser environment. Multiple micro-differences detected across timing, cross-realm coherence, and stability tests.'
+                });
+            }
+        }
+    }
+
+    /**
      * Add a suspicious indicator to the collection
      * @private
      */
@@ -781,6 +1036,7 @@ class BrowserFingerprintAnalyzer {
         this.permissionsDetector = this._safeCreateDetector(() => new PermissionsDetector(), 'PermissionsDetector');
         this.codecSupportDetector = this._safeCreateDetector(() => new CodecSupportDetector(options.codecSupport || {}), 'CodecSupportDetector');
         this.stackTraceFingerprintDetector = this._safeCreateDetector(() => new StackTraceFingerprintDetector(options.stackTraceFingerprint || {}), 'StackTraceFingerprintDetector');
+        this.iframeDetector = this._safeCreateDetector(() => new IframeDetector(options.iframe || {}), 'IframeDetector');
         
         // Initialize performance timing detector early to catch first-input
         if (this.performanceTimingDetector) {
@@ -1229,6 +1485,29 @@ class BrowserFingerprintAnalyzer {
         }
         categoryTiming.stackTraceFingerprint = Math.round(performance.now() - stackTraceStartTime);
         this._reportProgress('stackTraceFingerprint', 'complete', { message: 'Stack trace fingerprint analyzed' });
+
+        // Run Iframe Analysis detection (contentWindow integrity, fresh window tests, srcdoc support)
+        this._reportProgress('iframeAnalysis', 'starting', { message: 'Analyzing iframe environment...' });
+        console.log('🖼️ Analyzing iframe environment...');
+        const iframeStartTime = performance.now();
+        if (this.iframeDetector) {
+            try {
+                const iframeMetrics = await this._withTimeout(
+                    this.iframeDetector.detect(),
+                    this.options.detectorTimeout,
+                    'Iframe analysis detection'
+                );
+                this.metrics.iframeAnalysis = iframeMetrics;
+                console.log('🖼️ Iframe analysis complete:', iframeMetrics);
+            } catch (error) {
+                console.warn('⚠️ Iframe analysis failed:', error.message);
+                this.metrics.iframeAnalysis = { error: { value: error.message, description: 'Iframe analysis error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.iframeAnalysis = { error: { value: 'Detector not available', description: 'Iframe detector failed to initialize', risk: 'N/A' } };
+        }
+        categoryTiming.iframeAnalysis = Math.round(performance.now() - iframeStartTime);
+        this._reportProgress('iframeAnalysis', 'complete', { message: 'Iframe analysis complete' });
 
         // Run Media Devices enumeration (async - enumerates available media devices) - WITH TIMEOUT
         this._reportProgress('media', 'starting', { message: 'Analyzing media devices...' });
