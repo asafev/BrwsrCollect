@@ -48,8 +48,7 @@ const RESEARCH_CATEGORIES = {
             { key: 'navigator', label: 'Navigator API', icon: 'navigator' },
             { key: 'window', label: 'Window Object', icon: 'window' },
             { key: 'document', label: 'Document State', icon: 'document' },
-            { key: 'jsEnvironment', label: 'JS Environment', icon: 'code' },
-            { key: 'webApis', label: 'Web APIs', icon: 'api' }
+            { key: 'jsEnvironment', label: 'JS Environment', icon: 'code' }
         ]
     },
     hardware: {
@@ -59,10 +58,10 @@ const RESEARCH_CATEGORIES = {
         collapsed: false,
         categories: [
             { key: 'webgl', label: 'WebGL / GPU', icon: 'gpu' },
-            { key: 'audioFingerprint', label: 'Audio Context', icon: 'audio' },
+            { key: 'audio', label: 'Audio Context', icon: 'audio' },
             { key: 'codecSupport', label: 'Codec Support', icon: 'audio' },
             { key: 'display', label: 'Display Properties', icon: 'display' },
-            { key: 'batteryStorage', label: 'Battery Status', icon: 'battery' },
+            { key: 'battery', label: 'Battery Status', icon: 'battery' },
             { key: 'mediaDevices', label: 'Media Devices', icon: 'mediaDevices' }
         ]
     },
@@ -126,8 +125,7 @@ const RESEARCH_CATEGORIES = {
             { key: 'behavioralIndicators', label: 'Behavior Signals', icon: 'activity' },
             { key: 'behavioralTelemetry', label: 'Telemetry Data', icon: 'chart' },
             { key: 'performanceTiming', label: 'Timing Analysis', icon: 'timer' },
-            { key: 'performance', label: 'Performance', icon: 'chart' },
-            { key: 'collectionTiming', label: 'Collection Timing', icon: 'timer' }
+            { key: 'performance', label: 'Performance', icon: 'chart' }
         ]
     }
 };

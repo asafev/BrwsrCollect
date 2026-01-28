@@ -318,6 +318,8 @@ export class PerformanceTimingDetector {
                 if (navEntries?.length > 0) {
                     const nav = navEntries[0];
                     
+                    // === EXISTING METRICS (keep names unchanged) ===
+                    
                     metrics.navigationType = {
                         value: nav.type || 'Not available',
                         description: 'Navigation type (navigate, reload, back_forward, prerender)',
@@ -351,6 +353,353 @@ export class PerformanceTimingDetector {
                         description: 'Decoded (uncompressed) size of the page body',
                         risk: 'N/A',
                         code: "performance.getEntriesByType('navigation')[0].decodedBodySize"
+                    };
+                    
+                    // === NEW METRICS: All PerformanceNavigationTiming properties ===
+                    
+                    // --- Resource Timing Properties ---
+                    
+                    metrics.navStartTime = {
+                        value: nav.startTime ?? 'Not available',
+                        description: 'Start time of the navigation (always 0 for navigation entries)',
+                        risk: 'N/A',
+                        code: "nav.startTime"
+                    };
+                    
+                    metrics.navDuration = {
+                        value: nav.duration ? Math.round(nav.duration) : 'Not available',
+                        description: 'Total duration from navigationStart to loadEventEnd (ms)',
+                        risk: 'N/A',
+                        code: "nav.duration"
+                    };
+                    
+                    metrics.navName = {
+                        value: nav.name || 'Not available',
+                        description: 'URL of the navigated document',
+                        risk: 'N/A',
+                        code: "nav.name"
+                    };
+                    
+                    metrics.navEntryType = {
+                        value: nav.entryType || 'Not available',
+                        description: 'Entry type (always "navigation" for this entry)',
+                        risk: 'N/A',
+                        code: "nav.entryType"
+                    };
+                    
+                    metrics.navInitiatorType = {
+                        value: nav.initiatorType || 'Not available',
+                        description: 'Initiator type (always "navigation" for document)',
+                        risk: 'N/A',
+                        code: "nav.initiatorType"
+                    };
+                    
+                    // --- Network Timing Properties ---
+                    
+                    metrics.navWorkerStart = {
+                        value: nav.workerStart ? Math.round(nav.workerStart * 100) / 100 : 0,
+                        description: 'Time when service worker started (0 if no service worker)',
+                        risk: 'N/A',
+                        code: "nav.workerStart"
+                    };
+                    
+                    metrics.navRedirectStart = {
+                        value: nav.redirectStart ? Math.round(nav.redirectStart * 100) / 100 : 0,
+                        description: 'Start time of first redirect (0 if no redirect)',
+                        risk: 'N/A',
+                        code: "nav.redirectStart"
+                    };
+                    
+                    metrics.navRedirectEnd = {
+                        value: nav.redirectEnd ? Math.round(nav.redirectEnd * 100) / 100 : 0,
+                        description: 'End time of last redirect (0 if no redirect)',
+                        risk: 'N/A',
+                        code: "nav.redirectEnd"
+                    };
+                    
+                    metrics.navFetchStart = {
+                        value: nav.fetchStart ? Math.round(nav.fetchStart * 100) / 100 : 'Not available',
+                        description: 'Time when browser starts fetching the resource',
+                        risk: 'N/A',
+                        code: "nav.fetchStart"
+                    };
+                    
+                    metrics.navDomainLookupStart = {
+                        value: nav.domainLookupStart ? Math.round(nav.domainLookupStart * 100) / 100 : 'Not available',
+                        description: 'Time when DNS lookup starts',
+                        risk: 'N/A',
+                        code: "nav.domainLookupStart"
+                    };
+                    
+                    metrics.navDomainLookupEnd = {
+                        value: nav.domainLookupEnd ? Math.round(nav.domainLookupEnd * 100) / 100 : 'Not available',
+                        description: 'Time when DNS lookup ends',
+                        risk: 'N/A',
+                        code: "nav.domainLookupEnd"
+                    };
+                    
+                    metrics.navConnectStart = {
+                        value: nav.connectStart ? Math.round(nav.connectStart * 100) / 100 : 'Not available',
+                        description: 'Time when TCP connection starts',
+                        risk: 'N/A',
+                        code: "nav.connectStart"
+                    };
+                    
+                    metrics.navConnectEnd = {
+                        value: nav.connectEnd ? Math.round(nav.connectEnd * 100) / 100 : 'Not available',
+                        description: 'Time when TCP connection ends',
+                        risk: 'N/A',
+                        code: "nav.connectEnd"
+                    };
+                    
+                    metrics.navSecureConnectionStart = {
+                        value: nav.secureConnectionStart ? Math.round(nav.secureConnectionStart * 100) / 100 : 0,
+                        description: 'Time when TLS handshake starts (0 if not HTTPS)',
+                        risk: 'N/A',
+                        code: "nav.secureConnectionStart"
+                    };
+                    
+                    metrics.navRequestStart = {
+                        value: nav.requestStart ? Math.round(nav.requestStart * 100) / 100 : 'Not available',
+                        description: 'Time when browser sends request',
+                        risk: 'N/A',
+                        code: "nav.requestStart"
+                    };
+                    
+                    metrics.navResponseStart = {
+                        value: nav.responseStart ? Math.round(nav.responseStart * 100) / 100 : 'Not available',
+                        description: 'Time when first byte of response is received (TTFB)',
+                        risk: 'N/A',
+                        code: "nav.responseStart"
+                    };
+                    
+                    metrics.navResponseEnd = {
+                        value: nav.responseEnd ? Math.round(nav.responseEnd * 100) / 100 : 'Not available',
+                        description: 'Time when last byte of response is received',
+                        risk: 'N/A',
+                        code: "nav.responseEnd"
+                    };
+                    
+                    // --- DOM Timing Properties ---
+                    
+                    metrics.navDomInteractive = {
+                        value: nav.domInteractive ? Math.round(nav.domInteractive * 100) / 100 : 'Not available',
+                        description: 'Time when DOM is interactive',
+                        risk: 'N/A',
+                        code: "nav.domInteractive"
+                    };
+                    
+                    metrics.navDomContentLoadedEventStart = {
+                        value: nav.domContentLoadedEventStart ? Math.round(nav.domContentLoadedEventStart * 100) / 100 : 'Not available',
+                        description: 'Time when DOMContentLoaded event starts',
+                        risk: 'N/A',
+                        code: "nav.domContentLoadedEventStart"
+                    };
+                    
+                    metrics.navDomContentLoadedEventEnd = {
+                        value: nav.domContentLoadedEventEnd ? Math.round(nav.domContentLoadedEventEnd * 100) / 100 : 'Not available',
+                        description: 'Time when DOMContentLoaded event ends',
+                        risk: 'N/A',
+                        code: "nav.domContentLoadedEventEnd"
+                    };
+                    
+                    metrics.navDomComplete = {
+                        value: nav.domComplete ? Math.round(nav.domComplete * 100) / 100 : 'Not available',
+                        description: 'Time when DOM is complete',
+                        risk: 'N/A',
+                        code: "nav.domComplete"
+                    };
+                    
+                    metrics.navLoadEventStart = {
+                        value: nav.loadEventStart ? Math.round(nav.loadEventStart * 100) / 100 : 'Not available',
+                        description: 'Time when load event starts',
+                        risk: 'N/A',
+                        code: "nav.loadEventStart"
+                    };
+                    
+                    metrics.navLoadEventEnd = {
+                        value: nav.loadEventEnd ? Math.round(nav.loadEventEnd * 100) / 100 : 'Not available',
+                        description: 'Time when load event ends',
+                        risk: 'N/A',
+                        code: "nav.loadEventEnd"
+                    };
+                    
+                    metrics.navUnloadEventStart = {
+                        value: nav.unloadEventStart ? Math.round(nav.unloadEventStart * 100) / 100 : 0,
+                        description: 'Time when previous document unload event starts (0 if no previous doc)',
+                        risk: 'N/A',
+                        code: "nav.unloadEventStart"
+                    };
+                    
+                    metrics.navUnloadEventEnd = {
+                        value: nav.unloadEventEnd ? Math.round(nav.unloadEventEnd * 100) / 100 : 0,
+                        description: 'Time when previous document unload event ends (0 if no previous doc)',
+                        risk: 'N/A',
+                        code: "nav.unloadEventEnd"
+                    };
+                    
+                    // --- Protocol & Server Timing ---
+                    
+                    metrics.navNextHopProtocol = {
+                        value: nav.nextHopProtocol || 'Not available',
+                        description: 'Network protocol used (h2, http/1.1, h3, etc.)',
+                        risk: 'N/A',
+                        code: "nav.nextHopProtocol"
+                    };
+                    
+                    // Server timing entries (if available)
+                    if (nav.serverTiming && nav.serverTiming.length > 0) {
+                        metrics.navServerTiming = {
+                            value: nav.serverTiming.map(st => ({
+                                name: st.name,
+                                duration: st.duration,
+                                description: st.description
+                            })),
+                            description: 'Server timing entries from Server-Timing header',
+                            risk: 'N/A',
+                            code: "nav.serverTiming"
+                        };
+                    }
+                    
+                    // --- Additional Properties (where available) ---
+                    
+                    // Response status (Chrome 109+)
+                    if (typeof nav.responseStatus !== 'undefined') {
+                        metrics.navResponseStatus = {
+                            value: nav.responseStatus,
+                            description: 'HTTP response status code',
+                            risk: 'N/A',
+                            code: "nav.responseStatus"
+                        };
+                    }
+                    
+                    // Delivery type (Chrome 117+)
+                    if (typeof nav.deliveryType !== 'undefined') {
+                        metrics.navDeliveryType = {
+                            value: nav.deliveryType || 'Not available',
+                            description: 'How resource was delivered (cache, navigational-prefetch, etc.)',
+                            risk: 'N/A',
+                            code: "nav.deliveryType"
+                        };
+                    }
+                    
+                    // Render blocking status (Chrome 107+)
+                    if (typeof nav.renderBlockingStatus !== 'undefined') {
+                        metrics.navRenderBlockingStatus = {
+                            value: nav.renderBlockingStatus || 'Not available',
+                            description: 'Render blocking status of the resource',
+                            risk: 'N/A',
+                            code: "nav.renderBlockingStatus"
+                        };
+                    }
+                    
+                    // Content type (where available)
+                    if (typeof nav.contentType !== 'undefined') {
+                        metrics.navContentType = {
+                            value: nav.contentType || 'Not available',
+                            description: 'MIME type of the resource',
+                            risk: 'N/A',
+                            code: "nav.contentType"
+                        };
+                    }
+                    
+                    // Activation start (for prerendered pages)
+                    if (typeof nav.activationStart !== 'undefined') {
+                        metrics.navActivationStart = {
+                            value: nav.activationStart ? Math.round(nav.activationStart * 100) / 100 : 0,
+                            description: 'Time when prerendered page was activated (0 if not prerendered)',
+                            risk: 'N/A',
+                            code: "nav.activationStart"
+                        };
+                    }
+                    
+                    // Critical CH restart (Client Hints)
+                    if (typeof nav.criticalCHRestart !== 'undefined') {
+                        metrics.navCriticalCHRestart = {
+                            value: nav.criticalCHRestart ? Math.round(nav.criticalCHRestart * 100) / 100 : 0,
+                            description: 'Time when Critical-CH caused a restart (0 if no restart)',
+                            risk: 'N/A',
+                            code: "nav.criticalCHRestart"
+                        };
+                    }
+                    
+                    // === COMPUTED METRICS from Navigation Timing ===
+                    
+                    // DNS lookup time (from Level 2 API)
+                    const navDnsTime = nav.domainLookupEnd && nav.domainLookupStart
+                        ? Math.round((nav.domainLookupEnd - nav.domainLookupStart) * 100) / 100
+                        : 0;
+                    metrics.navDnsTime = {
+                        value: navDnsTime,
+                        description: 'DNS lookup duration (ms) - computed from Level 2 API',
+                        risk: 'N/A',
+                        code: "nav.domainLookupEnd - nav.domainLookupStart"
+                    };
+                    
+                    // TCP connection time (from Level 2 API)
+                    const navTcpTime = nav.connectEnd && nav.connectStart
+                        ? Math.round((nav.connectEnd - nav.connectStart) * 100) / 100
+                        : 0;
+                    metrics.navTcpTime = {
+                        value: navTcpTime,
+                        description: 'TCP connection duration (ms) - computed from Level 2 API',
+                        risk: 'N/A',
+                        code: "nav.connectEnd - nav.connectStart"
+                    };
+                    
+                    // TLS handshake time
+                    const navTlsTime = nav.secureConnectionStart && nav.connectEnd
+                        ? Math.round((nav.connectEnd - nav.secureConnectionStart) * 100) / 100
+                        : 0;
+                    metrics.navTlsTime = {
+                        value: navTlsTime,
+                        description: 'TLS handshake duration (ms) - 0 if HTTP',
+                        risk: 'N/A',
+                        code: "nav.connectEnd - nav.secureConnectionStart"
+                    };
+                    
+                    // Request time (from request start to response start)
+                    const navRequestTime = nav.responseStart && nav.requestStart
+                        ? Math.round((nav.responseStart - nav.requestStart) * 100) / 100
+                        : null;
+                    metrics.navRequestTime = {
+                        value: navRequestTime ?? 'Not available',
+                        description: 'Request time until first byte (ms)',
+                        risk: 'N/A',
+                        code: "nav.responseStart - nav.requestStart"
+                    };
+                    
+                    // Response download time
+                    const navResponseTime = nav.responseEnd && nav.responseStart
+                        ? Math.round((nav.responseEnd - nav.responseStart) * 100) / 100
+                        : null;
+                    metrics.navResponseDownloadTime = {
+                        value: navResponseTime ?? 'Not available',
+                        description: 'Response download duration (ms)',
+                        risk: 'N/A',
+                        code: "nav.responseEnd - nav.responseStart"
+                    };
+                    
+                    // DOM processing time
+                    const navDomProcessingTime = nav.domComplete && nav.responseEnd
+                        ? Math.round((nav.domComplete - nav.responseEnd) * 100) / 100
+                        : null;
+                    metrics.navDomProcessingTime = {
+                        value: navDomProcessingTime ?? 'Not available',
+                        description: 'DOM processing time from response end to DOM complete (ms)',
+                        risk: 'N/A',
+                        code: "nav.domComplete - nav.responseEnd"
+                    };
+                    
+                    // Redirect time (if any redirects)
+                    const navRedirectTime = nav.redirectEnd && nav.redirectStart
+                        ? Math.round((nav.redirectEnd - nav.redirectStart) * 100) / 100
+                        : 0;
+                    metrics.navRedirectTime = {
+                        value: navRedirectTime,
+                        description: 'Total redirect time (ms) - 0 if no redirects',
+                        risk: 'N/A',
+                        code: "nav.redirectEnd - nav.redirectStart"
                     };
                 }
             }
