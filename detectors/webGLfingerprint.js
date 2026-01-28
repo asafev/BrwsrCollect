@@ -411,13 +411,18 @@ class WebGLFingerprintDetector {
     }
 
     /**
-     * Collect Canvas 2D fingerprint
+     * Collect Canvas 2D fingerprint with improved stability detection
      * Based on FingerprintJS approach - renders text and geometry to detect
      * rendering differences across browsers, OSes, and GPU configurations.
      * 
      * Two separate images are generated:
      * 1. Text image - affected by font rendering, anti-aliasing, emoji support
      * 2. Geometry image - affected by canvas blending modes, arc rendering
+     * 
+     * Key stability improvements:
+     * - Re-renders text image (not just double toDataURL) to detect noise injection
+     * - Proper canvas state management with explicit clearing via resize
+     * - Explicit context property initialization before drawing
      * 
      * @returns {Promise<Object>} Canvas 2D fingerprint data
      */
@@ -439,16 +444,23 @@ class WebGLFingerprintDetector {
             // Check winding support (canvas path winding rules)
             const winding = this._checkWindingSupport(context);
             
-            // Render text image and check for stability
-            const textResult = this._renderCanvas2DTextImage(canvas, context);
-            
-            // Check stability - render twice and compare (detects noise injection)
+            // === IMPROVED STABILITY CHECK ===
+            // Render text image TWICE with fresh canvas state each time
+            // Re-rendering (not just double toDataURL) properly detects noise injection
+            // Some browsers cache toDataURL or have timing issues with double calls
+            this._renderCanvas2DTextImage(canvas, context);
             const textImage1 = canvas.toDataURL();
+            
+            // Re-render the same content (canvas resize in render method clears it)
+            this._renderCanvas2DTextImage(canvas, context);
             const textImage2 = canvas.toDataURL();
+            
+            // Compare - if different, browser is adding noise (Safari 17+ privacy mode)
             const textStable = textImage1 === textImage2;
             
-            // Render geometry image (after text, reuses canvas)
-            const geometryResult = this._renderCanvas2DGeometryImage(canvas, context);
+            // === GEOMETRY IMAGE ===
+            // Render geometry (canvas resize in render method clears previous content)
+            this._renderCanvas2DGeometryImage(canvas, context);
             const geometryImage = canvas.toDataURL();
             
             // Generate hashes
@@ -500,50 +512,62 @@ class WebGLFingerprintDetector {
      * Render Canvas 2D text fingerprint image
      * Uses specific fonts, colors, and emoji to maximize cross-platform variance
      * 
+     * Key stability practices:
+     * - Canvas resize FIRST (auto-clears and ensures clean state)
+     * - Explicit textBaseline before any drawing
+     * - Built-in fonts only (Times New Roman, Arial) for consistency
+     * - Specific rendering order matching FingerprintJS
+     * 
      * @private
      * @param {HTMLCanvasElement} canvas
      * @param {CanvasRenderingContext2D} context
      */
     _renderCanvas2DTextImage(canvas, context) {
-        // Resize canvas (this also clears it)
+        // CRITICAL: Resize canvas first (this also clears it completely)
         canvas.width = this.config.canvas2dWidth || 240;
         canvas.height = this.config.canvas2dHeight || 60;
         
-        // Orange background rectangle
+        // Set text baseline FIRST before any drawing operations
         context.textBaseline = 'alphabetic';
+        
+        // 1. Orange background rectangle
         context.fillStyle = '#f60';
         context.fillRect(100, 1, 62, 20);
         
-        // Blue text with Times New Roman (built-in font)
+        // 2. Blue text with Times New Roman (built-in font for stability)
         context.fillStyle = '#069';
         context.font = '11pt "Times New Roman"';
         context.fillText(CANVAS_TEXT_STRING, 2, 15);
         
-        // Semi-transparent green text with Arial
+        // 3. Semi-transparent green text with Arial (built-in font)
         context.fillStyle = 'rgba(102, 204, 0, 0.2)';
         context.font = '18pt Arial';
         context.fillText(CANVAS_TEXT_STRING, 4, 45);
-        
-        return true;
     }
     
     /**
      * Render Canvas 2D geometry fingerprint image
      * Uses blending modes and winding rules to detect GPU/driver differences
      * 
+     * Key stability practices:
+     * - Canvas resize FIRST (auto-clears previous content)
+     * - Set globalCompositeOperation BEFORE drawing
+     * - Proper beginPath/closePath for each shape
+     * 
      * @private
      * @param {HTMLCanvasElement} canvas
      * @param {CanvasRenderingContext2D} context
      */
     _renderCanvas2DGeometryImage(canvas, context) {
-        // Resize canvas (clears previous content)
+        // CRITICAL: Resize canvas first (clears previous content completely)
         canvas.width = 122;
         canvas.height = 110;
         
-        // Canvas blending with multiply mode
+        // Set blending mode BEFORE any drawing operations
         // Different GPUs/drivers compute blending slightly differently
         context.globalCompositeOperation = 'multiply';
         
+        // Draw colored circles with multiply blend
         const circles = [
             ['#f2f', 40, 40], // Magenta
             ['#2ff', 80, 40], // Cyan
@@ -559,13 +583,12 @@ class WebGLFingerprintDetector {
         }
         
         // Canvas winding - nested arcs with evenodd fill
-        // Tests path winding implementation
+        // Tests path winding implementation differences
         context.fillStyle = '#f9c'; // Pink
+        context.beginPath();
         context.arc(60, 60, 60, 0, Math.PI * 2, true);
         context.arc(60, 60, 20, 0, Math.PI * 2, true);
         context.fill('evenodd');
-        
-        return true;
     }
 
     /**
