@@ -862,62 +862,179 @@ export class IframeDetector {
 
     /**
      * Format results as metrics with value/description/risk
+     * NOTE: For timing metrics, we store both raw (number) and formatted (string) values
+     * Raw values preserve precision for analysis/signatures, formatted for UI display
      */
     _formatMetrics(results, collectionTimeMs) {
         const metrics = {};
 
+        // Helper to get raw number or null
+        const getRaw = (val) => (typeof val === 'number' && !isNaN(val)) ? val : null;
+
         // === TIMING METRICS ===
+        // Store both raw (for analysis) and formatted (for display) values
         if (results.timing) {
-            // Performance.now jitter
+            // Performance.now jitter - raw values
+            const perfNowTopStddev = getRaw(results.timing.performanceNow?.top?.stddev);
+            const perfNowIframeStddev = getRaw(results.timing.performanceNow?.iframe?.stddev);
+            const perfNowTopMin = getRaw(results.timing.performanceNow?.top?.min);
+
+            metrics.perfNowJitterTopRaw = {
+                value: perfNowTopStddev,
+                description: 'performance.now() jitter (stddev) in main window - raw',
+                risk: 'N/A'
+            };
             metrics.perfNowJitterTop = {
-                value: results.timing.performanceNow?.top?.stddev?.toFixed(4) ?? 'N/A',
+                value: perfNowTopStddev?.toFixed(4) ?? 'N/A',
                 description: 'performance.now() jitter (stddev) in main window',
                 risk: 'N/A'
             };
+            metrics.perfNowJitterIframeRaw = {
+                value: perfNowIframeStddev,
+                description: 'performance.now() jitter (stddev) in iframe - raw',
+                risk: 'N/A'
+            };
             metrics.perfNowJitterIframe = {
-                value: results.timing.performanceNow?.iframe?.stddev?.toFixed(4) ?? 'N/A',
+                value: perfNowIframeStddev?.toFixed(4) ?? 'N/A',
                 description: 'performance.now() jitter (stddev) in iframe',
                 risk: 'N/A'
             };
+            metrics.perfNowGranularityTopRaw = {
+                value: perfNowTopMin,
+                description: 'performance.now() minimum step in main window - raw',
+                risk: 'N/A'
+            };
             metrics.perfNowGranularityTop = {
-                value: results.timing.performanceNow?.top?.min?.toFixed(4) ?? 'N/A',
+                value: perfNowTopMin?.toFixed(4) ?? 'N/A',
                 description: 'performance.now() minimum step in main window',
                 risk: 'N/A'
             };
 
-            // setTimeout latency
+            // setTimeout latency - raw values
+            const setTimeoutTopMean = getRaw(results.timing.setTimeout?.top?.mean);
+            const setTimeoutIframeMean = getRaw(results.timing.setTimeout?.iframe?.mean);
+            const setTimeoutTopStddev = getRaw(results.timing.setTimeout?.top?.stddev);
+            const setTimeoutIframeStddev = getRaw(results.timing.setTimeout?.iframe?.stddev);
+
+            metrics.setTimeoutMeanTopRaw = {
+                value: setTimeoutTopMean,
+                description: 'setTimeout(0) mean latency (ms) in main window - raw',
+                risk: 'N/A'
+            };
             metrics.setTimeoutMeanTop = {
-                value: results.timing.setTimeout?.top?.mean?.toFixed(2) ?? 'N/A',
+                value: setTimeoutTopMean?.toFixed(2) ?? 'N/A',
                 description: 'setTimeout(0) mean latency (ms) in main window',
                 risk: 'N/A'
             };
+            metrics.setTimeoutMeanIframeRaw = {
+                value: setTimeoutIframeMean,
+                description: 'setTimeout(0) mean latency (ms) in iframe - raw',
+                risk: 'N/A'
+            };
             metrics.setTimeoutMeanIframe = {
-                value: results.timing.setTimeout?.iframe?.mean?.toFixed(2) ?? 'N/A',
+                value: setTimeoutIframeMean?.toFixed(2) ?? 'N/A',
                 description: 'setTimeout(0) mean latency (ms) in iframe',
                 risk: 'N/A'
             };
+            metrics.setTimeoutStddevTopRaw = {
+                value: setTimeoutTopStddev,
+                description: 'setTimeout(0) stddev latency (ms) in main window - raw',
+                risk: 'N/A'
+            };
+            metrics.setTimeoutStddevIframeRaw = {
+                value: setTimeoutIframeStddev,
+                description: 'setTimeout(0) stddev latency (ms) in iframe - raw',
+                risk: 'N/A'
+            };
 
-            // RAF cadence
+            // RAF cadence - raw values
+            const rafTopFPS = getRaw(results.timing.raf?.top?.estimatedFPS);
+            const rafIframeFPS = getRaw(results.timing.raf?.iframe?.estimatedFPS);
+            const rafTopStddev = getRaw(results.timing.raf?.top?.stddev);
+            const rafIframeStddev = getRaw(results.timing.raf?.iframe?.stddev);
+            const rafTopMean = getRaw(results.timing.raf?.top?.mean);
+            const rafIframeMean = getRaw(results.timing.raf?.iframe?.mean);
+
+            metrics.rafFPSTopRaw = {
+                value: rafTopFPS,
+                description: 'Estimated FPS from RAF cadence in main window - raw',
+                risk: 'N/A'
+            };
             metrics.rafFPSTop = {
-                value: results.timing.raf?.top?.estimatedFPS?.toFixed(1) ?? 'N/A',
+                value: rafTopFPS?.toFixed(1) ?? 'N/A',
                 description: 'Estimated FPS from RAF cadence in main window',
                 risk: 'N/A'
             };
+            metrics.rafFPSIframeRaw = {
+                value: rafIframeFPS,
+                description: 'Estimated FPS from RAF cadence in iframe - raw',
+                risk: 'N/A'
+            };
             metrics.rafFPSIframe = {
-                value: results.timing.raf?.iframe?.estimatedFPS?.toFixed(1) ?? 'N/A',
+                value: rafIframeFPS?.toFixed(1) ?? 'N/A',
                 description: 'Estimated FPS from RAF cadence in iframe',
                 risk: 'N/A'
             };
+            metrics.rafJitterTopRaw = {
+                value: rafTopStddev,
+                description: 'RAF frame time jitter (stddev ms) in main window - raw',
+                risk: 'N/A'
+            };
             metrics.rafJitterTop = {
-                value: results.timing.raf?.top?.stddev?.toFixed(2) ?? 'N/A',
+                value: rafTopStddev?.toFixed(2) ?? 'N/A',
                 description: 'RAF frame time jitter (stddev ms) in main window',
                 risk: 'N/A'
             };
+            metrics.rafJitterIframeRaw = {
+                value: rafIframeStddev,
+                description: 'RAF frame time jitter (stddev ms) in iframe - raw',
+                risk: 'N/A'
+            };
+            metrics.rafMeanTopRaw = {
+                value: rafTopMean,
+                description: 'RAF mean frame time (ms) in main window - raw',
+                risk: 'N/A'
+            };
+            metrics.rafMeanIframeRaw = {
+                value: rafIframeMean,
+                description: 'RAF mean frame time (ms) in iframe - raw',
+                risk: 'N/A'
+            };
 
-            // PostMessage latency
+            // PostMessage latency - raw values
+            const postMessageTopMean = getRaw(results.timing.postMessage?.top?.mean);
+            const postMessageTopStddev = getRaw(results.timing.postMessage?.top?.stddev);
+
+            metrics.postMessageMeanRaw = {
+                value: postMessageTopMean,
+                description: 'postMessage round-trip mean latency (ms) - raw',
+                risk: 'N/A'
+            };
             metrics.postMessageMean = {
-                value: results.timing.postMessage?.top?.mean?.toFixed(3) ?? 'N/A',
+                value: postMessageTopMean?.toFixed(3) ?? 'N/A',
                 description: 'postMessage round-trip mean latency (ms)',
+                risk: 'N/A'
+            };
+            metrics.postMessageStddevRaw = {
+                value: postMessageTopStddev,
+                description: 'postMessage round-trip stddev latency (ms) - raw',
+                risk: 'N/A'
+            };
+
+            // Store histograms for advanced analysis
+            metrics.perfNowHistogramTop = {
+                value: results.timing.performanceNow?.top?.histogram ?? [],
+                description: 'performance.now() jitter histogram (top)',
+                risk: 'N/A'
+            };
+            metrics.rafHistogramTop = {
+                value: results.timing.raf?.top?.histogram ?? [],
+                description: 'RAF cadence histogram (top)',
+                risk: 'N/A'
+            };
+            metrics.setTimeoutHistogramTop = {
+                value: results.timing.setTimeout?.top?.histogram ?? [],
+                description: 'setTimeout latency histogram (top)',
                 risk: 'N/A'
             };
         }
@@ -969,10 +1086,30 @@ export class IframeDetector {
                 description: 'Font metrics hash in main window',
                 risk: 'N/A'
             };
+            metrics.fontMetricsHashIframe = {
+                value: results.fonts.metricsHash?.iframe ?? 0,
+                description: 'Font metrics hash in iframe',
+                risk: 'N/A'
+            };
+            
+            // Subpixel diff - raw for analysis
+            const subpixelDiffVal = results.fonts.subpixelDiff;
+            metrics.subpixelDiffRaw = {
+                value: typeof subpixelDiffVal === 'number' ? subpixelDiffVal : null,
+                description: 'Subpixel width difference between contexts - raw',
+                risk: 'N/A'
+            };
             metrics.subpixelDiff = {
-                value: results.fonts.subpixelDiff?.toFixed(2) ?? 0,
+                value: typeof subpixelDiffVal === 'number' ? subpixelDiffVal.toFixed(2) : '0',
                 description: 'Subpixel width difference between contexts',
-                risk: (results.fonts.subpixelDiff || 0) > 1 ? 'Low' : 'N/A'
+                risk: (subpixelDiffVal || 0) > 1 ? 'Low' : 'N/A'
+            };
+            
+            // Store detected fonts list for analysis
+            metrics.detectedFonts = {
+                value: results.fonts.detectedFonts ?? [],
+                description: 'List of detected system fonts',
+                risk: 'N/A'
             };
         }
 
@@ -1013,11 +1150,27 @@ export class IframeDetector {
                     description: 'Properties that differ between main window and worker',
                     risk: results.worker.mismatches?.length > 0 ? 'High' : 'N/A'
                 };
+                
+                // Worker timing - raw values for analysis
+                const workerTimingMean = results.worker.workerData?.timingMean;
+                const workerTimingStddev = results.worker.workerData?.timingStddev;
+                
+                metrics.workerTimingMeanRaw = {
+                    value: typeof workerTimingMean === 'number' ? workerTimingMean : null,
+                    description: 'performance.now() mean step in worker - raw',
+                    risk: 'N/A'
+                };
                 metrics.workerTimingMean = {
-                    value: results.worker.workerData?.timingMean?.toFixed(4) ?? 'N/A',
+                    value: typeof workerTimingMean === 'number' ? workerTimingMean.toFixed(4) : 'N/A',
                     description: 'performance.now() mean step in worker',
                     risk: 'N/A'
                 };
+                metrics.workerTimingStddevRaw = {
+                    value: typeof workerTimingStddev === 'number' ? workerTimingStddev : null,
+                    description: 'performance.now() stddev step in worker - raw',
+                    risk: 'N/A'
+                };
+                
                 metrics.workerHasCryptoSubtle = {
                     value: results.worker.workerData?.hasCryptoSubtle ?? false,
                     description: 'Worker has crypto.subtle API',
