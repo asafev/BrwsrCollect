@@ -89,6 +89,113 @@ const TRANSFORM_MATRIX = [
 const CANVAS_TEXT_STRING = `Cwm fjordbank gly ${String.fromCharCode(55357, 56835)}`; // "Cwm fjordbank gly 😃"
 
 /**
+ * Alternative text string (more pangram chars, different emoji)
+ * Used by some implementations for additional variance detection
+ */
+const CANVAS_TEXT_STRING_ALT = 'Cwm fjordbank glyphs vext quiz, 😃';
+
+/**
+ * Hash raw pixel bytes using MD5
+ * More reliable than hashing dataURL which can vary due to encoding
+ * @param {Uint8ClampedArray} pixels - Raw RGBA pixel data from getImageData().data
+ * @returns {string} MD5 hash of pixel bytes
+ */
+function hashImageData(pixels) {
+    // Convert to string representation for MD5
+    // Using JSON-style format similar to WebGL image hash for consistency
+    const pixelStr = JSON.stringify(Array.from(pixels)).replace(/,?"[0-9]+":/g, '');
+    return md5(pixelStr);
+}
+
+/**
+ * Compute pixel diff statistics between two renders
+ * Detects farbling (small bounded deltas) vs environment rotation (large structural diffs)
+ * 
+ * @param {Uint8ClampedArray} pixels1 - First render pixel data
+ * @param {Uint8ClampedArray} pixels2 - Second render pixel data
+ * @returns {Object} Diff statistics
+ */
+function computePixelDiffStats(pixels1, pixels2) {
+    if (pixels1.length !== pixels2.length) {
+        return {
+            error: 'size-mismatch',
+            length1: pixels1.length,
+            length2: pixels2.length
+        };
+    }
+    
+    let diffPixelsCount = 0;
+    let totalAbsDiff = 0;
+    let maxAbsDiff = 0;
+    
+    // Distribution buckets for delta magnitudes (farbling detection)
+    // Farbling typically produces small bounded deltas (1-3)
+    const deltaBuckets = { 1: 0, 2: 0, 3: 0, 4: 0, '5+': 0 };
+    
+    // Track max per-channel deltas for analysis
+    let maxRDiff = 0, maxGDiff = 0, maxBDiff = 0, maxADiff = 0;
+    
+    // Process 4 bytes at a time (RGBA)
+    const pixelCount = pixels1.length / 4;
+    for (let i = 0; i < pixels1.length; i += 4) {
+        const rDiff = Math.abs(pixels1[i] - pixels2[i]);
+        const gDiff = Math.abs(pixels1[i + 1] - pixels2[i + 1]);
+        const bDiff = Math.abs(pixels1[i + 2] - pixels2[i + 2]);
+        const aDiff = Math.abs(pixels1[i + 3] - pixels2[i + 3]);
+        
+        const pixelDiff = rDiff + gDiff + bDiff; // Exclude alpha for main diff
+        
+        if (pixelDiff > 0 || aDiff > 0) {
+            diffPixelsCount++;
+            totalAbsDiff += pixelDiff;
+            
+            // Track max deltas
+            if (pixelDiff > maxAbsDiff) maxAbsDiff = pixelDiff;
+            if (rDiff > maxRDiff) maxRDiff = rDiff;
+            if (gDiff > maxGDiff) maxGDiff = gDiff;
+            if (bDiff > maxBDiff) maxBDiff = bDiff;
+            if (aDiff > maxADiff) maxADiff = aDiff;
+            
+            // Bucket the max channel delta for this pixel
+            const maxChannelDelta = Math.max(rDiff, gDiff, bDiff);
+            if (maxChannelDelta >= 5) deltaBuckets['5+']++;
+            else if (maxChannelDelta >= 1) deltaBuckets[maxChannelDelta]++;
+        }
+    }
+    
+    const meanAbsDiff = diffPixelsCount > 0 ? totalAbsDiff / diffPixelsCount : 0;
+    const diffRatio = diffPixelsCount / pixelCount;
+    
+    return {
+        diffPixelsCount,
+        totalPixels: pixelCount,
+        diffRatio: Math.round(diffRatio * 10000) / 10000, // 4 decimal places
+        meanAbsDiff: Math.round(meanAbsDiff * 100) / 100,
+        maxAbsDiff,
+        maxChannelDeltas: { r: maxRDiff, g: maxGDiff, b: maxBDiff, a: maxADiff },
+        deltaBuckets,
+        // Heuristics for detection type
+        isFarbling: diffPixelsCount > 0 && maxAbsDiff <= 12 && diffRatio > 0.01,
+        isEnvRotation: diffPixelsCount > 0 && (maxAbsDiff > 12 || diffRatio < 0.01)
+    };
+}
+
+/**
+ * Simple shift-subtract hash (used by some implementations)
+ * Fast integer hash, less collision-resistant than MD5
+ * @param {string} str - String to hash
+ * @returns {number} 32-bit integer hash
+ */
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash = hash | 0; // Convert to 32-bit integer
+    }
+    return hash;
+}
+
+/**
  * Simple MD5 implementation (no external dependencies)
  * Based on the RSA Data Security, Inc. MD5 Message-Digest Algorithm
  */
@@ -411,20 +518,21 @@ class WebGLFingerprintDetector {
     }
 
     /**
-     * Collect Canvas 2D fingerprint with improved stability detection
-     * Based on FingerprintJS approach - renders text and geometry to detect
-     * rendering differences across browsers, OSes, and GPU configurations.
+     * Collect Canvas 2D fingerprint with comprehensive stability and pixel-level analysis
      * 
-     * Two separate images are generated:
-     * 1. Text image - affected by font rendering, anti-aliasing, emoji support
-     * 2. Geometry image - affected by canvas blending modes, arc rendering
+     * Implements multiple collection methods:
+     * 1. toDataURL hashing (standard approach)
+     * 2. getImageData pixel hashing (more reliable, bypasses some hooks)
+     * 3. Pixel diff statistics (detects farbling vs environment rotation)
+     * 4. Cross-method stability comparison (detects selective API hooks)
      * 
-     * Key stability improvements:
-     * - Re-renders text image (not just double toDataURL) to detect noise injection
-     * - Proper canvas state management with explicit clearing via resize
-     * - Explicit context property initialization before drawing
+     * Key improvements:
+     * - Re-renders for stability check (not just double toDataURL)
+     * - Pixel-level diff stats: diffPixelsCount, meanAbsDiff, maxAbsDiff, deltaBuckets
+     * - Separate stability flags for toDataURL vs getImageData
+     * - Hook detection heuristics
      * 
-     * @returns {Promise<Object>} Canvas 2D fingerprint data
+     * @returns {Promise<Object>} Canvas 2D fingerprint data with pixel analysis
      */
     async collectCanvas2DFingerprint() {
         const startTime = performance.now();
@@ -441,44 +549,84 @@ class WebGLFingerprintDetector {
                 };
             }
             
-            // Check winding support (canvas path winding rules)
+            // Check winding support
             const winding = this._checkWindingSupport(context);
             
-            // === IMPROVED STABILITY CHECK ===
-            // Render text image TWICE with fresh canvas state each time
-            // Re-rendering (not just double toDataURL) properly detects noise injection
-            // Some browsers cache toDataURL or have timing issues with double calls
-            this._renderCanvas2DTextImage(canvas, context);
-            const textImage1 = canvas.toDataURL();
+            // === TEXT FINGERPRINT WITH FULL ANALYSIS ===
+            const textAnalysis = this._collectCanvasRenderAnalysis(
+                canvas, context, 
+                (c, ctx) => this._renderCanvas2DTextImage(c, ctx),
+                'text'
+            );
             
-            // Re-render the same content (canvas resize in render method clears it)
-            this._renderCanvas2DTextImage(canvas, context);
-            const textImage2 = canvas.toDataURL();
+            // === GEOMETRY FINGERPRINT WITH FULL ANALYSIS ===
+            const geometryAnalysis = this._collectCanvasRenderAnalysis(
+                canvas, context,
+                (c, ctx) => this._renderCanvas2DGeometryImage(c, ctx),
+                'geometry'
+            );
             
-            // Compare - if different, browser is adding noise (Safari 17+ privacy mode)
-            const textStable = textImage1 === textImage2;
+            // === HOOK DETECTION HEURISTICS ===
+            const hookAnalysis = this._analyzeHookPatterns(textAnalysis, geometryAnalysis);
             
-            // === GEOMETRY IMAGE ===
-            // Render geometry (canvas resize in render method clears previous content)
-            this._renderCanvas2DGeometryImage(canvas, context);
-            const geometryImage = canvas.toDataURL();
+            // === COMBINED HASHES ===
+            // Use imageData hash as primary (more reliable)
+            const textHash = textAnalysis.imageDataStable 
+                ? textAnalysis.imageDataHash1 
+                : (textAnalysis.dataUrlStable ? textAnalysis.dataUrlHash1 : 'unstable');
+            const geometryHash = geometryAnalysis.imageDataStable
+                ? geometryAnalysis.imageDataHash1
+                : (geometryAnalysis.dataUrlStable ? geometryAnalysis.dataUrlHash1 : 'unstable');
             
-            // Generate hashes
-            const textHash = textStable ? md5(textImage1) : 'unstable';
-            const geometryHash = md5(geometryImage);
-            
-            // Combined fingerprint hash
             const combinedHash = md5(`${textHash}|${geometryHash}|${winding}`);
             
             return {
                 supported: true,
                 winding,
-                textStable,
-                textHash,
-                textImage: textStable ? textImage1 : null,
-                geometryHash,
-                geometryImage,
+                
+                // Text fingerprint
+                text: {
+                    // Hashes from both methods
+                    dataUrlHash: textAnalysis.dataUrlHash1,
+                    imageDataHash: textAnalysis.imageDataHash1,
+                    simpleHash: textAnalysis.simpleHash1,
+                    
+                    // Stability flags
+                    dataUrlStable: textAnalysis.dataUrlStable,
+                    imageDataStable: textAnalysis.imageDataStable,
+                    
+                    // Pixel diff stats (only if unstable)
+                    pixelDiff: textAnalysis.pixelDiff,
+                    
+                    // Data URL for visual inspection (if stable)
+                    dataUrl: textAnalysis.dataUrlStable ? textAnalysis.dataUrl1 : null
+                },
+                
+                // Geometry fingerprint
+                geometry: {
+                    dataUrlHash: geometryAnalysis.dataUrlHash1,
+                    imageDataHash: geometryAnalysis.imageDataHash1,
+                    simpleHash: geometryAnalysis.simpleHash1,
+                    
+                    dataUrlStable: geometryAnalysis.dataUrlStable,
+                    imageDataStable: geometryAnalysis.imageDataStable,
+                    
+                    pixelDiff: geometryAnalysis.pixelDiff,
+                    
+                    dataUrl: geometryAnalysis.dataUrlStable ? geometryAnalysis.dataUrl1 : null
+                },
+                
+                // Hook detection
+                hooks: hookAnalysis,
+                
+                // Legacy compatibility fields
+                textStable: textAnalysis.dataUrlStable && textAnalysis.imageDataStable,
+                textHash: textHash,
+                textImage: textAnalysis.dataUrlStable ? textAnalysis.dataUrl1 : null,
+                geometryHash: geometryHash,
+                geometryImage: geometryAnalysis.dataUrlStable ? geometryAnalysis.dataUrl1 : null,
                 combinedHash,
+                
                 timing: {
                     totalMs: Math.round(performance.now() - startTime)
                 }
@@ -494,12 +642,158 @@ class WebGLFingerprintDetector {
     }
     
     /**
+     * Collect comprehensive render analysis for a canvas operation
+     * Renders twice, collects both toDataURL and getImageData, computes diff stats
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     * @param {Function} renderFn - Function that renders to canvas
+     * @param {string} label - Label for debugging
+     * @returns {Object} Complete analysis including hashes, stability, and diff stats
+     */
+    _collectCanvasRenderAnalysis(canvas, context, renderFn, label) {
+        // === FIRST RENDER ===
+        renderFn(canvas, context);
+        
+        // Force synchronous flush before reading pixels
+        // Some browsers have async GPU operations that can cause false instability
+        // Reading toDataURL first ensures the canvas is fully rendered
+        const dataUrl1 = canvas.toDataURL();
+        
+        // Now read pixel data (after toDataURL has forced a flush)
+        const imageData1 = context.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels1 = new Uint8ClampedArray(imageData1.data); // Clone for comparison
+        
+        const dataUrlHash1 = md5(dataUrl1);
+        const imageDataHash1 = hashImageData(imageData1.data);
+        const simpleHash1 = simpleHash(dataUrl1);
+        
+        // === SECOND RENDER (fresh state via renderFn which resizes canvas) ===
+        renderFn(canvas, context);
+        
+        // Same order: toDataURL first to force flush, then getImageData
+        const dataUrl2 = canvas.toDataURL();
+        const imageData2 = context.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels2 = imageData2.data;
+        
+        const dataUrlHash2 = md5(dataUrl2);
+        const imageDataHash2 = hashImageData(pixels2);
+        
+        // === STABILITY CHECKS ===
+        const dataUrlStable = dataUrl1 === dataUrl2;
+        const imageDataStable = imageDataHash1 === imageDataHash2;
+        
+        // === PIXEL DIFF STATS (even if hashes match, for research) ===
+        const pixelDiff = computePixelDiffStats(pixels1, pixels2);
+        
+        // === CROSS-METHOD CONSISTENCY ===
+        // If one is stable but not the other, something is hooking selectively
+        const methodsConsistent = dataUrlStable === imageDataStable;
+        
+        return {
+            dataUrl1,
+            dataUrlHash1,
+            dataUrlHash2,
+            dataUrlStable,
+            
+            imageDataHash1,
+            imageDataHash2,
+            imageDataStable,
+            
+            simpleHash1,
+            
+            pixelDiff,
+            methodsConsistent,
+            
+            // Canvas dimensions for reference
+            width: canvas.width,
+            height: canvas.height,
+            
+            // Debug info: first few pixels from each render (for troubleshooting)
+            _debug: {
+                pixels1Sample: Array.from(pixels1.slice(0, 20)),
+                pixels2Sample: Array.from(pixels2.slice(0, 20)),
+                dataUrlLengths: [dataUrl1.length, dataUrl2.length]
+            }
+        };
+    }
+    
+    /**
+     * Analyze patterns that suggest API hooking
+     * 
+     * Detection logic:
+     * - toDataURL stable but imageData unstable: toDataURL is hooked/cached
+     * - imageData stable but toDataURL unstable: getImageData is hooked/cached
+     * - Both unstable with different patterns: complex spoofing
+     * - Farbling pattern (small bounded deltas): noise injection
+     * - Large structural diffs: environment rotation
+     * 
+     * @private
+     * @param {Object} textAnalysis
+     * @param {Object} geometryAnalysis
+     * @returns {Object} Hook detection results
+     */
+    _analyzeHookPatterns(textAnalysis, geometryAnalysis) {
+        const result = {
+            // Per-API hook detection
+            getImageDataPatched: false,
+            
+            // Pattern detection
+            farblingDetected: false,
+            envRotationDetected: false,
+            
+            // Confidence and details
+            confidence: 'none',
+            details: []
+        };
+        
+        // Check text analysis
+        if (!textAnalysis.dataUrlStable && textAnalysis.imageDataStable) {
+            result.getImageDataPatched = true;
+            result.details.push('text: getImageData stable but toDataURL differs');
+        }
+        
+        // Check geometry analysis
+        if (!geometryAnalysis.dataUrlStable && geometryAnalysis.imageDataStable) {
+            result.getImageDataPatched = true;
+            result.details.push('geometry: getImageData stable but toDataURL differs');
+        }
+        
+        // Check for farbling patterns
+        if (textAnalysis.pixelDiff?.isFarbling || geometryAnalysis.pixelDiff?.isFarbling) {
+            result.farblingDetected = true;
+            result.details.push('farbling pattern detected (small bounded deltas)');
+        }
+        
+        // Check for environment rotation
+        if (textAnalysis.pixelDiff?.isEnvRotation || geometryAnalysis.pixelDiff?.isEnvRotation) {
+            result.envRotationDetected = true;
+            result.details.push('environment rotation pattern (large structural diffs)');
+        }
+        
+        // Determine confidence
+        if (result.getImageDataPatched) {
+            result.confidence = 'high';
+        } else if (result.farblingDetected || result.envRotationDetected) {
+            result.confidence = 'medium';
+        } else if (!textAnalysis.methodsConsistent || !geometryAnalysis.methodsConsistent) {
+            result.confidence = 'low';
+            result.details.push('method consistency mismatch');
+        }
+        
+        return result;
+    }
+    
+    /**
      * Check canvas winding rule support
      * @private
      * @see https://web.archive.org/web/20170825024655/http://blogs.adobe.com/webplatform/2013/01/30/winding-rules-in-canvas/
      */
     _checkWindingSupport(context) {
         try {
+            // Need fresh path for winding test
+            context.beginPath();
             context.rect(0, 0, 10, 10);
             context.rect(2, 2, 6, 6);
             return !context.isPointInPath(5, 5, 'evenodd');
@@ -509,7 +803,7 @@ class WebGLFingerprintDetector {
     }
     
     /**
-     * Render Canvas 2D text fingerprint image
+     * Render Canvas 2D text fingerprint image (Method A - FingerprintJS style)
      * Uses specific fonts, colors, and emoji to maximize cross-platform variance
      * 
      * Key stability practices:
@@ -546,7 +840,39 @@ class WebGLFingerprintDetector {
     }
     
     /**
-     * Render Canvas 2D geometry fingerprint image
+     * Render Canvas 2D text fingerprint image (Method B - Alternative style)
+     * Uses different positioning and opacity for additional variance detection
+     * Includes overlapping text with transparency for blending detection
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     */
+    _renderCanvas2DTextImageAlt(canvas, context) {
+        // Larger canvas for more rendering area
+        canvas.width = 280;
+        canvas.height = 60;
+        
+        // Different baseline approach
+        context.textBaseline = 'top';
+        context.font = '14px Arial';
+        context.textBaseline = 'alphabetic';
+        
+        // Orange rectangle at different position
+        context.fillStyle = '#f60';
+        context.fillRect(125, 1, 62, 20);
+        
+        // Blue text with extended pangram
+        context.fillStyle = '#069';
+        context.fillText(CANVAS_TEXT_STRING_ALT, 2, 15);
+        
+        // Semi-transparent overlay (higher opacity for blend detection)
+        context.fillStyle = 'rgba(102, 204, 0, 0.7)';
+        context.fillText(CANVAS_TEXT_STRING_ALT, 4, 17);
+    }
+    
+    /**
+     * Render Canvas 2D geometry fingerprint image (Method A - FingerprintJS style)
      * Uses blending modes and winding rules to detect GPU/driver differences
      * 
      * Key stability practices:
@@ -562,6 +888,9 @@ class WebGLFingerprintDetector {
         // CRITICAL: Resize canvas first (clears previous content completely)
         canvas.width = 122;
         canvas.height = 110;
+        
+        // Reset composite operation for clean state
+        context.globalCompositeOperation = 'source-over';
         
         // Set blending mode BEFORE any drawing operations
         // Different GPUs/drivers compute blending slightly differently
@@ -589,6 +918,108 @@ class WebGLFingerprintDetector {
         context.arc(60, 60, 60, 0, Math.PI * 2, true);
         context.arc(60, 60, 20, 0, Math.PI * 2, true);
         context.fill('evenodd');
+    }
+    
+    /**
+     * Render Canvas 2D geometry fingerprint image (Method B - Alternative style)
+     * Uses different circle positions and RGB colors for additional variance
+     * Matches approach used by some bot detection systems
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     */
+    _renderCanvas2DGeometryImageAlt(canvas, context) {
+        // Different canvas dimensions
+        canvas.width = 200;
+        canvas.height = 150;
+        
+        // Reset and set composite operation
+        context.globalCompositeOperation = 'source-over';
+        context.globalCompositeOperation = 'multiply';
+        
+        // RGB circles at different positions
+        const circles = [
+            ['rgb(255,0,255)', 50, 50],  // Magenta
+            ['rgb(0,255,255)', 100, 50], // Cyan
+            ['rgb(255,255,0)', 75, 100]  // Yellow
+        ];
+        
+        for (const [color, x, y] of circles) {
+            context.fillStyle = color;
+            context.beginPath();
+            context.arc(x, y, 50, 0, Math.PI * 2, true);
+            context.closePath();
+            context.fill();
+        }
+    }
+    
+    /**
+     * Collect Canvas 2D fingerprint using alternative rendering methods
+     * Provides additional data points for cross-method comparison
+     * 
+     * @returns {Promise<Object>} Alternative Canvas 2D fingerprint data
+     */
+    async collectCanvas2DFingerprintAlt() {
+        const startTime = performance.now();
+        
+        try {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (!context) {
+                return {
+                    supported: false,
+                    error: 'canvas-2d-unsupported',
+                    timing: { totalMs: Math.round(performance.now() - startTime) }
+                };
+            }
+            
+            // Use alternative rendering methods
+            const textAnalysis = this._collectCanvasRenderAnalysis(
+                canvas, context,
+                (c, ctx) => this._renderCanvas2DTextImageAlt(c, ctx),
+                'text-alt'
+            );
+            
+            const geometryAnalysis = this._collectCanvasRenderAnalysis(
+                canvas, context,
+                (c, ctx) => this._renderCanvas2DGeometryImageAlt(c, ctx),
+                'geometry-alt'
+            );
+            
+            return {
+                supported: true,
+                method: 'alternative',
+                
+                text: {
+                    dataUrlHash: textAnalysis.dataUrlHash1,
+                    imageDataHash: textAnalysis.imageDataHash1,
+                    dataUrlStable: textAnalysis.dataUrlStable,
+                    imageDataStable: textAnalysis.imageDataStable,
+                    pixelDiff: textAnalysis.pixelDiff
+                },
+                
+                geometry: {
+                    dataUrlHash: geometryAnalysis.dataUrlHash1,
+                    imageDataHash: geometryAnalysis.imageDataHash1,
+                    dataUrlStable: geometryAnalysis.dataUrlStable,
+                    imageDataStable: geometryAnalysis.imageDataStable,
+                    pixelDiff: geometryAnalysis.pixelDiff
+                },
+                
+                timing: {
+                    totalMs: Math.round(performance.now() - startTime)
+                }
+            };
+            
+        } catch (error) {
+            return {
+                supported: false,
+                error: error.message || 'canvas-2d-alt-error',
+                timing: { totalMs: Math.round(performance.now() - startTime) }
+            };
+        }
     }
 
     /**
@@ -1388,47 +1819,172 @@ class WebGLFingerprintDetector {
                     risk: 'NONE'
                 };
                 
-                metrics.canvas2dTextStable = {
-                    value: c2d.textStable,
-                    description: 'Canvas text rendering stability (no noise injection)',
-                    risk: c2d.textStable ? 'NONE' : 'LOW'
-                };
+                // === Text Fingerprint Metrics ===
+                if (c2d.text) {
+                    metrics.canvas2dTextDataUrlHash = {
+                        value: c2d.text.dataUrlHash,
+                        description: 'MD5 hash of Canvas 2D text (toDataURL)',
+                        risk: 'NONE'
+                    };
+                    
+                    metrics.canvas2dTextImageDataHash = {
+                        value: c2d.text.imageDataHash,
+                        description: 'MD5 hash of Canvas 2D text (getImageData pixels)',
+                        risk: 'NONE'
+                    };
+                    
+                    metrics.canvas2dTextDataUrlStable = {
+                        value: c2d.text.dataUrlStable,
+                        description: 'Canvas text toDataURL stability across renders',
+                        risk: c2d.text.dataUrlStable ? 'NONE' : 'LOW'
+                    };
+                    
+                    metrics.canvas2dTextImageDataStable = {
+                        value: c2d.text.imageDataStable,
+                        description: 'Canvas text getImageData stability across renders',
+                        risk: c2d.text.imageDataStable ? 'NONE' : 'LOW'
+                    };
+                    
+                    // Pixel diff stats for text
+                    if (c2d.text.pixelDiff && c2d.text.pixelDiff.diffPixelsCount > 0) {
+                        metrics.canvas2dTextDiffPixels = {
+                            value: c2d.text.pixelDiff.diffPixelsCount,
+                            description: 'Number of differing pixels in text render',
+                            risk: 'LOW'
+                        };
+                        
+                        metrics.canvas2dTextMeanAbsDiff = {
+                            value: c2d.text.pixelDiff.meanAbsDiff,
+                            description: 'Mean absolute pixel diff (text)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dTextMaxAbsDiff = {
+                            value: c2d.text.pixelDiff.maxAbsDiff,
+                            description: 'Max absolute pixel diff (text)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dTextDeltaBuckets = {
+                            value: JSON.stringify(c2d.text.pixelDiff.deltaBuckets),
+                            description: 'Delta distribution buckets (text) - farbling detection',
+                            risk: 'NONE'
+                        };
+                    }
+                    
+                    if (c2d.text.dataUrl) {
+                        metrics.canvas2dTextImage = {
+                            value: c2d.text.dataUrl,
+                            description: 'Canvas 2D text fingerprint image (data URL)',
+                            risk: 'NONE'
+                        };
+                    }
+                }
                 
-                metrics.canvas2dTextHash = {
-                    value: c2d.textHash,
-                    description: 'MD5 hash of Canvas 2D text rendering',
-                    risk: 'NONE'
-                };
+                // === Geometry Fingerprint Metrics ===
+                if (c2d.geometry) {
+                    metrics.canvas2dGeometryDataUrlHash = {
+                        value: c2d.geometry.dataUrlHash,
+                        description: 'MD5 hash of Canvas 2D geometry (toDataURL)',
+                        risk: 'NONE'
+                    };
+                    
+                    metrics.canvas2dGeometryImageDataHash = {
+                        value: c2d.geometry.imageDataHash,
+                        description: 'MD5 hash of Canvas 2D geometry (getImageData pixels)',
+                        risk: 'NONE'
+                    };
+                    
+                    metrics.canvas2dGeometryDataUrlStable = {
+                        value: c2d.geometry.dataUrlStable,
+                        description: 'Canvas geometry toDataURL stability across renders',
+                        risk: c2d.geometry.dataUrlStable ? 'NONE' : 'LOW'
+                    };
+                    
+                    metrics.canvas2dGeometryImageDataStable = {
+                        value: c2d.geometry.imageDataStable,
+                        description: 'Canvas geometry getImageData stability across renders',
+                        risk: c2d.geometry.imageDataStable ? 'NONE' : 'LOW'
+                    };
+                    
+                    // Pixel diff stats for geometry
+                    if (c2d.geometry.pixelDiff && c2d.geometry.pixelDiff.diffPixelsCount > 0) {
+                        metrics.canvas2dGeometryDiffPixels = {
+                            value: c2d.geometry.pixelDiff.diffPixelsCount,
+                            description: 'Number of differing pixels in geometry render',
+                            risk: 'LOW'
+                        };
+                        
+                        metrics.canvas2dGeometryMeanAbsDiff = {
+                            value: c2d.geometry.pixelDiff.meanAbsDiff,
+                            description: 'Mean absolute pixel diff (geometry)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dGeometryMaxAbsDiff = {
+                            value: c2d.geometry.pixelDiff.maxAbsDiff,
+                            description: 'Max absolute pixel diff (geometry)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dGeometryDeltaBuckets = {
+                            value: JSON.stringify(c2d.geometry.pixelDiff.deltaBuckets),
+                            description: 'Delta distribution buckets (geometry) - farbling detection',
+                            risk: 'NONE'
+                        };
+                    }
+                    
+                    if (c2d.geometry.dataUrl) {
+                        metrics.canvas2dGeometryImage = {
+                            value: c2d.geometry.dataUrl,
+                            description: 'Canvas 2D geometry fingerprint image (data URL)',
+                            risk: 'NONE'
+                        };
+                    }
+                }
                 
-                metrics.canvas2dGeometryHash = {
-                    value: c2d.geometryHash,
-                    description: 'MD5 hash of Canvas 2D geometry rendering (blending/winding)',
-                    risk: 'NONE'
-                };
+                // === Hook Detection Metrics ===
+                if (c2d.hooks) {
+                    metrics.canvas2dGetImageDataPatched = {
+                        value: c2d.hooks.getImageDataPatched,
+                        description: 'getImageData appears to be hooked/patched',
+                        risk: c2d.hooks.getImageDataPatched ? 'MEDIUM' : 'NONE'
+                    };
+                    
+                    metrics.canvas2dFarblingDetected = {
+                        value: c2d.hooks.farblingDetected,
+                        description: 'Farbling pattern detected (small bounded noise)',
+                        risk: c2d.hooks.farblingDetected ? 'LOW' : 'NONE'
+                    };
+                    
+                    metrics.canvas2dEnvRotationDetected = {
+                        value: c2d.hooks.envRotationDetected,
+                        description: 'Environment rotation pattern detected',
+                        risk: c2d.hooks.envRotationDetected ? 'LOW' : 'NONE'
+                    };
+                    
+                    if (c2d.hooks.details && c2d.hooks.details.length > 0) {
+                        metrics.canvas2dHookDetails = {
+                            value: c2d.hooks.details.join('; '),
+                            description: 'Hook detection details',
+                            risk: 'NONE'
+                        };
+                    }
+                }
                 
+                // === Legacy Combined Hash ===
                 metrics.canvas2dCombinedHash = {
                     value: c2d.combinedHash,
                     description: 'Combined Canvas 2D fingerprint hash',
                     risk: 'NONE'
                 };
                 
-                // Include geometry image for visual inspection
-                if (c2d.geometryImage) {
-                    metrics.canvas2dGeometryImage = {
-                        value: c2d.geometryImage,
-                        description: 'Canvas 2D geometry fingerprint image (data URL)',
-                        risk: 'NONE'
-                    };
-                }
-                
-                // Include text image if stable
-                if (c2d.textImage) {
-                    metrics.canvas2dTextImage = {
-                        value: c2d.textImage,
-                        description: 'Canvas 2D text fingerprint image (data URL)',
-                        risk: 'NONE'
-                    };
-                }
+                // Legacy stability flag
+                metrics.canvas2dTextStable = {
+                    value: c2d.textStable,
+                    description: 'Canvas text rendering overall stability',
+                    risk: c2d.textStable ? 'NONE' : 'LOW'
+                };
                 
                 if (c2d.timing) {
                     metrics.canvas2dCollectionTimeMs = {
@@ -1573,7 +2129,7 @@ class WebGLFingerprintDetector {
                 });
             }
             
-            // Text rendering unstable (noise injection detected - Safari 17+ privacy mode)
+            // Text rendering unstable (noise injection detected)
             if (c2d.supported && !c2d.textStable) {
                 this.suspiciousIndicators.push({
                     name: 'canvas2d_noise_detected',
@@ -1584,6 +2140,79 @@ class WebGLFingerprintDetector {
                     importance: 'WEAK',
                     value: 'text rendering unstable'
                 });
+            }
+            
+            // Hook detection indicators
+            if (c2d.hooks) {
+                if (c2d.hooks.getImageDataPatched) {
+                    this.suspiciousIndicators.push({
+                        name: 'canvas2d_getImageData_hooked',
+                        category: 'Canvas2D',
+                        description: 'getImageData appears to be hooked (stable but toDataURL differs)',
+                        riskLevel: 'MEDIUM',
+                        confidence: 0.85,
+                        importance: 'STRONG',
+                        value: c2d.hooks.details.join('; ')
+                    });
+                }
+                
+                if (c2d.hooks.farblingDetected) {
+                    this.suspiciousIndicators.push({
+                        name: 'canvas2d_farbling',
+                        category: 'Canvas2D',
+                        description: 'Farbling pattern detected - small bounded pixel noise (privacy mode)',
+                        riskLevel: 'LOW',
+                        confidence: 0.75,
+                        importance: 'WEAK',
+                        value: 'bounded noise injection'
+                    });
+                }
+                
+                if (c2d.hooks.envRotationDetected) {
+                    this.suspiciousIndicators.push({
+                        name: 'canvas2d_env_rotation',
+                        category: 'Canvas2D',
+                        description: 'Environment rotation pattern - large structural diffs between renders',
+                        riskLevel: 'LOW',
+                        confidence: 0.6,
+                        importance: 'WEAK',
+                        value: 'session-based fingerprint rotation'
+                    });
+                }
+            }
+            
+            // Specific pixel diff patterns
+            if (c2d.text?.pixelDiff) {
+                const pd = c2d.text.pixelDiff;
+                
+                // High diff ratio with bounded deltas = farbling
+                if (pd.diffRatio > 0.1 && pd.maxAbsDiff <= 6) {
+                    this.suspiciousIndicators.push({
+                        name: 'canvas2d_text_bounded_noise',
+                        category: 'Canvas2D',
+                        description: `Text canvas: ${Math.round(pd.diffRatio * 100)}% pixels differ with max delta ${pd.maxAbsDiff}`,
+                        riskLevel: 'LOW',
+                        confidence: 0.7,
+                        importance: 'WEAK',
+                        value: `diffRatio=${pd.diffRatio}, maxDelta=${pd.maxAbsDiff}`
+                    });
+                }
+            }
+            
+            if (c2d.geometry?.pixelDiff) {
+                const pd = c2d.geometry.pixelDiff;
+                
+                if (pd.diffRatio > 0.1 && pd.maxAbsDiff <= 6) {
+                    this.suspiciousIndicators.push({
+                        name: 'canvas2d_geometry_bounded_noise',
+                        category: 'Canvas2D',
+                        description: `Geometry canvas: ${Math.round(pd.diffRatio * 100)}% pixels differ with max delta ${pd.maxAbsDiff}`,
+                        riskLevel: 'LOW',
+                        confidence: 0.7,
+                        importance: 'WEAK',
+                        value: `diffRatio=${pd.diffRatio}, maxDelta=${pd.maxAbsDiff}`
+                    });
+                }
             }
         }
     }
