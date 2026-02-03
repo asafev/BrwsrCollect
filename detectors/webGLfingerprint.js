@@ -82,6 +82,12 @@ const TRANSFORM_MATRIX = [
 ];
 
 /**
+ * Constant for 2*PI to avoid floating-point computation variance across JS engines
+ * Using an explicit constant instead of Math.PI * 2 ensures identical values everywhere
+ */
+const TWO_PI = 6.283185307179586;
+
+/**
  * Canvas 2D Text for fingerprinting
  * Uses a specific string with emoji that renders differently across browsers/OSes
  * The 😃 emoji (U+1F603) is chosen for stability and cross-platform variance
@@ -105,6 +111,103 @@ function hashImageData(pixels) {
     // Using JSON-style format similar to WebGL image hash for consistency
     const pixelStr = JSON.stringify(Array.from(pixels)).replace(/,?"[0-9]+":/g, '');
     return md5(pixelStr);
+}
+
+/**
+ * Multi-level hash for image data with noise reduction capabilities
+ * 
+ * Produces multiple hash variants at different sensitivity levels:
+ * - full: Maximum sensitivity - detects any pixel difference (current behavior)
+ * - quantized6bit: Reduces noise by keeping only 6 most significant bits per channel
+ * - structural: Shape-only hash based on alpha threshold (highly stable)
+ * - colorRegion: Color distribution hash - counts pixels per quantized color bucket
+ * 
+ * Use cases:
+ * - full: Standard fingerprinting, maximum entropy
+ * - quantized6bit: Reduces GPU anti-aliasing variance while preserving fingerprint
+ * - structural: Detects major rendering engine differences only
+ * - colorRegion: Stable across minor rendering variations, good for VM detection
+ * 
+ * @param {Uint8ClampedArray} pixels - Raw RGBA pixel data from getImageData().data
+ * @param {Object} options - Hashing options
+ * @param {number} [options.quantizeBits=6] - Bits to keep per channel for quantized hash (1-8)
+ * @param {number} [options.alphaThreshold=128] - Alpha threshold for structural hash (0-255)
+ * @param {number} [options.colorBucketBits=4] - Bits per channel for color bucketing (1-8)
+ * @returns {Object} Object containing multiple hash variants
+ */
+function hashImageDataMultiLevel(pixels, options = {}) {
+    const {
+        quantizeBits = 6,
+        alphaThreshold = 128,
+        colorBucketBits = 4
+    } = options;
+    
+    // ============================================================
+    // HASH 1: Full precision (current behavior - maximum sensitivity)
+    // ============================================================
+    const fullPixelStr = JSON.stringify(Array.from(pixels)).replace(/,?"[0-9]+":/g, '');
+    const full = md5(fullPixelStr);
+    
+    // ============================================================
+    // HASH 2: Quantized hash (reduces LSB noise from GPU differences)
+    // Shift right to remove least significant bits, preserving structure
+    // Example: 6-bit keeps values like 252, 248, 244... instead of 255, 254, 253...
+    // ============================================================
+    const shift = 8 - quantizeBits;
+    const quantizedPixels = new Uint8Array(pixels.length);
+    for (let i = 0; i < pixels.length; i++) {
+        // Right-shift removes LSBs, left-shift restores scale
+        quantizedPixels[i] = (pixels[i] >> shift) << shift;
+    }
+    const quantizedPixelStr = JSON.stringify(Array.from(quantizedPixels)).replace(/,?"[0-9]+":/g, '');
+    const quantized = md5(quantizedPixelStr);
+    
+    // ============================================================
+    // HASH 3: Structural hash (shape only - alpha channel based)
+    // Creates a binary mask: 1 if pixel is "visible" (alpha > threshold), 0 otherwise
+    // Highly stable across color variations, detects only shape differences
+    // ============================================================
+    let structuralStr = '';
+    for (let i = 3; i < pixels.length; i += 4) {
+        structuralStr += pixels[i] > alphaThreshold ? '1' : '0';
+    }
+    const structural = md5(structuralStr);
+    
+    // ============================================================
+    // HASH 4: Color region hash (quantized color distribution)
+    // Counts pixels per color bucket, then hashes the distribution
+    // Very stable - ignores individual pixel positions, captures overall color makeup
+    // Good for detecting canvas spoofing that preserves color distribution
+    // ============================================================
+    const colorShift = 8 - colorBucketBits;
+    const colorBuckets = new Map();
+    
+    for (let i = 0; i < pixels.length; i += 4) {
+        // Skip nearly transparent pixels
+        if (pixels[i + 3] < 32) continue;
+        
+        // Quantize each channel to reduce color space
+        const r = pixels[i] >> colorShift;
+        const g = pixels[i + 1] >> colorShift;
+        const b = pixels[i + 2] >> colorShift;
+        const key = `${r},${g},${b}`;
+        
+        colorBuckets.set(key, (colorBuckets.get(key) || 0) + 1);
+    }
+    
+    // Sort buckets by key for deterministic output
+    const colorHashInput = Array.from(colorBuckets.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([k, v]) => `${k}:${v}`)
+        .join('|');
+    const colorRegion = md5(colorHashInput);
+    
+    return {
+        full,           // Maximum sensitivity (current behavior)
+        quantized,      // Reduced noise (configurable bits, default 6)
+        structural,     // Shape only (binary alpha mask)
+        colorRegion     // Color distribution (position-independent)
+    };
 }
 
 /**
@@ -559,11 +662,23 @@ class WebGLFingerprintDetector {
                 'text'
             );
             
-            // === GEOMETRY FINGERPRINT WITH FULL ANALYSIS ===
+            // === GEOMETRY FINGERPRINT WITH FULL ANALYSIS (Original Method) ===
             const geometryAnalysis = this._collectCanvasRenderAnalysis(
                 canvas, context,
                 (c, ctx) => this._renderCanvas2DGeometryImage(c, ctx),
                 'geometry'
+            );
+            
+            // === GEOMETRY FINGERPRINT ENHANCED (New Improved Method) ===
+            // Uses improved stability techniques:
+            // - Explicit context state reset
+            // - Constant TWO_PI instead of Math.PI * 2
+            // - Clockwise winding for consistency
+            // - Multi-level hashing for noise reduction
+            const geometryEnhancedAnalysis = this._collectCanvasRenderAnalysisEnhanced(
+                canvas, context,
+                (c, ctx) => this._renderCanvas2DGeometryImageEnhanced(c, ctx),
+                'geometry-enhanced'
             );
             
             // === HOOK DETECTION HEURISTICS ===
@@ -602,7 +717,7 @@ class WebGLFingerprintDetector {
                     dataUrl: textAnalysis.dataUrlStable ? textAnalysis.dataUrl1 : null
                 },
                 
-                // Geometry fingerprint
+                // Geometry fingerprint (Original method)
                 geometry: {
                     dataUrlHash: geometryAnalysis.dataUrlHash1,
                     imageDataHash: geometryAnalysis.imageDataHash1,
@@ -614,6 +729,32 @@ class WebGLFingerprintDetector {
                     pixelDiff: geometryAnalysis.pixelDiff,
                     
                     dataUrl: geometryAnalysis.dataUrlStable ? geometryAnalysis.dataUrl1 : null
+                },
+                
+                // Geometry fingerprint (Enhanced method with multi-level hashing)
+                geometryEnhanced: {
+                    // Multi-level hashes for different sensitivity levels
+                    hashes: geometryEnhancedAnalysis.hashes,
+                    
+                    // Primary hash (quantized for stability)
+                    imageDataHash: geometryEnhancedAnalysis.imageDataHash,
+                    dataUrlHash: geometryEnhancedAnalysis.dataUrlHash,
+                    
+                    // Stability analysis
+                    stability: geometryEnhancedAnalysis.stability,
+                    
+                    // Rotation detection (multiple hashes from VM tools)
+                    rotationDetected: geometryEnhancedAnalysis.rotationDetected,
+                    rotationPattern: geometryEnhancedAnalysis.rotationPattern,
+                    
+                    // Noise injection detection
+                    noiseInjectionLikely: geometryEnhancedAnalysis.noiseInjectionLikely,
+                    
+                    // Data URL for visual inspection
+                    dataUrl: geometryEnhancedAnalysis.stability?.full ? geometryEnhancedAnalysis.dataUrl : null,
+                    
+                    // Render count used for analysis
+                    renderCount: geometryEnhancedAnalysis.renderCount
                 },
                 
                 // Hook detection
@@ -918,6 +1059,274 @@ class WebGLFingerprintDetector {
         context.arc(60, 60, 60, 0, Math.PI * 2, true);
         context.arc(60, 60, 20, 0, Math.PI * 2, true);
         context.fill('evenodd');
+    }
+    
+    /**
+     * Render Canvas 2D geometry fingerprint image (ENHANCED - Improved Stability)
+     * 
+     * This method implements several stability improvements based on research into
+     * canvas fingerprinting variance sources. Use this alongside the original method
+     * to compare hash stability.
+     * 
+     * Key improvements over _renderCanvas2DGeometryImage:
+     * 1. Explicit clearRect after resize (don't rely on resize behavior alone)
+     * 2. Full context state reset (all properties that affect rendering)
+     * 3. Constant TWO_PI instead of Math.PI * 2 (avoids floating-point variance)
+     * 4. Clockwise winding (false) for cross-renderer consistency
+     * 5. Explicit 6-character hex colors (not shorthand)
+     * 6. Integer coordinates only
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     */
+    _renderCanvas2DGeometryImageEnhanced(canvas, context) {
+        // ============================================================
+        // STEP 1: Canvas setup with explicit clear
+        // ============================================================
+        // Set dimensions (this implicitly clears, but we add explicit clear for safety)
+        canvas.width = 122;
+        canvas.height = 110;
+        
+        // Explicit clear - don't rely on resize behavior which varies by implementation
+        context.clearRect(0, 0, 122, 110);
+        
+        // ============================================================
+        // STEP 2: Reset ALL rendering state to known defaults
+        // Some VM tools may leave state from previous operations
+        // ============================================================
+        
+        // Compositing and blending
+        context.globalCompositeOperation = 'source-over';
+        context.globalAlpha = 1.0;
+        
+        // Colors (will be overwritten, but reset for clean state)
+        context.fillStyle = '#000000';
+        context.strokeStyle = '#000000';
+        
+        // Line styles
+        context.lineWidth = 1.0;
+        context.lineCap = 'butt';
+        context.lineJoin = 'miter';
+        context.miterLimit = 10;
+        context.setLineDash([]);
+        context.lineDashOffset = 0;
+        
+        // Shadows (must be disabled for consistent rendering)
+        context.shadowBlur = 0;
+        context.shadowColor = 'rgba(0,0,0,0)';
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        
+        // Image smoothing (affects anti-aliasing)
+        context.imageSmoothingEnabled = true;
+        if (context.imageSmoothingQuality !== undefined) {
+            context.imageSmoothingQuality = 'low'; // Explicit quality level
+        }
+        
+        // Transform - reset to identity matrix
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // ============================================================
+        // STEP 3: Set blending mode for the geometry test
+        // ============================================================
+        // Multiply blend mode - different GPUs/drivers compute this slightly differently
+        // This is intentional: we want to detect GPU/driver differences
+        context.globalCompositeOperation = 'multiply';
+        
+        // ============================================================
+        // STEP 4: Draw geometry with maximum stability settings
+        // ============================================================
+        // Using:
+        // - Integer coordinates only (no sub-pixel positioning)
+        // - Explicit 6-char hex colors (not shorthand like #f2f)
+        // - Constant TWO_PI (not computed Math.PI * 2)
+        // - Clockwise winding (false) - more consistent across renderers
+        
+        // Circle 1: Magenta at (40, 40)
+        context.fillStyle = '#ff22ff';
+        context.beginPath();
+        context.arc(40, 40, 40, 0, TWO_PI, false);
+        context.closePath();
+        context.fill();
+        
+        // Circle 2: Cyan at (80, 40)
+        context.fillStyle = '#22ffff';
+        context.beginPath();
+        context.arc(80, 40, 40, 0, TWO_PI, false);
+        context.closePath();
+        context.fill();
+        
+        // Circle 3: Yellow at (60, 80)
+        context.fillStyle = '#ffff22';
+        context.beginPath();
+        context.arc(60, 80, 40, 0, TWO_PI, false);
+        context.closePath();
+        context.fill();
+        
+        // ============================================================
+        // STEP 5: Winding rule test (evenodd fill)
+        // ============================================================
+        // Tests path winding implementation - creates a donut shape
+        context.fillStyle = '#ff99cc'; // Explicit pink (not shorthand)
+        context.beginPath();
+        context.arc(60, 60, 60, 0, TWO_PI, false);
+        context.arc(60, 60, 20, 0, TWO_PI, false);
+        context.fill('evenodd');
+    }
+    
+    /**
+     * Collect enhanced render analysis with multi-level hashing and rotation detection
+     * 
+     * This method provides deeper analysis than _collectCanvasRenderAnalysis by:
+     * 1. Rendering 4 times (not 2) to detect session-based rotation patterns
+     * 2. Producing multi-level hashes (full, quantized, structural, colorRegion)
+     * 3. Detecting if different renders produce different hashes (rotation detection)
+     * 4. Identifying noise injection patterns (unstable at full, stable at quantized)
+     * 
+     * Use this method for research and to compare against the original analysis.
+     * 
+     * @private
+     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} context
+     * @param {Function} renderFn - Function that renders to canvas
+     * @param {string} label - Label for debugging
+     * @returns {Object} Enhanced analysis with multi-level hashes and rotation detection
+     */
+    _collectCanvasRenderAnalysisEnhanced(canvas, context, renderFn, label) {
+        // Number of renders to detect rotation patterns
+        // VM tools that rotate fingerprints per-session will show multiple unique hashes
+        const RENDER_COUNT = 4;
+        
+        const renders = [];
+        
+        // ============================================================
+        // Collect multiple renders
+        // ============================================================
+        for (let i = 0; i < RENDER_COUNT; i++) {
+            // Render the geometry
+            renderFn(canvas, context);
+            
+            // Force GPU flush by reading toDataURL first
+            // This ensures the canvas is fully rendered before reading pixels
+            const dataUrl = canvas.toDataURL();
+            
+            // Read pixel data
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = new Uint8ClampedArray(imageData.data); // Clone for storage
+            
+            // Compute multi-level hashes
+            const multiLevelHashes = hashImageDataMultiLevel(pixels, {
+                quantizeBits: 6,
+                alphaThreshold: 128,
+                colorBucketBits: 4
+            });
+            
+            renders.push({
+                dataUrl,
+                dataUrlHash: md5(dataUrl),
+                pixels,
+                hashes: multiLevelHashes
+            });
+        }
+        
+        // ============================================================
+        // Analyze stability across all renders
+        // ============================================================
+        const uniqueDataUrls = new Set(renders.map(r => r.dataUrlHash));
+        const uniqueFullHashes = new Set(renders.map(r => r.hashes.full));
+        const uniqueQuantizedHashes = new Set(renders.map(r => r.hashes.quantized));
+        const uniqueStructuralHashes = new Set(renders.map(r => r.hashes.structural));
+        const uniqueColorRegionHashes = new Set(renders.map(r => r.hashes.colorRegion));
+        
+        // Stability at each level
+        const stability = {
+            full: uniqueFullHashes.size === 1,
+            quantized: uniqueQuantizedHashes.size === 1,
+            structural: uniqueStructuralHashes.size === 1,
+            colorRegion: uniqueColorRegionHashes.size === 1,
+            dataUrl: uniqueDataUrls.size === 1,
+            
+            // Count of unique hashes at each level (1 = stable, >1 = rotation)
+            uniqueFullCount: uniqueFullHashes.size,
+            uniqueQuantizedCount: uniqueQuantizedHashes.size,
+            uniqueStructuralCount: uniqueStructuralHashes.size,
+            uniqueColorRegionCount: uniqueColorRegionHashes.size,
+            uniqueDataUrlCount: uniqueDataUrls.size
+        };
+        
+        // ============================================================
+        // Rotation detection
+        // ============================================================
+        // VM tools often rotate fingerprints between sessions
+        // This manifests as >1 unique hash across renders
+        const rotationDetected = uniqueFullHashes.size > 1;
+        
+        let rotationPattern = null;
+        if (rotationDetected) {
+            // Build distribution of hashes across renders
+            const distribution = {};
+            for (const r of renders) {
+                const hash = r.hashes.full;
+                distribution[hash] = (distribution[hash] || 0) + 1;
+            }
+            
+            rotationPattern = {
+                uniqueHashes: Array.from(uniqueFullHashes),
+                distribution,
+                uniqueCount: uniqueFullHashes.size
+            };
+        }
+        
+        // ============================================================
+        // Noise injection detection
+        // ============================================================
+        // If unstable at full precision but stable at quantized level,
+        // this indicates noise injection (small LSB modifications)
+        const noiseInjectionLikely = !stability.full && stability.quantized;
+        
+        // ============================================================
+        // Compute pixel diff between first two renders (for detailed analysis)
+        // ============================================================
+        const pixelDiff = computePixelDiffStats(renders[0].pixels, renders[1].pixels);
+        
+        // ============================================================
+        // Return comprehensive analysis
+        // ============================================================
+        return {
+            // Render count for reference
+            renderCount: RENDER_COUNT,
+            
+            // Use first render as canonical values
+            dataUrl: renders[0].dataUrl,
+            dataUrlHash: renders[0].dataUrlHash,
+            imageDataHash: renders[0].hashes.full,
+            
+            // Multi-level hashes from first render
+            hashes: renders[0].hashes,
+            
+            // Stability analysis
+            stability,
+            
+            // Detection flags
+            rotationDetected,
+            rotationPattern,
+            noiseInjectionLikely,
+            
+            // Pixel diff stats between first two renders
+            pixelDiff,
+            
+            // Canvas dimensions
+            width: canvas.width,
+            height: canvas.height,
+            
+            // All render hashes for research/debugging
+            _allRenders: renders.map((r, i) => ({
+                renderIndex: i,
+                dataUrlHash: r.dataUrlHash,
+                hashes: r.hashes
+            }))
+        };
     }
     
     /**
@@ -1938,6 +2347,104 @@ class WebGLFingerprintDetector {
                         metrics.canvas2dGeometryImage = {
                             value: c2d.geometry.dataUrl,
                             description: 'Canvas 2D geometry fingerprint image (data URL)',
+                            risk: 'NONE'
+                        };
+                    }
+                }
+                
+                // === Geometry Enhanced Fingerprint Metrics (New Improved Method) ===
+                if (c2d.geometryEnhanced) {
+                    const ge = c2d.geometryEnhanced;
+                    
+                    // Primary enhanced hash (full precision from improved renderer)
+                    metrics.canvas2dGeometryEnhancedImageDataHash = {
+                        value: ge.imageDataHash,
+                        description: 'MD5 hash of enhanced Canvas 2D geometry (getImageData, full precision)',
+                        risk: 'NONE'
+                    };
+                    
+                    // Multi-level hashes for different sensitivity levels
+                    if (ge.hashes) {
+                        metrics.canvas2dGeometryEnhancedHashFull = {
+                            value: ge.hashes.full,
+                            description: 'Enhanced geometry hash - full precision (max sensitivity)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dGeometryEnhancedHashQuantized = {
+                            value: ge.hashes.quantized,
+                            description: 'Enhanced geometry hash - quantized 6-bit (reduced noise)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dGeometryEnhancedHashStructural = {
+                            value: ge.hashes.structural,
+                            description: 'Enhanced geometry hash - structural (shape only)',
+                            risk: 'NONE'
+                        };
+                        
+                        metrics.canvas2dGeometryEnhancedHashColorRegion = {
+                            value: ge.hashes.colorRegion,
+                            description: 'Enhanced geometry hash - color region (distribution)',
+                            risk: 'NONE'
+                        };
+                    }
+                    
+                    // Stability metrics
+                    if (ge.stability) {
+                        metrics.canvas2dGeometryEnhancedStableFull = {
+                            value: ge.stability.full,
+                            description: 'Enhanced geometry stable at full precision',
+                            risk: ge.stability.full ? 'NONE' : 'LOW'
+                        };
+                        
+                        metrics.canvas2dGeometryEnhancedStableQuantized = {
+                            value: ge.stability.quantized,
+                            description: 'Enhanced geometry stable at quantized level',
+                            risk: ge.stability.quantized ? 'NONE' : 'LOW'
+                        };
+                        
+                        metrics.canvas2dGeometryEnhancedUniqueFullCount = {
+                            value: ge.stability.uniqueFullCount,
+                            description: 'Number of unique full hashes across renders (1=stable)',
+                            risk: ge.stability.uniqueFullCount > 1 ? 'MEDIUM' : 'NONE'
+                        };
+                    }
+                    
+                    // Rotation detection
+                    metrics.canvas2dGeometryEnhancedRotationDetected = {
+                        value: ge.rotationDetected,
+                        description: 'Canvas fingerprint rotation detected across renders',
+                        risk: ge.rotationDetected ? 'HIGH' : 'NONE'
+                    };
+                    
+                    if (ge.rotationPattern) {
+                        metrics.canvas2dGeometryEnhancedRotationPattern = {
+                            value: JSON.stringify(ge.rotationPattern),
+                            description: 'Rotation pattern details (unique hashes and distribution)',
+                            risk: 'MEDIUM'
+                        };
+                    }
+                    
+                    // Noise injection detection
+                    metrics.canvas2dGeometryEnhancedNoiseInjection = {
+                        value: ge.noiseInjectionLikely,
+                        description: 'Noise injection likely (unstable full, stable quantized)',
+                        risk: ge.noiseInjectionLikely ? 'MEDIUM' : 'NONE'
+                    };
+                    
+                    // Render count
+                    metrics.canvas2dGeometryEnhancedRenderCount = {
+                        value: ge.renderCount,
+                        description: 'Number of renders used for stability analysis',
+                        risk: 'NONE'
+                    };
+                    
+                    // Data URL for visual inspection
+                    if (ge.dataUrl) {
+                        metrics.canvas2dGeometryEnhancedImage = {
+                            value: ge.dataUrl,
+                            description: 'Enhanced Canvas 2D geometry fingerprint image (data URL)',
                             risk: 'NONE'
                         };
                     }

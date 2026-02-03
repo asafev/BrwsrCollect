@@ -54,5 +54,6 @@ export {
     createViewModeToggle,
     renderAdvancedMetrics,
     DETECTOR_CONFIGS,
-    BATTERY_STORAGE_GROUPS
+    BATTERY_STORAGE_GROUPS,
+    WEBGL_FINGERPRINT_GROUPS
 } from './AdvancedMetricsRenderer.js';
