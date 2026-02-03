@@ -275,6 +275,42 @@ const ICONS = {
         <path d="M10 3V5"/>
     </svg>`,
     
+    // View mode icons
+    table: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="14" height="14" rx="1.5"/>
+        <path d="M3 7H17"/>
+        <path d="M3 11H17"/>
+        <path d="M3 15H17"/>
+        <path d="M8 3V17"/>
+    </svg>`,
+    
+    grid: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="5.5" height="5.5" rx="1"/>
+        <rect x="11.5" y="3" width="5.5" height="5.5" rx="1"/>
+        <rect x="3" y="11.5" width="5.5" height="5.5" rx="1"/>
+        <rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1"/>
+    </svg>`,
+    
+    database: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="10" cy="5" rx="6" ry="2.5"/>
+        <path d="M4 5V15C4 16.3807 6.68629 17.5 10 17.5C13.3137 17.5 16 16.3807 16 15V5"/>
+        <path d="M4 10C4 11.3807 6.68629 12.5 10 12.5C13.3137 12.5 16 11.3807 16 10"/>
+    </svg>`,
+    
+    cpu: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="5" width="10" height="10" rx="1.5"/>
+        <rect x="7" y="7" width="6" height="6" rx="0.5"/>
+        <path d="M8 2V5M12 2V5M8 15V18M12 15V18"/>
+        <path d="M2 8H5M2 12H5M15 8H18M15 12H18"/>
+    </svg>`,
+    
+    box: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z"/>
+        <path d="M10 10L17 6"/>
+        <path d="M10 10L3 6"/>
+        <path d="M10 10V18"/>
+    </svg>`,
+    
     // Misc
     layers: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10 2L2 6L10 10L18 6L10 2Z"/>

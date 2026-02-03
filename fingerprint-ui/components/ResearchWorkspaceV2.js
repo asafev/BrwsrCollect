@@ -8,6 +8,11 @@
 import { getIcon, getCategoryIcon } from '../utils/icons-v2.js';
 import { formatMetricName, formatValue, getRiskConfig, isImageDataUrl } from '../utils/helpers.js';
 import { showDetailModal } from './DetailModal.js';
+import { 
+    hasAdvancedRenderer, 
+    createViewModeToggle, 
+    renderAdvancedMetrics 
+} from './AdvancedMetricsRenderer.js';
 
 /**
  * Escape HTML special characters
@@ -61,7 +66,7 @@ const RESEARCH_CATEGORIES = {
             { key: 'audio', label: 'Audio Context', icon: 'audio' },
             { key: 'codecSupport', label: 'Codec Support', icon: 'audio' },
             { key: 'display', label: 'Display Properties', icon: 'display' },
-            { key: 'battery', label: 'Battery Status', icon: 'battery' },
+            { key: 'batteryStorage', label: 'Battery & Storage', icon: 'battery' },
             { key: 'mediaDevices', label: 'Media Devices', icon: 'mediaDevices' }
         ]
     },
@@ -190,6 +195,7 @@ export function createResearchWorkspace(container, data, options = {}) {
     let searchResultsVisible = false;
     let focusedResultIndex = -1;
     let highlightedMetrics = new Set();
+    let viewModes = {}; // Track v1/v2 view mode per category
     
     // DOM references
     let sidebarEl = null;
@@ -210,6 +216,14 @@ export function createResearchWorkspace(container, data, options = {}) {
         groupStates[groupId] = saved !== null 
             ? saved === 'true' 
             : !RESEARCH_CATEGORIES[groupId].collapsed;
+    });
+    
+    // Initialize view mode preferences (v1 table / v2 grouped)
+    Object.keys(categories).forEach(categoryKey => {
+        const savedMode = localStorage.getItem(`rx-view-mode-${categoryKey}`);
+        if (savedMode) {
+            viewModes[categoryKey] = savedMode;
+        }
     });
     
     /**
@@ -800,7 +814,39 @@ export function createResearchWorkspace(container, data, options = {}) {
         }
         
         if (category.metrics) {
-            renderMetricsPanel(category);
+            // Check if this category supports advanced rendering
+            const supportsAdvanced = hasAdvancedRenderer(categoryKey);
+            const currentMode = viewModes[categoryKey] || (supportsAdvanced ? 'v2' : 'v1');
+            
+            console.log(`[AdvancedMetrics] Category: ${categoryKey}, supportsAdvanced: ${supportsAdvanced}, currentMode: ${currentMode}`);
+            
+            // Render view mode toggle if supported
+            if (supportsAdvanced) {
+                const toggleContainer = document.createElement('div');
+                toggleContainer.className = 'rx-view-toggle-container';
+                toggleContainer.style.cssText = 'display: flex; justify-content: flex-end; margin-bottom: 16px;';
+                
+                const toggle = createViewModeToggle(categoryKey, currentMode, (newMode) => {
+                    viewModes[categoryKey] = newMode;
+                    localStorage.setItem(`rx-view-mode-${categoryKey}`, newMode);
+                    renderCategoryContent(categoryKey);
+                });
+                
+                if (toggle) {
+                    toggleContainer.appendChild(toggle);
+                    contentEl.appendChild(toggleContainer);
+                    console.log(`[AdvancedMetrics] Toggle rendered for ${categoryKey}`);
+                }
+            }
+            
+            // Render metrics based on view mode
+            if (currentMode === 'v2' && supportsAdvanced) {
+                const metricsContainer = document.createElement('div');
+                renderAdvancedMetrics(metricsContainer, categoryKey, category.metrics);
+                contentEl.appendChild(metricsContainer);
+            } else {
+                renderMetricsPanel(category);
+            }
         }
     }
     

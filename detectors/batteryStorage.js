@@ -358,21 +358,41 @@ class BatteryStorageDetector {
     /**
      * Analyze JavaScript stack size limit using multiple methods
      * Collects raw metrics for later analysis and clustering
+     * Includes timing for each method to compare performance
      * @private
      * @returns {Promise<Object>} Stack size metrics from different measurement contexts
      */
     async _analyzeStackSize() {
-        // Collect stack measurements from different contexts
+        // Collect stack measurements from different contexts with timing
         const directMeasurement = this._measureStackDirect();
         const strictMeasurement = this._measureStackStrict();
         const asyncMeasurement = await this._measureStackAsync();
         const closureMeasurement = this._measureStackClosure();
+        const stabilizedMeasurement = this._measureStackStabilized();
+        const simpleMeasurement = this._measureStackSimple();
+
+        // Calculate total measurement time
+        const totalTime = [
+            directMeasurement,
+            strictMeasurement,
+            asyncMeasurement,
+            closureMeasurement,
+            stabilizedMeasurement,
+            simpleMeasurement
+        ].reduce((sum, m) => sum + (m.timing || 0), 0);
 
         return {
-            // Primary measurement (direct recursion)
+            // === PRIMARY MEASUREMENTS ===
+            
+            // Direct recursion (original method)
             stackSizeLimit: {
                 value: directMeasurement.depth,
                 description: 'JavaScript call stack size limit (direct recursion)',
+                risk: 'N/A'
+            },
+            stackSizeDirectTiming: {
+                value: directMeasurement.timing,
+                description: 'Time to measure stack size using direct recursion (ms)',
                 risk: 'N/A'
             },
             stackSizeErrorName: {
@@ -386,10 +406,49 @@ class BatteryStorageDetector {
                 risk: 'N/A'
             },
             
-            // Alternative measurement (closure-based)
+            // === STABILIZED METHOD (with JIT warmup) ===
+            stackSizeStabilized: {
+                value: stabilizedMeasurement.depth,
+                description: 'Stack size using JIT-stabilized method (warmup iterations)',
+                risk: 'N/A'
+            },
+            stackSizeStabilizedTiming: {
+                value: stabilizedMeasurement.timing,
+                description: 'Time to measure using stabilized method (ms)',
+                risk: 'N/A'
+            },
+            stackSizeStabilizedError: {
+                value: stabilizedMeasurement.error?.name || null,
+                description: 'Error type from stabilized method',
+                risk: 'N/A'
+            },
+            
+            // === SIMPLE METHOD (minimal overhead) ===
+            stackSizeSimple: {
+                value: simpleMeasurement.depth,
+                description: 'Stack size using simple increment method',
+                risk: 'N/A'
+            },
+            stackSizeSimpleTiming: {
+                value: simpleMeasurement.timing,
+                description: 'Time to measure using simple method (ms)',
+                risk: 'N/A'
+            },
+            stackSizeSimpleError: {
+                value: simpleMeasurement.error?.name || null,
+                description: 'Error type from simple method',
+                risk: 'N/A'
+            },
+            
+            // === CLOSURE-BASED MEASUREMENT ===
             stackSizeClosure: {
                 value: closureMeasurement.depth,
                 description: 'Stack size limit using closure recursion method',
+                risk: 'N/A'
+            },
+            stackSizeClosureTiming: {
+                value: closureMeasurement.timing,
+                description: 'Time to measure using closure method (ms)',
                 risk: 'N/A'
             },
             stackSizeClosureError: {
@@ -398,10 +457,15 @@ class BatteryStorageDetector {
                 risk: 'N/A'
             },
             
-            // Async context measurement
+            // === ASYNC CONTEXT MEASUREMENT ===
             stackSizeAsync: {
                 value: asyncMeasurement.depth,
                 description: 'Stack size limit measured in async (setTimeout) context',
+                risk: 'N/A'
+            },
+            stackSizeAsyncTiming: {
+                value: asyncMeasurement.timing,
+                description: 'Time to measure using async method (ms)',
                 risk: 'N/A'
             },
             stackSizeAsyncError: {
@@ -410,10 +474,15 @@ class BatteryStorageDetector {
                 risk: 'N/A'
             },
             
-            // Strict mode measurement
+            // === STRICT MODE MEASUREMENT ===
             stackSizeStrict: {
                 value: strictMeasurement.depth,
                 description: 'Stack size limit measured in strict mode',
+                risk: 'N/A'
+            },
+            stackSizeStrictTiming: {
+                value: strictMeasurement.timing,
+                description: 'Time to measure using strict mode (ms)',
                 risk: 'N/A'
             },
             stackSizeStrictError: {
@@ -422,7 +491,26 @@ class BatteryStorageDetector {
                 risk: 'N/A'
             },
             
-            // Comparison metrics for clustering
+            // === TIMING COMPARISON ===
+            stackMeasurementTotalTime: {
+                value: Math.round(totalTime * 100) / 100,
+                description: 'Total time for all stack measurements (ms)',
+                risk: 'N/A'
+            },
+            stackMeasurementTimingRank: {
+                value: this._rankMethodsByTiming({
+                    direct: directMeasurement.timing,
+                    stabilized: stabilizedMeasurement.timing,
+                    simple: simpleMeasurement.timing,
+                    closure: closureMeasurement.timing,
+                    async: asyncMeasurement.timing,
+                    strict: strictMeasurement.timing
+                }),
+                description: 'Methods ranked by execution time (fastest first)',
+                risk: 'N/A'
+            },
+            
+            // === VALUE COMPARISON ===
             stackSizeMethodDiff: {
                 value: directMeasurement.depth !== null && closureMeasurement.depth !== null 
                     ? directMeasurement.depth - closureMeasurement.depth 
@@ -437,28 +525,94 @@ class BatteryStorageDetector {
                 description: 'Difference between direct and async context measurements',
                 risk: 'N/A'
             },
+            stackSizeStabilizedDiff: {
+                value: directMeasurement.depth !== null && stabilizedMeasurement.depth !== null 
+                    ? directMeasurement.depth - stabilizedMeasurement.depth 
+                    : null,
+                description: 'Difference between direct and stabilized measurements',
+                risk: 'N/A'
+            },
+            stackSizeSimpleDiff: {
+                value: directMeasurement.depth !== null && simpleMeasurement.depth !== null 
+                    ? directMeasurement.depth - simpleMeasurement.depth 
+                    : null,
+                description: 'Difference between direct and simple measurements',
+                risk: 'N/A'
+            },
             
-            // Raw data for detailed analysis
+            // === RAW DATA FOR DETAILED ANALYSIS ===
             stackSizeRawData: {
                 value: {
                     direct: directMeasurement,
+                    stabilized: stabilizedMeasurement,
+                    simple: simpleMeasurement,
                     closure: closureMeasurement,
                     async: asyncMeasurement,
                     strict: strictMeasurement,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    totalMeasurementTime: totalTime
                 },
                 description: 'Complete stack size measurement data from all methods',
+                risk: 'N/A'
+            },
+            
+            // === CONSISTENCY CHECK ===
+            stackSizeConsistency: {
+                value: this._checkStackSizeConsistency([
+                    directMeasurement.depth,
+                    stabilizedMeasurement.depth,
+                    simpleMeasurement.depth,
+                    strictMeasurement.depth
+                ]),
+                description: 'Whether all sync methods report consistent stack size',
                 risk: 'N/A'
             }
         };
     }
 
     /**
+     * Rank methods by timing (fastest first)
+     * @private
+     * @param {Object} timings - Object with method names as keys and timing as values
+     * @returns {Array} Sorted array of {method, timing} objects
+     */
+    _rankMethodsByTiming(timings) {
+        return Object.entries(timings)
+            .map(([method, timing]) => ({ method, timing: Math.round(timing * 100) / 100 }))
+            .sort((a, b) => a.timing - b.timing);
+    }
+
+    /**
+     * Check if stack size measurements are consistent
+     * @private
+     * @param {Array<number>} depths - Array of depth measurements
+     * @returns {Object} Consistency analysis
+     */
+    _checkStackSizeConsistency(depths) {
+        const validDepths = depths.filter(d => typeof d === 'number' && d > 0);
+        if (validDepths.length === 0) return { consistent: false, reason: 'no_valid_measurements' };
+        
+        const min = Math.min(...validDepths);
+        const max = Math.max(...validDepths);
+        const variance = max - min;
+        const variancePercent = (variance / min) * 100;
+        
+        return {
+            consistent: variancePercent < 5, // Less than 5% variance
+            min,
+            max,
+            variance,
+            variancePercent: Math.round(variancePercent * 100) / 100
+        };
+    }
+
+    /**
      * Measure stack size using direct recursion
      * @private
-     * @returns {Object} Measurement result with depth and error info
+     * @returns {Object} Measurement result with depth, error info, and timing
      */
     _measureStackDirect() {
+        const startTime = performance.now();
         let depth = 0;
         let error = null;
         
@@ -478,15 +632,17 @@ class BatteryStorageDetector {
             error = { name: e.name, message: e.message };
         }
         
-        return { depth, error, method: 'direct_recursion' };
+        const timing = performance.now() - startTime;
+        return { depth, error, timing, method: 'direct_recursion' };
     }
 
     /**
      * Measure stack size using closure-based recursion
      * @private
-     * @returns {Object} Measurement result with depth and error info
+     * @returns {Object} Measurement result with depth, error info, and timing
      */
     _measureStackClosure() {
+        const startTime = performance.now();
         let depth = 0;
         let error = null;
         const state = { count: 0 };
@@ -504,17 +660,19 @@ class BatteryStorageDetector {
             error = { name: e.name, message: e.message };
         }
         
-        return { depth, error, method: 'closure_recursion' };
+        const timing = performance.now() - startTime;
+        return { depth, error, timing, method: 'closure_recursion' };
     }
 
     /**
      * Measure stack size in async (setTimeout) context
      * @private
-     * @returns {Promise<Object>} Measurement result with depth and error info
+     * @returns {Promise<Object>} Measurement result with depth, error info, and timing
      */
     _measureStackAsync() {
         return new Promise((resolve) => {
             setTimeout(() => {
+                const startTime = performance.now();
                 let depth = 0;
                 let error = null;
                 
@@ -534,7 +692,8 @@ class BatteryStorageDetector {
                     error = { name: e.name, message: e.message };
                 }
                 
-                resolve({ depth, error, method: 'async_context' });
+                const timing = performance.now() - startTime;
+                resolve({ depth, error, timing, method: 'async_context' });
             }, 0);
         });
     }
@@ -542,10 +701,11 @@ class BatteryStorageDetector {
     /**
      * Measure stack size in strict mode context
      * @private
-     * @returns {Object} Measurement result with depth and error info
+     * @returns {Object} Measurement result with depth, error info, and timing
      */
     _measureStackStrict() {
         'use strict';
+        const startTime = performance.now();
         let depth = 0;
         let error = null;
         
@@ -565,7 +725,67 @@ class BatteryStorageDetector {
             error = { name: e.name, message: e.message };
         }
         
-        return { depth, error, method: 'strict_mode' };
+        const timing = performance.now() - startTime;
+        return { depth, error, timing, method: 'strict_mode' };
+    }
+
+    /**
+     * Measure stack size using JIT-stabilized method
+     * Uses warmup iterations for more consistent results across runs
+     * @private
+     * @returns {Object} Measurement result with depth, error info, and timing
+     */
+    _measureStackStabilized() {
+        const startTime = performance.now();
+        let error = null;
+        let depth = 0;
+        
+        const fn = () => {
+            try {
+                return 1 + fn();
+            } catch (e) {
+                error = { name: e.name, message: e.message };
+                return 1;
+            }
+        };
+        
+        try {
+            // Stabilize JIT - run 10 times before final measurement
+            // This warms up the JIT compiler for more consistent results
+            [...Array(10)].forEach(() => fn());
+            depth = fn();
+        } catch (e) {
+            error = { name: e.name, message: e.message };
+        }
+        
+        const timing = performance.now() - startTime;
+        return { depth, error, timing, method: 'stabilized' };
+    }
+
+    /**
+     * Measure stack size using simple increment method
+     * Minimal overhead approach with external depth counter
+     * @private
+     * @returns {Object} Measurement result with depth, error info, and timing
+     */
+    _measureStackSimple() {
+        const startTime = performance.now();
+        let depth = 0;
+        let error = null;
+        
+        const recurse = () => {
+            depth++;
+            recurse();
+        };
+        
+        try {
+            recurse();
+        } catch (e) {
+            error = { name: e.name, message: e.message };
+        }
+        
+        const timing = performance.now() - startTime;
+        return { depth, error, timing, method: 'simple' };
     }
 
     /**

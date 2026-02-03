@@ -47,3 +47,12 @@ export { createResearchWorkspace } from './ResearchWorkspace.js';
 
 // Research Workspace v2.0 - Enterprise Analysis Interface
 export { createResearchWorkspace as createResearchWorkspaceV2 } from './ResearchWorkspaceV2.js';
+
+// Advanced Metrics Renderer - Organized grouped view for complex detectors
+export { 
+    hasAdvancedRenderer,
+    createViewModeToggle,
+    renderAdvancedMetrics,
+    DETECTOR_CONFIGS,
+    BATTERY_STORAGE_GROUPS
+} from './AdvancedMetricsRenderer.js';
