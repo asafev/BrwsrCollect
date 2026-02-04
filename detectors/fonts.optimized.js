@@ -23,6 +23,7 @@
  */
 
 import { fnv1a32 } from './audioFingerprint.js';
+import { getEmojiFingerprint } from './emojii.js';
 
 const FONTS_CONFIG = {
     timeout: 3000,
@@ -138,15 +139,15 @@ class FontsDetector {
             const availableFonts = this._testFontsBatch();
             timing.fontTestingMs = Math.round(performance.now() - fontTestStartTime);
             
-            // Emoji measurement (fast, ~10 emojis)
+            // Emoji measurement using emojii.js
             const emojiStartTime = performance.now();
-            const emojiMetrics = this._measureEmoji();
+            const emojiResult = getEmojiFingerprint({ includeTiming: false });
             timing.emojiMeasurementMs = Math.round(performance.now() - emojiStartTime);
             
             // Hashing
             const hashStartTime = performance.now();
             const fontHash = fnv1a32(availableFonts.sort().join('|'));
-            const emojiHash = fnv1a32(JSON.stringify(emojiMetrics));
+            const emojiHash = emojiResult.stableHash;
             timing.hashingMs = Math.round(performance.now() - hashStartTime);
             
             timing.totalMs = Math.round(performance.now() - totalStartTime);
@@ -156,7 +157,7 @@ class FontsDetector {
                 fonts: availableFonts,
                 fontsCount: availableFonts.length,
                 fontHash,
-                emoji: emojiMetrics,
+                emoji: emojiResult.stable,
                 emojiHash,
                 timing,
                 error: null

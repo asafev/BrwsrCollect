@@ -23,6 +23,7 @@
  */
 
 import { fnv1a32 } from './audioFingerprint.js';
+import { getEmojiFingerprint } from './emojii.js';
 
 const FONTS_CONFIG = {
     timeout: 3000,
@@ -263,15 +264,15 @@ class FontsDetector {
             const availableFonts = this._testFontsBatch();
             timing.fontTestingMs = Math.round(performance.now() - fontTestStartTime);
             
-            // Emoji measurement (fast, ~10 emojis)
+            // Emoji measurement using emojii.js (detailed metrics)
             const emojiStartTime = performance.now();
-            const emojiMetrics = this._measureEmoji();
+            const emojiResult = getEmojiFingerprint({ includeTiming: false });
             timing.emojiMeasurementMs = Math.round(performance.now() - emojiStartTime);
             
             // Hashing
             const hashStartTime = performance.now();
             const fontHash = fnv1a32(availableFonts.sort().join('|'));
-            const emojiHash = fnv1a32(JSON.stringify(emojiMetrics));
+            const emojiHash = emojiResult.stableHash;
             timing.hashingMs = Math.round(performance.now() - hashStartTime);
             
             timing.totalMs = Math.round(performance.now() - totalStartTime);
@@ -281,8 +282,10 @@ class FontsDetector {
                 fonts: availableFonts,
                 fontsCount: availableFonts.length,
                 fontHash,
-                emoji: emojiMetrics,
+                emoji: emojiResult.stable,
                 emojiHash,
+                emojiMetrics: emojiResult.emojiMetrics,
+                emojiAggregates: emojiResult.aggregates,
                 timing,
                 error: null
             };
@@ -463,7 +466,7 @@ class FontsDetector {
      * @private
      */
     _formatMetrics(result) {
-        return {
+        const metrics = {
             fontsSupported: {
                 value: result.supported,
                 description: 'Font detection available',
@@ -481,12 +484,54 @@ class FontsDetector {
             },
             emojiHash: {
                 value: result.emojiHash,
-                description: 'Emoji rendering hash',
+                description: 'Emoji rendering stable hash (FNV-1a)',
+                risk: 'N/A'
+            },
+            // Emoji aggregates
+            emojiAvgCoverage: {
+                value: result.emojiAggregates?.avgCoverage?.toFixed(4),
+                description: 'Average emoji pixel coverage ratio',
+                risk: 'N/A'
+            },
+            emojiAvgWidth: {
+                value: result.emojiAggregates?.avgWidth?.toFixed(2),
+                description: 'Average emoji text width (px)',
+                risk: 'N/A'
+            },
+            emojiTotalUniqueColors: {
+                value: result.emojiAggregates?.totalUniqueColors,
+                description: 'Total unique colors across all emojis (quantized)',
+                risk: 'N/A'
+            },
+            emojiTotalFilledPixels: {
+                value: result.emojiAggregates?.totalFilledPixels,
+                description: 'Total non-transparent pixels across all emojis',
+                risk: 'N/A'
+            },
+            emojiAvgEdgeLike: {
+                value: result.emojiAggregates?.avgEdgeLike?.toFixed(0),
+                description: 'Average edge-like pixel transitions per emoji',
+                risk: 'N/A'
+            },
+            // Emoji render config
+            emojiDpr: {
+                value: result.emoji?.dpr,
+                description: 'Device pixel ratio used for emoji rendering',
+                risk: 'N/A'
+            },
+            emojiCount: {
+                value: result.emoji?.emojiCount,
+                description: 'Number of emojis tested',
                 risk: 'N/A'
             },
             fontTestingMs: {
                 value: result.timing?.fontTestingMs,
                 description: 'Font detection time (ms)',
+                risk: 'N/A'
+            },
+            emojiMeasurementMs: {
+                value: result.timing?.emojiMeasurementMs,
+                description: 'Emoji measurement time (ms)',
                 risk: 'N/A'
             },
             totalMs: {
@@ -495,6 +540,45 @@ class FontsDetector {
                 risk: 'N/A'
             }
         };
+
+        // Add per-emoji detailed metrics if available
+        if (result.emojiMetrics && Array.isArray(result.emojiMetrics)) {
+            result.emojiMetrics.forEach((em, idx) => {
+                const prefix = `emoji_${idx}`;
+                metrics[`${prefix}_char`] = {
+                    value: em.emoji,
+                    description: `Emoji ${idx + 1} character`,
+                    risk: 'N/A'
+                };
+                metrics[`${prefix}_width`] = {
+                    value: em.textMetrics?.width?.toFixed(2),
+                    description: `Emoji ${idx + 1} measured text width`,
+                    risk: 'N/A'
+                };
+                metrics[`${prefix}_coverage`] = {
+                    value: em.bitmapStats?.coverage?.toFixed(4),
+                    description: `Emoji ${idx + 1} pixel coverage ratio`,
+                    risk: 'N/A'
+                };
+                metrics[`${prefix}_uniqueColors`] = {
+                    value: em.bitmapStats?.uniqueColors,
+                    description: `Emoji ${idx + 1} unique colors (quantized 12-bit)`,
+                    risk: 'N/A'
+                };
+                metrics[`${prefix}_filledPixels`] = {
+                    value: em.bitmapStats?.filledPixels,
+                    description: `Emoji ${idx + 1} non-transparent pixels`,
+                    risk: 'N/A'
+                };
+                metrics[`${prefix}_dHash`] = {
+                    value: em.dHash?.hex,
+                    description: `Emoji ${idx + 1} perceptual hash (56-bit)`,
+                    risk: 'N/A'
+                };
+            });
+        }
+
+        return metrics;
     }
 }
 
