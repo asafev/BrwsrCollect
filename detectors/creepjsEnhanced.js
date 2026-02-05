@@ -1416,6 +1416,245 @@ class IntlFingerprintDetector {
 }
 
 // ============================================================
+// TEST MJ EMOJI WIDTH DETECTOR
+// Production test for emoji width fingerprinting
+// ============================================================
+
+/**
+ * Test MJ Emoji Width Detector
+ * Uses CreepJS-style emoji rendering to fingerprint system fonts.
+ * Metrics prefixed with "testMJ" for production testing.
+ */
+class TestMJEmojiWidthDetector {
+    constructor() {
+        this.result = null;
+        this.metrics = {};
+    }
+
+    /**
+     * Main analysis entry point
+     * @returns {Promise<Object>} Formatted metrics
+     */
+    async analyze() {
+        try {
+            this.result = await this._collectEmojiWidth();
+            this.metrics = this._formatMetrics(this.result);
+        } catch (error) {
+            this.metrics = {
+                testMJError: {
+                    value: error.message,
+                    description: 'TestMJ emoji width detection error',
+                    risk: 'N/A'
+                }
+            };
+        }
+        
+        return this.metrics;
+    }
+
+    /**
+     * Collect emoji width fingerprint - exact production implementation
+     * @private
+     */
+    _collectEmojiWidth() {
+        const now = () => performance.now();
+        const elapsed = (start) => Math.round(performance.now() - start);
+        const TIMEOUT_MS = 2000; // Safety timeout to prevent hanging
+        
+        return new Promise((resolve) => {
+            const startTime = now();
+            const result = {};
+            let resolved = false;
+            
+            const finalize = () => {
+                if (resolved) return; // Prevent double resolution
+                resolved = true;
+                result.j143 = elapsed(startTime);
+                resolve(result);
+            };
+            
+            // Safety timeout - if rAF never fires, resolve with error values
+            const timeoutId = setTimeout(() => {
+                if (!resolved) {
+                    result.j141 = 't'; // 't' for timeout
+                    result.j142 = 't';
+                    finalize();
+                }
+            }, TIMEOUT_MS);
+            
+            // Use setTimeout(0) to start async, but with timeout protection
+            setTimeout(() => {
+                if (resolved) return; // Already timed out
+                
+                try {
+                    // Check DOM availability
+                    if (typeof document === 'undefined' || !document.body) {
+                        result.j141 = 'u';
+                        result.j142 = 'u';
+                        clearTimeout(timeoutId);
+                        finalize();
+                        return;
+                    }
+                    
+                    // Default emojis - 3 high-entropy ZWJ sequences (CreepJS subset)
+                    const emojiCodes = [
+                        [128512],                                    // 😀 - basic face
+                        [129333, 8205, 9794, 65039],                 // 🧑‍♂️ - person with gender ZWJ
+                        [128104, 8205, 128105, 8205, 128102]         // 👨‍👩‍👦 - family ZWJ
+                    ];
+                    
+                    // Convert code points to emoji strings
+                    const emojis = emojiCodes.map(codes => String.fromCodePoint(...codes));
+                    
+                    // CreepJS font family (exact)
+                    const fontFamily = "'Segoe Fluent Icons', 'Ink Free', 'Bahnschrift', 'Segoe MDL2 Assets', " +
+                        "'HoloLens MDL2 Assets', 'Leelawadee UI', 'Javanese Text', 'Segoe UI Emoji', " +
+                        "'Aldhabi', 'Gadugi', 'Myanmar Text', 'Nirmala UI', 'Lucida Console', " +
+                        "'Cambria Math', 'Galvji', 'MuktaMahee Regular', 'InaiMathi Bold', " +
+                        "'American Typewriter Semibold', 'Futura Bold', 'SignPainter-HouseScript Semibold', " +
+                        "'PingFang HK Light', 'Kohinoor Devanagari Medium', 'Luminari', 'Geneva', " +
+                        "'Helvetica Neue', 'Droid Sans Mono', 'Dancing Script', 'Roboto', 'Ubuntu', " +
+                        "'Liberation Mono', 'Source Code Pro', 'DejaVu Sans', 'OpenSymbol', " +
+                        "'Chilanka', 'Cousine', 'Arimo', 'Jomolhari', 'MONO', 'Noto Color Emoji', sans-serif";
+                    
+                    // Create container (exact CreepJS structure)
+                    const container = document.createElement('div');
+                    container.id = 'pixel-emoji-container';
+                    container.style.cssText = 'position:absolute;left:-10000px;visibility:hidden;';
+                    
+                    // Build inner HTML
+                    const styleTag = `<style>.pixel-emoji { font-family: ${fontFamily}; ` +
+                        'font-size: 200px !important; height: auto; position: absolute !important; ' +
+                        'transform: scale(1.000999); }</style>';
+                    const emojiDivs = emojis.map(e => `<div class="pixel-emoji">${e}</div>`).join('');
+                    container.innerHTML = styleTag + emojiDivs;
+                    
+                    document.body.appendChild(container);
+                    
+                    // Wait for render (exact CreepJS: double rAF)
+                    requestAnimationFrame(() => {
+                        if (resolved) return; // Already timed out
+                        requestAnimationFrame(() => {
+                            if (resolved) { // Already timed out, just cleanup
+                                try { document.body.removeChild(container); } catch (e) {}
+                                return;
+                            }
+                            try {
+                                const patternSet = {};  // Object as Set
+                                const widths = [];
+                                const elems = container.getElementsByClassName('pixel-emoji');
+                                
+                                // CreepJS uses getComputedStyle with inlineSize/blockSize
+                                for (let k = 0; k < elems.length; k++) {
+                                    const style = getComputedStyle(elems[k]);
+                                    const width = style.inlineSize || style.width;   // Fallback to width
+                                    const height = style.blockSize || style.height;  // Fallback to height
+                                    const dimensions = width + ',' + height;
+                                    
+                                    // Store unique patterns for systemSum
+                                    patternSet[dimensions] = true;
+                                    
+                                    // Parse width for individual emoji metrics
+                                    widths.push(parseFloat(width) || 0);
+                                }
+                                
+                                // Calculate average width
+                                const totalWidth = widths.reduce((a, b) => a + b, 0);
+                                const avgWidth = widths.length > 0 ? totalWidth / widths.length : 0;
+                                
+                                // CreepJS pixelSizeSystemSum formula (exact)
+                                // 0.00001 * sum of (width + height) for each UNIQUE dimension pattern
+                                let systemSum = 0;
+                                for (const dim in patternSet) {
+                                    if (patternSet.hasOwnProperty(dim)) {
+                                        const parts = dim.split(',');
+                                        const w = parseFloat(parts[0]) || 0;
+                                        const h = parseFloat(parts[1]) || 0;
+                                        systemSum += w + h;
+                                    }
+                                }
+                                systemSum = 0.00001 * systemSum;
+                                
+                                // j141: Average width (rounded to 2 decimals for consistency)
+                                result.j141 = String(Math.round(avgWidth * 100) / 100);
+                                
+                                // j142: System sum (keep precision for fingerprint uniqueness)
+                                result.j142 = String(systemSum);
+                                
+                                // Store individual widths for detailed analysis
+                                result.widths = widths;
+                                result.patterns = Object.keys(patternSet);
+                                
+                            } catch (e) {
+                                result.j141 = 'x';
+                                result.j142 = 'x';
+                            }
+                            
+                            // Cleanup
+                            try {
+                                document.body.removeChild(container);
+                            } catch (e) {}
+                            
+                            clearTimeout(timeoutId);
+                            finalize();
+                        });
+                    });
+                    
+                } catch (e) {
+                    result.j141 = 'x';
+                    result.j142 = 'x';
+                    clearTimeout(timeoutId);
+                    finalize();
+                }
+            }, 0);
+        });
+    }
+
+    /**
+     * Format metrics for standard output with testMJ prefix
+     * @private
+     */
+    _formatMetrics(result) {
+        if (!result) return {};
+
+        return {
+            testMJEmojiAvgWidth: {
+                value: result.j141,
+                description: 'Average emoji width (j141) - rounded to 2 decimals',
+                risk: 'Low'
+            },
+            testMJEmojiSystemSum: {
+                value: result.j142,
+                description: 'Emoji system sum (j142) - 0.00001 * sum of unique patterns',
+                risk: 'Low'
+            },
+            testMJEmojiWidths: {
+                value: result.widths?.join(',') || 'unknown',
+                description: 'Individual emoji widths [😀, 🧑‍♂️, 👨‍👩‍👦]',
+                risk: 'Low'
+            },
+            testMJEmojiPatterns: {
+                value: result.patterns?.length || 0,
+                description: 'Number of unique dimension patterns',
+                risk: 'Low'
+            },
+            testMJ_timing: {
+                value: result.j143,
+                description: 'TestMJ emoji detection duration (ms)',
+                risk: 'N/A'
+            }
+        };
+    }
+
+    /**
+     * Get raw result data
+     */
+    getResult() {
+        return this.result;
+    }
+}
+
+// ============================================================
 // COMBINED CREEPJS ENHANCED DETECTOR
 // ============================================================
 
@@ -1430,6 +1669,7 @@ class CreepjsEnhancedDetector {
             enableDOMRect: true,
             enableCSSMedia: true,
             enableIntl: true,
+            enableTestMJ: true,
             ...config
         };
         
@@ -1437,6 +1677,7 @@ class CreepjsEnhancedDetector {
         this.domrectDetector = new DOMRectFingerprintDetector();
         this.cssMediaDetector = new CSSMediaFingerprintDetector();
         this.intlDetector = new IntlFingerprintDetector();
+        this.testMJDetector = new TestMJEmojiWidthDetector();
         
         this.result = null;
         this.metrics = {};
@@ -1486,6 +1727,15 @@ class CreepjsEnhancedDetector {
                 promises.push(
                     this.intlDetector.analyze().then(metrics => {
                         results.intl = this.intlDetector.getResult();
+                        Object.assign(allMetrics, metrics);
+                    })
+                );
+            }
+
+            if (this.config.enableTestMJ) {
+                promises.push(
+                    this.testMJDetector.analyze().then(metrics => {
+                        results.testMJ = this.testMJDetector.getResult();
                         Object.assign(allMetrics, metrics);
                     })
                 );
@@ -1561,6 +1811,10 @@ class CreepjsEnhancedDetector {
     getIntlDetector() {
         return this.intlDetector;
     }
+
+    getTestMJDetector() {
+        return this.testMJDetector;
+    }
 }
 
 // ============================================================
@@ -1572,6 +1826,7 @@ export {
     DOMRectFingerprintDetector,
     CSSMediaFingerprintDetector,
     IntlFingerprintDetector,
+    TestMJEmojiWidthDetector,
     CreepjsEnhancedDetector,
     // Utilities
     hashMini,
