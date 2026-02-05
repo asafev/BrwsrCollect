@@ -23,3 +23,10 @@ export { PermissionsDetector, PERMISSION_NAMES } from './permissionsDetector.js'
 export { CodecSupportDetector, CODEC_CONFIG } from './codecSupport.js';
 export { StackTraceFingerprintDetector, STACK_TRACE_FINGERPRINT_CONFIG } from './stackTraceFingerprint.js';
 export { IframeDetector, IFRAME_DETECTOR_CONFIG, detectIframeAnomalies } from './iframeDetector.js';
+export { 
+    CreepjsEnhancedDetector,
+    MathFingerprintDetector,
+    DOMRectFingerprintDetector,
+    CSSMediaFingerprintDetector,
+    IntlFingerprintDetector
+} from './creepjsEnhanced.js';

@@ -63,7 +63,7 @@ const RESEARCH_CATEGORIES = {
         collapsed: false,
         categories: [
             { key: 'webgl', label: 'WebGL / GPU', icon: 'gpu' },
-            { key: 'audio', label: 'Audio Context', icon: 'audio' },
+            { key: 'audioFingerprint', label: 'Audio Fingerprint (CreepJS)', icon: 'audio' },
             { key: 'codecSupport', label: 'Codec Support', icon: 'audio' },
             { key: 'display', label: 'Display Properties', icon: 'display' },
             { key: 'batteryStorage', label: 'Battery & Storage', icon: 'battery' },
@@ -118,7 +118,9 @@ const RESEARCH_CATEGORIES = {
             { key: 'stringSignatureAutomation', label: 'Signature Analysis', icon: 'signature' },
             { key: 'cdpSignals', label: 'CDP Signals', icon: 'terminal' },
             { key: 'workerSignals', label: 'Worker Threads', icon: 'worker' },
-            { key: 'stackTraceFingerprint', label: 'Stack Trace Analysis', icon: 'stackTraceFingerprint' }
+            { key: 'stackTraceFingerprint', label: 'Stack Trace Analysis', icon: 'stackTraceFingerprint' },
+            { key: 'creepjsEnhanced', label: 'CreepJS Enhanced', icon: 'fingerprint' },
+            { key: 'iframeAnalysis', label: 'Iframe Analysis', icon: 'window' }
         ]
     },
     behavioral: {
@@ -150,7 +152,7 @@ const CATEGORY_CONFIG = {
     webApis: { label: 'Web APIs', description: 'Web API availability and features' },
     webgl: { label: 'WebGL / GPU', description: 'Graphics and GPU fingerprinting' },
     audio: { label: 'Audio Context', description: 'Audio processing fingerprint' },
-    audioFingerprint: { label: 'Audio Fingerprint', description: 'Audio system parameters and fingerprint' },
+    audioFingerprint: { label: 'Audio Fingerprint (CreepJS)', description: 'Enhanced audio fingerprint with lie detection, pattern validation, and engine fingerprinting' },
     codecSupport: { label: 'Codec Support', description: 'Audio/video codec detection & RTC capabilities' },
     display: { label: 'Display Properties', description: 'Screen and display configuration' },
     battery: { label: 'Battery Status', description: 'Battery API information' },
@@ -175,6 +177,8 @@ const CATEGORY_CONFIG = {
     cdpSignals: { label: 'CDP Signals', description: 'Chrome DevTools Protocol detection' },
     workerSignals: { label: 'Worker Threads', description: 'Web Worker characteristics' },
     stackTraceFingerprint: { label: 'Stack Trace Analysis', description: 'Stack trace patterns for browser/environment detection' },
+    creepjsEnhanced: { label: 'CreepJS Enhanced', description: 'Math precision, DOMRect, CSS Media, and Intl API fingerprinting for stealth detection' },
+    iframeAnalysis: { label: 'Iframe Analysis', description: 'Cross-realm iframe consistency and integrity checks' },
     behavioralIndicators: { label: 'Behavior Signals', description: 'User interaction patterns' },
     behavioralTelemetry: { label: 'Telemetry Data', description: 'Raw behavioral measurements' },
     performanceTiming: { label: 'Timing Analysis', description: 'Navigation and paint timing' },

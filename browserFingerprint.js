@@ -95,6 +95,7 @@ import { PermissionsDetector } from './detectors/permissionsDetector.js';
 import { CodecSupportDetector } from './detectors/codecSupport.js';
 import { StackTraceFingerprintDetector } from './detectors/stackTraceFingerprint.js';
 import { IframeDetector } from './detectors/iframeDetector.js';
+import { CreepjsEnhancedDetector } from './detectors/creepjsEnhanced.js';
 
 /**
  * Suspicious Indicator Detection System
@@ -1037,6 +1038,7 @@ class BrowserFingerprintAnalyzer {
         this.codecSupportDetector = this._safeCreateDetector(() => new CodecSupportDetector(options.codecSupport || {}), 'CodecSupportDetector');
         this.stackTraceFingerprintDetector = this._safeCreateDetector(() => new StackTraceFingerprintDetector(options.stackTraceFingerprint || {}), 'StackTraceFingerprintDetector');
         this.iframeDetector = this._safeCreateDetector(() => new IframeDetector(options.iframe || {}), 'IframeDetector');
+        this.creepjsEnhancedDetector = this._safeCreateDetector(() => new CreepjsEnhancedDetector(options.creepjsEnhanced || {}), 'CreepjsEnhancedDetector');
         
         // Initialize performance timing detector early to catch first-input
         if (this.performanceTimingDetector) {
@@ -1068,8 +1070,8 @@ class BrowserFingerprintAnalyzer {
                     phase,
                     status, // 'starting', 'complete', 'error', 'skipped'
                     completedPhases: [...this.completedPhases],
-                    totalPhases: 21, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout, codecSupport, stackTraceFingerprint)
-                    percentage: Math.round((this.completedPhases.length / 20) * 100),
+                    totalPhases: 22, // Total number of analysis phases (includes knownAgents, performanceTiming, keyboardLayout, codecSupport, stackTraceFingerprint, creepjsEnhanced)
+                    percentage: Math.round((this.completedPhases.length / 22) * 100),
                     ...details
                 });
             } catch (e) {
@@ -1508,6 +1510,29 @@ class BrowserFingerprintAnalyzer {
         }
         categoryTiming.iframeAnalysis = Math.round(performance.now() - iframeStartTime);
         this._reportProgress('iframeAnalysis', 'complete', { message: 'Iframe analysis complete' });
+
+        // Run CreepJS Enhanced Detection (Math, DOMRect, CSS Media, Intl fingerprinting)
+        this._reportProgress('creepjsEnhanced', 'starting', { message: 'Analyzing CreepJS enhanced fingerprints...' });
+        console.log('🕵️ Analyzing CreepJS enhanced fingerprints (Math, DOMRect, CSS Media, Intl)...');
+        const creepjsStartTime = performance.now();
+        if (this.creepjsEnhancedDetector) {
+            try {
+                const creepjsMetrics = await this._withTimeout(
+                    this.creepjsEnhancedDetector.analyze(),
+                    this.options.detectorTimeout + 2000, // Extra time for DOMRect DOM operations
+                    'CreepJS enhanced detection'
+                );
+                this.metrics.creepjsEnhanced = creepjsMetrics;
+                console.log('🕵️ CreepJS enhanced analysis complete:', creepjsMetrics);
+            } catch (error) {
+                console.warn('⚠️ CreepJS enhanced detection failed:', error.message);
+                this.metrics.creepjsEnhanced = { error: { value: error.message, description: 'CreepJS enhanced detection error', risk: 'N/A' } };
+            }
+        } else {
+            this.metrics.creepjsEnhanced = { error: { value: 'Detector not available', description: 'CreepJS enhanced detector failed to initialize', risk: 'N/A' } };
+        }
+        categoryTiming.creepjsEnhanced = Math.round(performance.now() - creepjsStartTime);
+        this._reportProgress('creepjsEnhanced', 'complete', { message: 'CreepJS enhanced analysis complete' });
 
         // Run Media Devices enumeration (async - enumerates available media devices) - WITH TIMEOUT
         this._reportProgress('media', 'starting', { message: 'Analyzing media devices...' });

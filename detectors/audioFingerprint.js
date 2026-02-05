@@ -1,7 +1,13 @@
 /**
  * Audio Fingerprint Detector Module
  * Collects audio system parameters and fingerprint data
- *   | AudioContext (live) | default     | triangle   | 10kHz | N/A          | Sum + hash      |
+ * 
+ * Enhanced with CreepJS techniques for stealth detection:
+ * - Known audio patterns for engine validation (Blink/Gecko/WebKit)
+ * - Fake audio detection (silent oscillator test)
+ * - Noise factor detection (buffer tampering)
+ * - Sample matching (getChannelData vs copyFromChannel)
+ * - Extended audio node property collection
  * 
  * KEY INSIGHT: Audio fingerprint rendering fails on headless Chromium without audio output.
  * However, AudioContext METADATA reveals OS/driver-level parameters that are:
@@ -10,23 +16,103 @@
  * - Hard to spoof consistently without deep knowledge
  * - Similar to CSS computed styles for OS detection
  * 
- * This implementation focuses on TWO approaches:
+ * This implementation focuses on THREE approaches:
  * 1. Audio System Parameters (Cloudflare-style) - Always available, reveals OS/driver info
  * 2. Audio Fingerprint Rendering (PX-style) - When available, provides unique hash
- * 
- * AUDIO SYSTEM PARAMETERS (focus for automation detection):
- * - sampleRate: OS default sample rate (44100, 48000, 96000, etc.)
- * - baseLatency: Audio system latency (OS/driver dependent)
- * - outputLatency: Output device latency (0 if no device)
- * - destination.maxChannelCount: Max audio channels (OS/hardware)
- * - destination.channelCount: Current channel count
- * - destination.channelInterpretation: Channel interpretation mode
- * - AnalyserNode defaults: fftSize, frequencyBinCount, minDecibels, maxDecibels
- * - Audio node creation patterns and timing
+ * 3. CreepJS Lie Detection - Validates audio data integrity and detects spoofing
  * 
  * @module detectors/audioFingerprint
  * @see https://fingerprintjs.com/blog/audio-fingerprinting/
+ * @see https://github.com/AbrahamJuliot/creepjs (audio detection)
  */
+
+// ============================================================
+// CREEPJS KNOWN AUDIO PATTERNS
+// These are engine-specific compressor gain values mapped to expected sample sums
+// Used to validate that audio processing matches expected browser engine
+// ============================================================
+const KNOWN_AUDIO_PATTERNS = {
+    // Blink/WebKit - Chrome, Edge, Opera, etc.
+    [-20.538286209106445]: [
+        124.0434488439787,
+        124.04344968475198,
+        124.04347527516074,
+        124.04347503720783,
+        124.04347657808103,
+    ],
+    [-20.538288116455078]: [
+        124.04347518575378,
+        124.04347527516074,
+        124.04344884395687,
+        124.04344968475198,
+        124.04347657808103,
+        124.04347730590962,
+        124.0434765110258,
+        124.04347656317987,
+        124.04375314689969,
+        // WebKit specific
+        124.0434485301812,
+        124.0434496849557,
+        124.043453265891,
+        124.04345734833623,
+        124.04345808873768,
+    ],
+    [-20.535268783569336]: [
+        // Android/Linux Blink
+        124.080722568091,
+        124.08072256811283,
+        124.08072766105033,
+        124.08072787802666,
+        124.08072787804849,
+        124.08074500028306,
+        124.0807470110085,
+        124.08075528279005,
+        124.08075643483608,
+    ],
+    // Gecko - Firefox
+    [-31.502187728881836]: [35.74996626004577],
+    [-31.502185821533203]: [35.74996031448245, 35.7499681673944, 35.749968223273754],
+    [-31.50218963623047]: [35.74996031448245],
+    [-31.509262084960938]: [35.7383295930922, 35.73833402246237],
+    // WebKit - Safari
+    [-29.837873458862305]: [35.10892717540264, 35.10892752557993],
+    [-29.83786964416504]: [35.10893232002854, 35.10893253237009],
+};
+
+// Extended known patterns: pattern -> expected sampleSum values
+// Pattern format: "compressorGainReduction,floatFrequencyDataSum,floatTimeDomainDataSum"
+const KNOWN_AUDIO_EXTENDED_PATTERNS = {
+    // BLINK
+    '-20.538286209106445,164537.64796829224,502.5999283068122': [124.04347527516074],
+    '-20.538288116455078,164537.64796829224,502.5999283068122': [124.04347527516074],
+    '-20.538288116455078,164537.64795303345,502.5999283068122': [124.04347527516074, 124.04347518575378],
+    '-20.538286209106445,164537.64805984497,502.5999283068122': [124.04347527516074],
+    '-20.538288116455078,164537.64805984497,502.5999283068122': [124.04347527516074, 124.04347518575378],
+    '-20.538288116455078,164881.9727935791,502.59990317908887': [124.04344884395687],
+    '-20.538286209106445,164882.2082748413,502.59990317911434': [124.0434488439787],
+    '-20.538286209106445,164863.45319366455,502.5999033495791': [124.04344968475198],
+    '-20.538288116455078,164863.45319366455,502.5999033495791': [124.04344968475198, 124.04375314689969],
+    '-20.538286209106445,164540.1567993164,502.59992209258417': [124.04347657808103],
+    '-20.538288116455078,164540.1567993164,502.59992209258417': [124.04347657808103, 124.0434765110258],
+    // Android/Linux
+    '-20.535268783569336,164940.360786438,502.69695458233764': [124.080722568091],
+    '-20.535268783569336,164948.14596557617,502.6969545823631': [124.08072256811283],
+    '-20.535268783569336,164926.65912628174,502.6969610930064': [124.08072766105033],
+    // GECKO
+    '-31.509262084960938,167722.6894454956,148.42717787250876': [35.7383295930922],
+    '-31.509262084960938,167728.72756958008,148.427184343338': [35.73833402246237],
+    '-31.50218963623047,167721.27517700195,148.47537828609347': [35.74996031448245],
+    '-31.502185821533203,167727.52931976318,148.47542023658752': [35.7499681673944],
+    '-31.502187728881836,167697.23177337646,148.47541113197803': [35.74996626004577],
+    // WEBKIT
+    '-29.837873458862305,163206.43050384521,0': [35.10892717540264],
+    '-29.837873458862305,163224.69785308838,0': [35.10892752557993],
+    '-29.83786964416504,163209.17245483398,0': [35.10893232002854],
+    '-29.83786964416504,163202.77336883545,0': [35.10893253237009],
+};
+
+// Audio trap value for noise detection
+const AUDIO_TRAP = Math.random();
 
 /**
  * Configuration for audio fingerprinting
@@ -406,12 +492,296 @@ class AudioFingerprintDetector {
         }
     }
 
+    // ============================================================
+    // CREEPJS-STYLE DETECTION METHODS
+    // ============================================================
+
+    /**
+     * Detect fake audio buffer (CreepJS technique)
+     * Creates a silent oscillator and checks if buffer contains non-zero values
+     * If spoofed audio APIs return noise for silence, this detects it
+     * 
+     * @private
+     * @returns {Promise<boolean>} True if audio is fake/spoofed
+     */
+    async _detectFakeAudio() {
+        try {
+            const context = new OfflineAudioContext(1, 100, 44100);
+            const oscillator = context.createOscillator();
+            oscillator.frequency.value = 0; // Silent - should produce zeros
+            oscillator.start(0);
+            context.startRendering();
+
+            return new Promise((resolve) => {
+                context.oncomplete = (event) => {
+                    try {
+                        const channelData = event.renderedBuffer.getChannelData?.(0);
+                        if (!channelData) {
+                            resolve(false);
+                            return;
+                        }
+                        // If all values are 0, audio is real. Otherwise it's fake/spoofed
+                        const isFake = '' + [...new Set(channelData)] !== '0';
+                        resolve(isFake);
+                    } catch (e) {
+                        resolve(false);
+                    } finally {
+                        try { oscillator.disconnect(); } catch (e) {}
+                    }
+                };
+            });
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Detect noise factor in audio buffer (CreepJS technique)
+     * Tests if writing to audio buffer and reading back produces unexpected noise
+     * This catches stealth plugins that add random noise to audio data
+     * 
+     * @private
+     * @returns {number} Noise factor (0 = clean, >0 = tampered)
+     */
+    _detectNoiseFactor() {
+        const length = 2000;
+        try {
+            const getRandFromRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+            
+            const getCopyFrom = (rand, buffer, copy) => {
+                const bufLength = buffer.length;
+                const max = 20;
+                const start = getRandFromRange(275, bufLength - (max + 1));
+                const mid = start + max / 2;
+                const end = start + max;
+
+                buffer.getChannelData(0)[start] = rand;
+                buffer.getChannelData(0)[mid] = rand;
+                buffer.getChannelData(0)[end] = rand;
+                buffer.copyFromChannel(copy, 0);
+                
+                const attack = [
+                    buffer.getChannelData(0)[start] === 0 ? Math.random() : 0,
+                    buffer.getChannelData(0)[mid] === 0 ? Math.random() : 0,
+                    buffer.getChannelData(0)[end] === 0 ? Math.random() : 0,
+                ];
+                return [...new Set([...buffer.getChannelData(0), ...copy, ...attack])].filter((x) => x !== 0);
+            };
+
+            const getCopyTo = (rand, buffer, copy) => {
+                buffer.copyToChannel(copy.map(() => rand), 0);
+                const frequency = buffer.getChannelData(0)[0];
+                const dataAttacked = [...buffer.getChannelData(0)]
+                    .map((x) => x !== frequency || !x ? Math.random() : x);
+                return dataAttacked.filter((x) => x !== frequency);
+            };
+
+            const result = [...new Set([
+                ...getCopyFrom(
+                    AUDIO_TRAP,
+                    new AudioBuffer({ length, sampleRate: 44100 }),
+                    new Float32Array(length),
+                ),
+                ...getCopyTo(
+                    AUDIO_TRAP,
+                    new AudioBuffer({ length, sampleRate: 44100 }),
+                    new Float32Array(length),
+                ),
+            ])];
+            
+            return +(
+                result.length !== 1 &&
+                result.reduce((acc, n) => acc += +n, 0)
+            );
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    /**
+     * Check if sample data matches between getChannelData and copyFromChannel
+     * Stealth plugins may not properly synchronize these two methods
+     * 
+     * @private
+     * @param {Float32Array} bins - Data from getChannelData
+     * @param {Float32Array} copy - Data from copyFromChannel
+     * @param {number} start - Start index
+     * @param {number} end - End index
+     * @returns {boolean} True if samples match
+     */
+    _checkSampleMatching(bins, copy, start, end) {
+        if (!bins || !copy) return true;
+        
+        const getSnapshot = (arr, s, e) => {
+            const collection = [];
+            for (let i = s; i < e; i++) {
+                collection.push(arr[i]);
+            }
+            return collection;
+        };
+        
+        const binsSample = getSnapshot([...bins], start, end);
+        const copySample = getSnapshot([...copy], start, end);
+        
+        return '' + binsSample === '' + copySample;
+    }
+
+    /**
+     * Validate audio pattern against known browser engine patterns
+     * Returns detected engine and whether pattern matches expectations
+     * 
+     * @private
+     * @param {number} compressorGain - DynamicsCompressor reduction value
+     * @param {number} sampleSum - Sum of audio samples
+     * @param {number} floatFrequencySum - Sum of frequency data
+     * @param {number} floatTimeSum - Sum of time domain data
+     * @returns {Object} Pattern validation result
+     */
+    _validateAudioPattern(compressorGain, sampleSum, floatFrequencySum, floatTimeSum) {
+        const result = {
+            knownEngine: null,
+            patternMatch: false,
+            expectedSums: [],
+            suspiciousPattern: false
+        };
+
+        // Check against simple gain -> expected sums mapping
+        const knownSums = KNOWN_AUDIO_PATTERNS[compressorGain];
+        if (knownSums) {
+            result.expectedSums = knownSums;
+            result.patternMatch = knownSums.includes(sampleSum);
+            
+            // Determine engine from gain value
+            if (compressorGain > -22) {
+                result.knownEngine = 'blink'; // Chrome/Edge/Opera
+            } else if (compressorGain > -30) {
+                result.knownEngine = 'webkit'; // Safari
+            } else {
+                result.knownEngine = 'gecko'; // Firefox
+            }
+        }
+
+        // Check extended pattern (more precise)
+        const extendedPattern = `${compressorGain},${floatFrequencySum},${floatTimeSum}`;
+        const extendedSums = KNOWN_AUDIO_EXTENDED_PATTERNS[extendedPattern];
+        if (extendedSums) {
+            result.extendedPatternMatch = extendedSums.includes(sampleSum);
+            if (!result.extendedPatternMatch && result.patternMatch) {
+                // Simple pattern matched but extended didn't - suspicious
+                result.suspiciousPattern = true;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Collect extended audio node properties (CreepJS style)
+     * These values vary by browser engine and can fingerprint the browser
+     * 
+     * @private
+     * @param {OfflineAudioContext} context - Audio context
+     * @returns {Object} Extended property values
+     */
+    _collectExtendedNodeProperties(context) {
+        const attempt = (fn) => { try { return fn(); } catch (e) { return undefined; } };
+        
+        const analyser = context.createAnalyser();
+        const oscillator = context.createOscillator();
+        const dynamicsCompressor = context.createDynamicsCompressor();
+        const biquadFilter = context.createBiquadFilter();
+
+        const values = {
+            // AnalyserNode properties
+            'AnalyserNode.channelCount': attempt(() => analyser.channelCount),
+            'AnalyserNode.channelCountMode': attempt(() => analyser.channelCountMode),
+            'AnalyserNode.channelInterpretation': attempt(() => analyser.channelInterpretation),
+            'AnalyserNode.context.sampleRate': attempt(() => analyser.context.sampleRate),
+            'AnalyserNode.fftSize': attempt(() => analyser.fftSize),
+            'AnalyserNode.frequencyBinCount': attempt(() => analyser.frequencyBinCount),
+            'AnalyserNode.maxDecibels': attempt(() => analyser.maxDecibels),
+            'AnalyserNode.minDecibels': attempt(() => analyser.minDecibels),
+            'AnalyserNode.numberOfInputs': attempt(() => analyser.numberOfInputs),
+            'AnalyserNode.numberOfOutputs': attempt(() => analyser.numberOfOutputs),
+            'AnalyserNode.smoothingTimeConstant': attempt(() => analyser.smoothingTimeConstant),
+            'AnalyserNode.context.listener.forwardX.maxValue': attempt(() => 
+                analyser.context.listener?.forwardX?.maxValue
+            ),
+            // BiquadFilterNode properties
+            'BiquadFilterNode.gain.maxValue': attempt(() => biquadFilter.gain.maxValue),
+            'BiquadFilterNode.frequency.defaultValue': attempt(() => biquadFilter.frequency.defaultValue),
+            'BiquadFilterNode.frequency.maxValue': attempt(() => biquadFilter.frequency.maxValue),
+            // DynamicsCompressorNode properties
+            'DynamicsCompressorNode.attack.defaultValue': attempt(() => dynamicsCompressor.attack.defaultValue),
+            'DynamicsCompressorNode.knee.defaultValue': attempt(() => dynamicsCompressor.knee.defaultValue),
+            'DynamicsCompressorNode.knee.maxValue': attempt(() => dynamicsCompressor.knee.maxValue),
+            'DynamicsCompressorNode.ratio.defaultValue': attempt(() => dynamicsCompressor.ratio.defaultValue),
+            'DynamicsCompressorNode.ratio.maxValue': attempt(() => dynamicsCompressor.ratio.maxValue),
+            'DynamicsCompressorNode.release.defaultValue': attempt(() => dynamicsCompressor.release.defaultValue),
+            'DynamicsCompressorNode.release.maxValue': attempt(() => dynamicsCompressor.release.maxValue),
+            'DynamicsCompressorNode.threshold.defaultValue': attempt(() => dynamicsCompressor.threshold.defaultValue),
+            'DynamicsCompressorNode.threshold.minValue': attempt(() => dynamicsCompressor.threshold.minValue),
+            // OscillatorNode properties
+            'OscillatorNode.detune.maxValue': attempt(() => oscillator.detune.maxValue),
+            'OscillatorNode.detune.minValue': attempt(() => oscillator.detune.minValue),
+            'OscillatorNode.frequency.defaultValue': attempt(() => oscillator.frequency.defaultValue),
+            'OscillatorNode.frequency.maxValue': attempt(() => oscillator.frequency.maxValue),
+            'OscillatorNode.frequency.minValue': attempt(() => oscillator.frequency.minValue),
+        };
+
+        // Cleanup
+        try { analyser.disconnect(); } catch (e) {}
+        try { oscillator.disconnect(); } catch (e) {}
+        try { dynamicsCompressor.disconnect(); } catch (e) {}
+        try { biquadFilter.disconnect(); } catch (e) {}
+
+        return values;
+    }
+
+    /**
+     * Detect AnalyserNode lie - getting frequency data before any audio is processed
+     * Should return all -Infinity (silence), if not, audio API is tampered
+     * 
+     * @private
+     * @param {AnalyserNode} analyser - Analyser node to test
+     * @returns {Object} Lie detection result
+     */
+    _detectAnalyserLie(analyser) {
+        try {
+            const dataArray = new Float32Array(analyser.frequencyBinCount);
+            analyser.getFloatFrequencyData?.(dataArray);
+            const uniqueSize = new Set(dataArray).size;
+            
+            // Before any audio is processed, all values should be -Infinity
+            // If we get more than 1 unique value, something is wrong
+            if (uniqueSize > 1) {
+                return {
+                    lied: true,
+                    reason: `expected -Infinity (silence) and got ${uniqueSize} frequencies`,
+                    uniqueFrequencies: uniqueSize
+                };
+            }
+            
+            return { lied: false };
+        } catch (e) {
+            return { lied: false, error: e.message };
+        }
+    }
+
     /**
      * Generate audio fingerprint using OfflineAudioContext
      * Implementation aligned with PerimeterX methodology:
      * - Sine wave at 10kHz through DynamicsCompressor
      * - Sample indices 4500-5000 for consistent fingerprint
      * - Sum of absolute values as the primary signal
+     * 
+     * Enhanced with CreepJS techniques:
+     * - Fake audio detection
+     * - Noise factor detection
+     * - Sample matching (getChannelData vs copyFromChannel)
+     * - Extended node property collection
+     * - Pattern validation against known engines
+     * - AnalyserNode lie detection
      * 
      * @private
      * @param {Function} AudioContextClass - AudioContext constructor
@@ -421,17 +791,24 @@ class AudioFingerprintDetector {
         const startTime = performance.now();
         
         const sampleRate = this.config.sampleRate;
+        const bufferLen = 5000; // CreepJS uses 5000 samples for triangle wave analysis
         const length = this.config.sampleLength;
 
-        // Create OfflineAudioContext (1 channel, 44100 samples, 44100 Hz)
+        // === CREEPJS LIE DETECTION: Run parallel checks ===
+        const [audioIsFake, noiseFactor] = await Promise.all([
+            this._detectFakeAudio().catch(() => false),
+            Promise.resolve(this._detectNoiseFactor())
+        ]);
+
+        // Create OfflineAudioContext for main fingerprint
         let offlineContext;
         try {
-            offlineContext = new AudioContextClass(1, length, sampleRate);
+            offlineContext = new AudioContextClass(1, bufferLen, sampleRate);
         } catch (e) {
             try {
                 offlineContext = new AudioContextClass({
                     numberOfChannels: 1,
-                    length: length,
+                    length: bufferLen,
                     sampleRate: sampleRate
                 });
             } catch (e2) {
@@ -441,22 +818,31 @@ class AudioFingerprintDetector {
 
         const currentTime = offlineContext.currentTime || 0;
 
-        // Create oscillator (sine wave at 10kHz - matches PX)
+        // === CREEPJS: Collect extended node properties ===
+        const extendedNodeProps = this._collectExtendedNodeProperties(offlineContext);
+
+        // Create analyser for frequency/time domain data
+        const analyser = offlineContext.createAnalyser();
+
+        // === CREEPJS LIE DETECTION: Check for AnalyserNode lies ===
+        const analyserLie = this._detectAnalyserLie(analyser);
+
+        // Create oscillator (triangle wave at 10kHz - CreepJS uses triangle)
         const oscillator = offlineContext.createOscillator();
-        oscillator.type = this.config.oscillatorType;
-        this._setAudioParam(oscillator.frequency, this.config.oscillatorFrequency, currentTime);
+        oscillator.type = 'triangle'; // CreepJS uses triangle for more entropy
+        oscillator.frequency.value = 10000;
 
         // Create compressor (creates unique audio signature per browser/device)
         const compressor = offlineContext.createDynamicsCompressor();
-        const compConfig = this.config.compressor;
-        this._setAudioParam(compressor.threshold, compConfig.threshold, currentTime);
-        this._setAudioParam(compressor.knee, compConfig.knee, currentTime);
-        this._setAudioParam(compressor.ratio, compConfig.ratio, currentTime);
-        this._setAudioParam(compressor.attack, compConfig.attack, currentTime);
-        this._setAudioParam(compressor.release, compConfig.release, currentTime);
+        try {
+            compressor.threshold.value = -50;
+            compressor.knee.value = 40;
+            compressor.attack.value = 0;
+        } catch (e) {}
 
-        // Connect: oscillator -> compressor -> destination
+        // Connect: oscillator -> compressor -> analyser -> destination
         oscillator.connect(compressor);
+        compressor.connect(analyser);
         compressor.connect(offlineContext.destination);
 
         // Start oscillator
@@ -470,56 +856,161 @@ class AudioFingerprintDetector {
         
         const renderTime = Math.round(performance.now() - renderStartTime);
 
-        // Disconnect oscillator
+        // Disconnect nodes
+        try { oscillator.disconnect(); } catch (e) {}
+        try { compressor.disconnect(); } catch (e) {}
+
+        // === CREEPJS: Get compressor gain reduction ===
+        const compressorGainReduction = compressor.reduction?.value ?? compressor.reduction;
+
+        // === CREEPJS: Get frequency and time domain data ===
+        const floatFrequencyData = new Float32Array(analyser.frequencyBinCount);
+        analyser.getFloatFrequencyData?.(floatFrequencyData);
+        
+        const floatTimeDomainData = new Float32Array(analyser.fftSize);
+        if ('getFloatTimeDomainData' in analyser) {
+            analyser.getFloatTimeDomainData(floatTimeDomainData);
+        }
+
+        // Calculate sums
+        const getSum = (arr) => !arr ? 0 : [...arr].reduce((acc, curr) => acc += Math.abs(curr), 0);
+        const floatFrequencyDataSum = getSum(floatFrequencyData);
+        const floatTimeDomainDataSum = getSum(floatTimeDomainData);
+
+        // === Extract channel data ===
+        const channelData = renderedBuffer.getChannelData(0);
+        
+        // === CREEPJS: Get data via copyFromChannel for comparison ===
+        const copy = new Float32Array(bufferLen);
         try {
-            oscillator.disconnect();
+            renderedBuffer.copyFromChannel?.(copy, 0);
         } catch (e) {}
 
-        // Extract channel data and calculate fingerprint
-        // PX approach: sum of absolute values from samples 4500-5000
-        const channelData = renderedBuffer.getChannelData(0);
-        const rangeStart = this.config.sampleRangeStart;
-        const rangeEnd = this.config.sampleRangeEnd;
+        // === Calculate sample sums ===
+        const rangeStart = 4500;
+        const rangeEnd = bufferLen;
         
-        let sum = 0;
+        // CreepJS-style sum (4500 to end)
+        let sampleSum = 0;
         for (let i = rangeStart; i < rangeEnd && i < channelData.length; i++) {
-            sum += Math.abs(channelData[i]);
+            sampleSum += Math.abs(channelData[i]);
         }
 
-        // Create fingerprint string and hash
-        const fingerprintValue = sum.toString();
-        const fingerprintHash = fnv1a32(fingerprintValue);
-
-        // Integrity check: create a copy and verify
-        let copySum = 0;
-        for (let i = rangeStart; i < rangeEnd && i < channelData.length; i++) {
-            copySum += Math.abs(channelData[i]);
+        // PX-style sum (4500-5000 range)
+        const pxRangeEnd = Math.min(5000, channelData.length);
+        let pxSum = 0;
+        for (let i = rangeStart; i < pxRangeEnd; i++) {
+            pxSum += Math.abs(channelData[i]);
         }
-        const copyHash = fnv1a32(copySum.toString());
-        
-        // Trap score: 1.0 if data matches copy and is valid
-        const hashesMatch = fingerprintHash === copyHash;
-        const hasValidData = sum !== 0;
-        const trapScore = hashesMatch && hasValidData ? 1.0 : 
-                         hashesMatch ? 0.5 : 0;
+
+        // === CREEPJS: Sample matching check ===
+        const samplesMatch = this._checkSampleMatching(channelData, copy, 4500, 4600);
+        const copyFromChannelSupported = 'copyFromChannel' in AudioBuffer.prototype;
+
+        // === CREEPJS: Sample uniqueness check ===
+        const totalUniqueSamples = new Set([...channelData]).size;
+        const tooManyUniqueSamples = totalUniqueSamples === bufferLen;
+
+        // === CREEPJS: Pattern validation ===
+        const patternValidation = this._validateAudioPattern(
+            compressorGainReduction,
+            sampleSum,
+            floatFrequencyDataSum,
+            floatTimeDomainDataSum
+        );
+
+        // === Calculate noise from first 100 samples (fallback) ===
+        const noiseFromSamples = noiseFactor || [...new Set(channelData.slice(0, 100))]
+            .reduce((acc, n) => acc += n, 0);
+
+        // === Aggregate lie detection ===
+        let lied = false;
+        const lies = [];
+
+        if (audioIsFake) {
+            lied = true;
+            lies.push('audio-is-fake');
+        }
+        if (noiseFactor) {
+            lied = true;
+            lies.push('noise-factor-detected');
+        }
+        if (analyserLie.lied) {
+            lied = true;
+            lies.push('analyser-frequency-lie');
+        }
+        if (copyFromChannelSupported && !samplesMatch) {
+            lied = true;
+            lies.push('sample-mismatch');
+        }
+        if (tooManyUniqueSamples) {
+            lies.push('too-many-unique-samples'); // Suspicious but not definitive lie
+        }
+        if (patternValidation.suspiciousPattern) {
+            lies.push('suspicious-pattern-mismatch');
+        }
+
+        // Create fingerprint hash
+        const fingerprintHash = fnv1a32(sampleSum.toString());
+        const pxFingerprintHash = fnv1a32(pxSum.toString());
+
+        // Trap score based on multiple factors
+        const trapScore = (
+            (!lied ? 0.5 : 0) +
+            (samplesMatch ? 0.2 : 0) +
+            (patternValidation.patternMatch ? 0.2 : 0) +
+            (!tooManyUniqueSamples ? 0.1 : 0)
+        );
 
         return {
             supported: true,
-            // PRIMARY FINGERPRINT: sum of absolute sample values (matches PX)
-            sum: sum,
-            // Hash of the fingerprint value
+            
+            // === PRIMARY FINGERPRINT (CreepJS style) ===
+            sampleSum: sampleSum,
             hash: fingerprintHash,
-            // Integrity verification
-            copyHash: copyHash,
+            
+            // === PX-STYLE FINGERPRINT ===
+            pxSum: pxSum,
+            pxHash: pxFingerprintHash,
+            
+            // === CREEPJS EXTENDED DATA ===
+            compressorGainReduction: compressorGainReduction,
+            floatFrequencyDataSum: floatFrequencyDataSum,
+            floatTimeDomainDataSum: floatTimeDomainDataSum,
+            totalUniqueSamples: totalUniqueSamples,
+            
+            // === LIE DETECTION ===
+            lied: lied,
+            lies: lies,
+            audioIsFake: audioIsFake,
+            noiseFactor: noiseFactor,
+            noiseFromSamples: noiseFromSamples,
+            analyserLie: analyserLie,
+            samplesMatch: samplesMatch,
+            
+            // === PATTERN VALIDATION ===
+            patternValidation: patternValidation,
+            detectedEngine: patternValidation.knownEngine,
+            patternMatch: patternValidation.patternMatch,
+            
+            // === INTEGRITY ===
             trap: trapScore,
-            // Timing metrics (total only - avoids noise)
+            trapValue: AUDIO_TRAP,
+            
+            // === EXTENDED NODE PROPERTIES (for engine fingerprinting) ===
+            extendedNodeProps: extendedNodeProps,
+            extendedNodePropsHash: fnv1a32(JSON.stringify(extendedNodeProps)),
+            
+            // === TIMING ===
             setupTimeMs: setupTime,
             renderTimeMs: renderTime,
-            // Config used (for debugging/verification)
+            
+            // === CONFIG ===
             config: {
-                oscillatorType: this.config.oscillatorType,
-                oscillatorFrequency: this.config.oscillatorFrequency,
+                oscillatorType: 'triangle',
+                oscillatorFrequency: 10000,
                 sampleRate: sampleRate,
+                bufferLength: bufferLen,
                 sampleRange: `${rangeStart}-${rangeEnd}`
             }
         };
@@ -632,6 +1123,73 @@ class AudioFingerprintDetector {
                 return;
             }
 
+            // === CREEPJS LIE DETECTION ===
+            if (offlineFingerprint.lied) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_tampering_detected',
+                    description: 'Audio API tampering/lies detected (CreepJS)',
+                    severity: 'CRITICAL',
+                    confidence: 0.95,
+                    details: `Lies: ${offlineFingerprint.lies?.join(', ') || 'unknown'}`
+                });
+            }
+
+            if (offlineFingerprint.audioIsFake) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_fake_buffer',
+                    description: 'Silent oscillator test detected fake audio buffer',
+                    severity: 'CRITICAL',
+                    confidence: 0.9,
+                    details: 'Zero-frequency oscillator should produce zeros, but got noise'
+                });
+            }
+
+            if (offlineFingerprint.noiseFactor) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_noise_injection',
+                    description: 'Audio buffer noise injection detected',
+                    severity: 'HIGH',
+                    confidence: 0.85,
+                    details: `Noise factor: ${offlineFingerprint.noiseFactor}`
+                });
+            }
+
+            if (offlineFingerprint.samplesMatch === false) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_sample_mismatch',
+                    description: 'getChannelData and copyFromChannel samples do not match',
+                    severity: 'HIGH',
+                    confidence: 0.85,
+                    details: 'Audio buffer methods return inconsistent data'
+                });
+            }
+
+            if (offlineFingerprint.analyserLie?.lied) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_analyser_lie',
+                    description: 'AnalyserNode returned non-silent data before processing',
+                    severity: 'HIGH',
+                    confidence: 0.8,
+                    details: offlineFingerprint.analyserLie.reason
+                });
+            }
+
+            if (offlineFingerprint.totalUniqueSamples === 5000) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_too_unique',
+                    description: 'All audio samples are unique - suspicious pattern',
+                    severity: 'MEDIUM',
+                    confidence: 0.6,
+                    details: '5000 unique samples out of 5000 is statistically improbable'
+                });
+            }
+
             // Check trap score (integrity verification)
             if (offlineFingerprint.trap < 0.5) {
                 this.suspiciousIndicators.push({
@@ -640,12 +1198,25 @@ class AudioFingerprintDetector {
                     description: 'Audio fingerprint data integrity check failed',
                     severity: 'HIGH',
                     confidence: 0.8,
-                    details: `Trap score: ${offlineFingerprint.trap}, hash: ${offlineFingerprint.hash}, copy: ${offlineFingerprint.copyHash}`
+                    details: `Trap score: ${offlineFingerprint.trap}`
+                });
+            }
+
+            // Pattern validation
+            if (offlineFingerprint.patternValidation?.suspiciousPattern) {
+                this.suspiciousIndicators.push({
+                    category: 'audio',
+                    name: 'audio_pattern_mismatch',
+                    description: 'Audio pattern mismatch between simple and extended validation',
+                    severity: 'MEDIUM',
+                    confidence: 0.7,
+                    details: `Expected engine: ${offlineFingerprint.detectedEngine}, gain: ${offlineFingerprint.compressorGainReduction}`
                 });
             }
 
             // Check for zero sum (all silent - suspicious)
-            if (offlineFingerprint.sum === 0) {
+            const sampleSum = offlineFingerprint.sampleSum ?? offlineFingerprint.sum;
+            if (sampleSum === 0) {
                 this.suspiciousIndicators.push({
                     category: 'audio',
                     name: 'audio_silent_output',
@@ -844,38 +1415,163 @@ class AudioFingerprintDetector {
             };
         }
         
-        // === OFFLINE FINGERPRINT (PX-style, when available) ===
+        // === OFFLINE FINGERPRINT (Enhanced with CreepJS) ===
         if (offlineFingerprint?.supported && !offlineFingerprint.error) {
+            // Primary fingerprints
             metrics.audioFingerprintSum = {
-                value: offlineFingerprint.sum,
-                description: 'Sum of audio samples 4500-5000 (PX methodology)'
+                value: offlineFingerprint.sampleSum ?? offlineFingerprint.sum,
+                description: 'Sum of audio samples (CreepJS methodology)',
+                risk: 'Low'
             };
             
             metrics.audioFingerprintHash = {
                 value: offlineFingerprint.hash,
-                description: 'FNV-1a hash of audio fingerprint'
+                description: 'FNV-1a hash of audio fingerprint',
+                risk: 'Low'
             };
             
+            metrics.audioPxSum = {
+                value: offlineFingerprint.pxSum,
+                description: 'Sum of samples 4500-5000 (PX methodology)',
+                risk: 'Low'
+            };
+            
+            metrics.audioPxHash = {
+                value: offlineFingerprint.pxHash,
+                description: 'FNV-1a hash of PX-style fingerprint',
+                risk: 'Low'
+            };
+            
+            // CreepJS Extended Data
+            metrics.audioCompressorGainReduction = {
+                value: offlineFingerprint.compressorGainReduction,
+                description: 'DynamicsCompressor gain reduction - engine-specific value',
+                risk: 'Low'
+            };
+            
+            metrics.audioFloatFrequencySum = {
+                value: offlineFingerprint.floatFrequencyDataSum,
+                description: 'Sum of float frequency data from AnalyserNode',
+                risk: 'Low'
+            };
+            
+            metrics.audioFloatTimeDomainSum = {
+                value: offlineFingerprint.floatTimeDomainDataSum,
+                description: 'Sum of float time domain data from AnalyserNode',
+                risk: 'Low'
+            };
+            
+            metrics.audioTotalUniqueSamples = {
+                value: offlineFingerprint.totalUniqueSamples,
+                description: 'Number of unique audio samples - too many indicates tampering',
+                risk: offlineFingerprint.totalUniqueSamples === 5000 ? 'High' : 'Low'
+            };
+            
+            // Lie Detection Results
+            metrics.audioLied = {
+                value: offlineFingerprint.lied,
+                description: 'Audio API tampering detected',
+                risk: offlineFingerprint.lied ? 'Critical' : 'Low'
+            };
+            
+            metrics.audioLies = {
+                value: offlineFingerprint.lies?.join(', ') || 'none',
+                description: 'Types of audio lies/tampering detected',
+                risk: offlineFingerprint.lies?.length > 0 ? 'High' : 'Low'
+            };
+            
+            metrics.audioIsFake = {
+                value: offlineFingerprint.audioIsFake,
+                description: 'Silent oscillator test detected fake audio buffer',
+                risk: offlineFingerprint.audioIsFake ? 'Critical' : 'Low'
+            };
+            
+            metrics.audioNoiseFactor = {
+                value: offlineFingerprint.noiseFactor,
+                description: 'Audio buffer noise injection detected (0 = clean)',
+                risk: offlineFingerprint.noiseFactor ? 'High' : 'Low'
+            };
+            
+            metrics.audioSamplesMatch = {
+                value: offlineFingerprint.samplesMatch,
+                description: 'getChannelData matches copyFromChannel',
+                risk: offlineFingerprint.samplesMatch === false ? 'High' : 'Low'
+            };
+            
+            if (offlineFingerprint.analyserLie?.lied) {
+                metrics.audioAnalyserLied = {
+                    value: true,
+                    description: offlineFingerprint.analyserLie.reason,
+                    risk: 'High'
+                };
+            }
+            
+            // Pattern Validation
+            metrics.audioDetectedEngine = {
+                value: offlineFingerprint.detectedEngine || 'unknown',
+                description: 'Detected browser engine from audio pattern (blink/gecko/webkit)',
+                risk: 'Low'
+            };
+            
+            metrics.audioPatternMatch = {
+                value: offlineFingerprint.patternMatch,
+                description: 'Audio pattern matches known browser engine values',
+                risk: offlineFingerprint.patternMatch ? 'Low' : 'Medium'
+            };
+            
+            if (offlineFingerprint.patternValidation?.suspiciousPattern) {
+                metrics.audioSuspiciousPattern = {
+                    value: true,
+                    description: 'Audio pattern mismatch between simple and extended validation',
+                    risk: 'Medium'
+                };
+            }
+            
+            // Integrity
             metrics.audioFingerprintTrap = {
                 value: offlineFingerprint.trap,
-                description: 'Integrity verification score (1.0 = verified)'
+                description: 'Audio integrity score (1.0 = fully verified)',
+                risk: this._assessTrapRisk(offlineFingerprint.trap)
             };
             
+            metrics.audioTrapValue = {
+                value: offlineFingerprint.trapValue,
+                description: 'Random trap value used for noise detection',
+                risk: 'N/A'
+            };
+            
+            // Extended Node Properties Hash
+            metrics.audioExtendedPropsHash = {
+                value: offlineFingerprint.extendedNodePropsHash,
+                description: 'Hash of all audio node default properties (engine fingerprint)',
+                risk: 'Low'
+            };
+            
+            // Timing
             metrics.audioFingerprintRenderTimeMs = {
                 value: offlineFingerprint.renderTimeMs,
-                description: 'Audio render time - spoofing indicator if < 50ms'
+                description: 'Audio render time - spoofing indicator if < 50ms',
+                risk: offlineFingerprint.renderTimeMs < 4 ? 'Medium' : 'Low'
+            };
+            
+            metrics.audioFingerprintSetupTimeMs = {
+                value: offlineFingerprint.setupTimeMs,
+                description: 'Audio context and node setup time (ms)',
+                risk: 'N/A'
             };
         } else if (offlineFingerprint?.error) {
             metrics.audioFingerprintError = {
                 value: offlineFingerprint.error,
-                description: 'Error generating offline audio fingerprint'
+                description: 'Error generating offline audio fingerprint',
+                risk: 'Medium'
             };
         }
         
         // === TOTAL COLLECTION TIME ===
         metrics.audioTotalCollectionTimeMs = {
             value: collectionTime,
-            description: 'Total audio fingerprint collection time (ms)'
+            description: 'Total audio fingerprint collection time (ms)',
+            risk: 'N/A'
         };
         
         return metrics;
