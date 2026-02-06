@@ -119,6 +119,52 @@ const BLINK_QUIRKS = [
     'overscroll-behavior'
 ];
 
+// OS/Browser-specific computed properties - reveals OS defaults and Chrome version
+// These return ACTUAL VALUES (not just support) that differ between systems
+const OS_BROWSER_COMPUTED_PROPS = [
+    // Locale - CRITICAL: reveals system locale string
+    '-webkit-locale',
+    
+    // Color scheme / accent - OS theme detection
+    'color-scheme',
+    'accent-color',
+    'caret-color',
+    'outline-color',
+    
+    // Windows-specific
+    'forced-color-adjust',
+    
+    // Print/rendering
+    '-webkit-print-color-adjust',
+    'print-color-adjust',
+    '-webkit-rtl-ordering',
+    
+    // Text rendering - differs macOS vs Windows
+    '-webkit-text-fill-color',
+    '-webkit-text-stroke-color',
+    'text-rendering',
+    
+    // Form styling - OS-dependent defaults
+    'appearance',
+    '-webkit-appearance',
+    
+    // Scrollbar (computed values, not just support)
+    'scrollbar-gutter',
+    'scrollbar-color',
+    'scrollbar-width',
+    
+    // Animation defaults
+    'animation-timeline',
+    
+    // View transition (Chrome 111+)
+    'view-transition-name',
+    
+    // Modern Chrome properties (version detection)
+    'text-wrap',
+    'white-space-collapse',
+    'hyphenate-limit-chars'
+];
+
 /**
  * Get system styles (colors and fonts) - reveals OS theme and default fonts
  */
@@ -320,6 +366,86 @@ function testBlinkQuirks() {
 }
 
 /**
+ * Get OS/Browser-specific computed style values
+ * These default values differ between OS (Windows/macOS/Linux) and Chrome versions
+ */
+function getOsBrowserComputedStyles() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;';
+    document.body.appendChild(probe);
+    
+    const values = {};
+    const computed = getComputedStyle(probe);
+    
+    try {
+        // Get total CSS property count - differs between Chrome versions!
+        values._propertyCount = computed.length;
+        
+        // Capture each OS/browser-specific property
+        for (const prop of OS_BROWSER_COMPUTED_PROPS) {
+            try {
+                const val = computed.getPropertyValue(prop);
+                // Only store if has meaningful value
+                if (val && val !== '' && val !== 'none' && val !== 'auto') {
+                    values[prop] = val;
+                } else {
+                    values[prop] = val || 'empty';
+                }
+            } catch (e) {
+                values[prop] = 'error';
+            }
+        }
+        
+        // Special: Get computed font-family on body (OS default)
+        const bodyComputed = getComputedStyle(document.body);
+        values._bodyFontFamily = bodyComputed.fontFamily;
+        values._bodyFontSize = bodyComputed.fontSize;
+        values._bodyLineHeight = bodyComputed.lineHeight;
+        
+        // Special: Default link color (varies by OS/theme)
+        const link = document.createElement('a');
+        link.href = '#';
+        probe.appendChild(link);
+        const linkComputed = getComputedStyle(link);
+        values._linkColor = linkComputed.color;
+        values._linkTextDecoration = linkComputed.textDecorationColor;
+        
+        // Special: Input element defaults (OS-specific)
+        const input = document.createElement('input');
+        input.type = 'text';
+        probe.appendChild(input);
+        const inputComputed = getComputedStyle(input);
+        values._inputFontFamily = inputComputed.fontFamily;
+        values._inputFontSize = inputComputed.fontSize;
+        values._inputBorderColor = inputComputed.borderColor;
+        values._inputBackgroundColor = inputComputed.backgroundColor;
+        values._inputOutlineColor = inputComputed.outlineColor;
+        
+        // Special: Button defaults
+        const button = document.createElement('button');
+        probe.appendChild(button);
+        const buttonComputed = getComputedStyle(button);
+        values._buttonFontFamily = buttonComputed.fontFamily;
+        values._buttonAppearance = buttonComputed.appearance || buttonComputed.webkitAppearance;
+        values._buttonBorderRadius = buttonComputed.borderRadius;
+        
+        // Special: Select element (highly OS-specific)
+        const select = document.createElement('select');
+        probe.appendChild(select);
+        const selectComputed = getComputedStyle(select);
+        values._selectAppearance = selectComputed.appearance || selectComputed.webkitAppearance;
+        values._selectFontFamily = selectComputed.fontFamily;
+        
+    } catch (e) {
+        values._error = e.message;
+    } finally {
+        probe.remove();
+    }
+    
+    return values;
+}
+
+/**
  * Test CSS variable edge cases - bots often fail these
  */
 function testCssVariables() {
@@ -473,6 +599,10 @@ class CssComputedStyleDetector {
         // 6. Detect computed style lies - automation detection
         const computedStyleLies = detectComputedStyleLies();
 
+        // 7. Get OS/Browser-specific computed values - OS & Chrome version detection
+        const osBrowserStyles = getOsBrowserComputedStyles();
+        const osBrowserStylesHash = fnv1a32(JSON.stringify(osBrowserStyles));
+
         // Cleanup
         if (probe.parentNode) {
             probe.parentNode.removeChild(probe);
@@ -490,6 +620,8 @@ class CssComputedStyleDetector {
             blinkQuirksHash,
             cssVariables,
             computedStyleLies,
+            osBrowserStyles,
+            osBrowserStylesHash,
             error: null
         };
     }
@@ -749,6 +881,200 @@ class CssComputedStyleDetector {
             };
         }
         
+        // === OS/BROWSER COMPUTED STYLES (OS & Chrome Version Detection) ===
+        if (result.osBrowserStyles) {
+            const obs = result.osBrowserStyles;
+            
+            metrics.cssOsBrowserStylesHash = {
+                value: result.osBrowserStylesHash || fnv1a32('none'),
+                description: 'Hash of OS/browser-specific computed values',
+                risk: 'N/A'
+            };
+            
+            // Property count - differs between Chrome versions!
+            if (obs._propertyCount) {
+                metrics.cssPropCount = {
+                    value: obs._propertyCount,
+                    description: 'Total CSS properties count - Chrome version indicator',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Locale - CRITICAL for OS/region detection
+            if (obs['-webkit-locale']) {
+                metrics.cssWebkitLocale = {
+                    value: obs['-webkit-locale'],
+                    description: 'System locale from -webkit-locale - OS region indicator',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Color scheme
+            if (obs['color-scheme']) {
+                metrics.cssColorSchemeValue = {
+                    value: obs['color-scheme'],
+                    description: 'Computed color-scheme value',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Accent color (OS theme color)
+            if (obs['accent-color'] && obs['accent-color'] !== 'auto') {
+                metrics.cssAccentColorValue = {
+                    value: obs['accent-color'],
+                    description: 'OS accent color - system theme detection',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Caret/cursor color
+            if (obs['caret-color']) {
+                metrics.cssCaretColor = {
+                    value: obs['caret-color'],
+                    description: 'Default caret color - OS theme dependent',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Windows High Contrast
+            if (obs['forced-color-adjust']) {
+                metrics.cssForcedColorAdjust = {
+                    value: obs['forced-color-adjust'],
+                    description: 'Forced color adjust - Windows High Contrast indicator',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Text rendering
+            if (obs['text-rendering']) {
+                metrics.cssTextRendering = {
+                    value: obs['text-rendering'],
+                    description: 'Text rendering mode - OS font rendering',
+                    risk: 'N/A'
+                };
+            }
+            
+            // RTL ordering
+            if (obs['-webkit-rtl-ordering']) {
+                metrics.cssRtlOrdering = {
+                    value: obs['-webkit-rtl-ordering'],
+                    description: 'RTL ordering - locale/language indicator',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Body font (OS default)
+            if (obs._bodyFontFamily) {
+                metrics.cssBodyFontFamily = {
+                    value: obs._bodyFontFamily,
+                    description: 'Body default font family - OS font stack',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Link color (theme-dependent)
+            if (obs._linkColor) {
+                metrics.cssDefaultLinkColor = {
+                    value: obs._linkColor,
+                    description: 'Default unvisited link color - theme dependent',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Input element defaults (highly OS-specific)
+            if (obs._inputFontFamily) {
+                metrics.cssInputFontFamily = {
+                    value: obs._inputFontFamily,
+                    description: 'Input element default font - OS form controls',
+                    risk: 'N/A'
+                };
+            }
+            
+            if (obs._inputBorderColor) {
+                metrics.cssInputBorderColor = {
+                    value: obs._inputBorderColor,
+                    description: 'Input border color - OS form styling',
+                    risk: 'N/A'
+                };
+            }
+            
+            if (obs._inputBackgroundColor) {
+                metrics.cssInputBgColor = {
+                    value: obs._inputBackgroundColor,
+                    description: 'Input background color - OS form styling',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Button appearance
+            if (obs._buttonAppearance) {
+                metrics.cssButtonAppearance = {
+                    value: obs._buttonAppearance,
+                    description: 'Button appearance - OS native controls',
+                    risk: 'N/A'
+                };
+            }
+            
+            if (obs._buttonFontFamily) {
+                metrics.cssButtonFontFamily = {
+                    value: obs._buttonFontFamily,
+                    description: 'Button font family - OS form controls',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Select element (very OS-specific rendering)
+            if (obs._selectAppearance) {
+                metrics.cssSelectAppearance = {
+                    value: obs._selectAppearance,
+                    description: 'Select element appearance - OS dropdown styling',
+                    risk: 'N/A'
+                };
+            }
+            
+            if (obs._selectFontFamily) {
+                metrics.cssSelectFontFamily = {
+                    value: obs._selectFontFamily,
+                    description: 'Select font family - OS form controls',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Scrollbar styling
+            if (obs['scrollbar-width'] && obs['scrollbar-width'] !== 'auto') {
+                metrics.cssScrollbarWidth = {
+                    value: obs['scrollbar-width'],
+                    description: 'Scrollbar width value - OS scrollbar style',
+                    risk: 'N/A'
+                };
+            }
+            
+            if (obs['scrollbar-color'] && obs['scrollbar-color'] !== 'auto') {
+                metrics.cssScrollbarColor = {
+                    value: obs['scrollbar-color'],
+                    description: 'Scrollbar color value - OS scrollbar colors',
+                    risk: 'N/A'
+                };
+            }
+            
+            // Modern Chrome version indicators
+            if (obs['text-wrap']) {
+                metrics.cssTextWrapValue = {
+                    value: obs['text-wrap'],
+                    description: 'text-wrap computed value - Chrome version indicator',
+                    risk: 'N/A'
+                };
+            }
+            
+            if (obs['white-space-collapse']) {
+                metrics.cssWhiteSpaceCollapse = {
+                    value: obs['white-space-collapse'],
+                    description: 'white-space-collapse value - Chrome 114+ indicator',
+                    risk: 'N/A'
+                };
+            }
+        }
+
         // === ERROR REPORTING ===
         if (result.error) {
             metrics.cssDetectorError = {
