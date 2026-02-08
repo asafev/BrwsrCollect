@@ -654,8 +654,8 @@ class CssComputedStyleDetector {
             
             // Full color signature for deep comparison
             metrics.cssSystemColorsSignature = {
-                value: Object.entries(colors).map(([k, v]) => `${k}:${v}`).join('|').substring(0, 500),
-                description: 'Full system colors signature (truncated)',
+                value: Object.entries(colors).map(([k, v]) => `${k}:${v}`).join('|'),
+                description: 'Full system colors signature',
                 risk: 'N/A'
             };
         }
