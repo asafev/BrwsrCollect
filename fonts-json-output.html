@@ -57,6 +57,30 @@
         const collectedData = {
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
+            platform: {
+                platform: navigator.platform,
+                userAgentData: navigator.userAgentData ? {
+                    brands: navigator.userAgentData.brands,
+                    mobile: navigator.userAgentData.mobile,
+                    platform: navigator.userAgentData.platform
+                } : null,
+                oscpu: navigator.oscpu || null,
+                hardwareConcurrency: navigator.hardwareConcurrency || null,
+                deviceMemory: navigator.deviceMemory || null,
+                maxTouchPoints: navigator.maxTouchPoints || 0
+            },
+            timezone: {
+                offset: new Date().getTimezoneOffset(),
+                offsetHours: -(new Date().getTimezoneOffset() / 60),
+                offsetString: `UTC${new Date().getTimezoneOffset() <= 0 ? '+' : '-'}${String(Math.abs(Math.floor(new Date().getTimezoneOffset() / 60))).padStart(2, '0')}:${String(Math.abs(new Date().getTimezoneOffset() % 60)).padStart(2, '0')}`,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                locale: Intl.DateTimeFormat().resolvedOptions().locale
+            },
+            languages: {
+                language: navigator.language,
+                languages: navigator.languages ? [...navigator.languages] : [navigator.language],
+                languageCount: navigator.languages ? navigator.languages.length : 1
+            },
             fingerprint: null,
             explanations: explanations,
             performance: {},
