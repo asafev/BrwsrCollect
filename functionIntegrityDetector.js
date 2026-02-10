@@ -386,6 +386,277 @@ export class FunctionIntegrityDetector {
             
             // ===== BATTERY =====
             batteryManager: () => navigator.getBattery ? safeToString(navigator.getBattery) : 'not-supported',
+
+            // ===== GLOBAL PARSING/ENCODING FUNCTIONS =====
+            parseFloat: () => safeToString(parseFloat),
+            parseInt: () => safeToString(parseInt),
+            decodeURI: () => safeToString(decodeURI),
+            decodeURIComponent: () => safeToString(decodeURIComponent),
+            encodeURI: () => safeToString(encodeURI),
+            encodeURIComponent: () => safeToString(encodeURIComponent),
+            escape: () => safeToString(escape),
+            unescape: () => safeToString(unescape),
+            isFinite: () => safeToString(isFinite),
+            isNaN: () => safeToString(isNaN),
+            atob: () => safeToString(atob),
+            btoa: () => safeToString(btoa),
+
+            // ===== WINDOW/GLOBAL FUNCTIONS =====
+            alert: () => safeToString(alert),
+            confirm: () => safeToString(confirm),
+            prompt: () => safeToString(prompt),
+            open: () => safeToString(open),
+            close: () => safeToString(window.close),
+            print: () => safeToString(print),
+            focus: () => safeToString(window.focus),
+            blur: () => safeToString(window.blur),
+            stop: () => safeToString(stop),
+            find: () => safeToString(window.find),
+            getSelection: () => safeToString(getSelection),
+            matchMedia: () => safeToString(matchMedia),
+            scroll: () => safeToString(scroll),
+            scrollTo: () => safeToString(scrollTo),
+            scrollBy: () => safeToString(scrollBy),
+            moveBy: () => safeToString(moveBy),
+            moveTo: () => safeToString(moveTo),
+            resizeBy: () => safeToString(resizeBy),
+            resizeTo: () => safeToString(resizeTo),
+            requestIdleCallback: () => typeof requestIdleCallback !== 'undefined' ? safeToString(requestIdleCallback) : 'not-supported',
+            cancelIdleCallback: () => typeof cancelIdleCallback !== 'undefined' ? safeToString(cancelIdleCallback) : 'not-supported',
+            clearTimeout: () => safeToString(clearTimeout),
+            clearInterval: () => safeToString(clearInterval),
+            queueMicrotask: () => safeToString(queueMicrotask),
+            structuredClone: () => typeof structuredClone !== 'undefined' ? safeToString(structuredClone) : 'not-supported',
+            createImageBitmap: () => safeToString(createImageBitmap),
+            reportError: () => typeof reportError !== 'undefined' ? safeToString(reportError) : 'not-supported',
+
+            // ===== CONSTRUCTORS - CORE =====
+            arrayConstructor: () => safeToString(Array),
+            objectConstructor: () => safeToString(Object),
+            mapConstructor: () => safeToString(Map),
+            setConstructor: () => safeToString(Set),
+            weakMapConstructor: () => safeToString(WeakMap),
+            weakSetConstructor: () => safeToString(WeakSet),
+            symbolConstructor: () => safeToString(Symbol),
+            bigIntConstructor: () => safeToString(BigInt),
+            regExpConstructor: () => safeToString(RegExp),
+            dateConstructor: () => safeToString(Date),
+            numberConstructor: () => safeToString(Number),
+            stringConstructor: () => safeToString(String),
+            booleanConstructor: () => safeToString(Boolean),
+
+            // ===== TYPED ARRAYS =====
+            arrayBufferConstructor: () => safeToString(ArrayBuffer),
+            dataViewConstructor: () => safeToString(DataView),
+            uint8ArrayConstructor: () => safeToString(Uint8Array),
+            int8ArrayConstructor: () => safeToString(Int8Array),
+            uint16ArrayConstructor: () => safeToString(Uint16Array),
+            int16ArrayConstructor: () => safeToString(Int16Array),
+            uint32ArrayConstructor: () => safeToString(Uint32Array),
+            int32ArrayConstructor: () => safeToString(Int32Array),
+            float32ArrayConstructor: () => safeToString(Float32Array),
+            float64ArrayConstructor: () => safeToString(Float64Array),
+            uint8ClampedArrayConstructor: () => safeToString(Uint8ClampedArray),
+            bigUint64ArrayConstructor: () => safeToString(BigUint64Array),
+            bigInt64ArrayConstructor: () => safeToString(BigInt64Array),
+
+            // ===== STREAMS =====
+            readableStreamConstructor: () => safeToString(ReadableStream),
+            writableStreamConstructor: () => safeToString(WritableStream),
+            transformStreamConstructor: () => safeToString(TransformStream),
+
+            // ===== BLOB/FILE =====
+            blobConstructor: () => safeToString(Blob),
+            fileConstructor: () => safeToString(File),
+            fileReaderConstructor: () => safeToString(FileReader),
+
+            // ===== URL/FETCH =====
+            urlConstructor: () => safeToString(URL),
+            urlSearchParamsConstructor: () => safeToString(URLSearchParams),
+            headersConstructor: () => safeToString(Headers),
+            requestConstructor: () => safeToString(Request),
+            responseConstructor: () => safeToString(Response),
+            formDataConstructor: () => safeToString(FormData),
+
+            // ===== ABORT =====
+            abortControllerConstructor: () => safeToString(AbortController),
+            abortSignalConstructor: () => safeToString(AbortSignal),
+
+            // ===== TEXT ENCODING =====
+            textEncoderConstructor: () => safeToString(TextEncoder),
+            textDecoderConstructor: () => safeToString(TextDecoder),
+            textEncoderStreamConstructor: () => typeof TextEncoderStream !== 'undefined' ? safeToString(TextEncoderStream) : 'not-supported',
+            textDecoderStreamConstructor: () => typeof TextDecoderStream !== 'undefined' ? safeToString(TextDecoderStream) : 'not-supported',
+
+            // ===== DOM PARSING =====
+            domParserConstructor: () => safeToString(DOMParser),
+            xmlSerializerConstructor: () => safeToString(XMLSerializer),
+            xpathEvaluatorConstructor: () => safeToString(XPathEvaluator),
+
+            // ===== RANGE/SELECTION =====
+            rangeConstructor: () => safeToString(Range),
+            selectionToString: () => safeToString(Selection.prototype.toString),
+
+            // ===== EVENTS =====
+            eventConstructor: () => safeToString(Event),
+            customEventConstructor: () => safeToString(CustomEvent),
+            messageEventConstructor: () => safeToString(MessageEvent),
+            errorEventConstructor: () => safeToString(ErrorEvent),
+            focusEventConstructor: () => safeToString(FocusEvent),
+            wheelEventConstructor: () => safeToString(WheelEvent),
+            dragEventConstructor: () => safeToString(DragEvent),
+            clipboardEventConstructor: () => safeToString(ClipboardEvent),
+            compositionEventConstructor: () => safeToString(CompositionEvent),
+            uiEventConstructor: () => safeToString(UIEvent),
+            animationEventConstructor: () => safeToString(AnimationEvent),
+            transitionEventConstructor: () => safeToString(TransitionEvent),
+            popStateEventConstructor: () => safeToString(PopStateEvent),
+            hashChangeEventConstructor: () => safeToString(HashChangeEvent),
+            storageEventConstructor: () => safeToString(StorageEvent),
+            beforeUnloadEventConstructor: () => safeToString(BeforeUnloadEvent),
+            progressEventConstructor: () => safeToString(ProgressEvent),
+
+            // ===== ELEMENT PROTOTYPE METHODS =====
+            getBoundingClientRect: () => safeToString(Element.prototype.getBoundingClientRect),
+            getClientRects: () => safeToString(Element.prototype.getClientRects),
+            getAttribute: () => safeToString(Element.prototype.getAttribute),
+            setAttribute: () => safeToString(Element.prototype.setAttribute),
+            removeAttribute: () => safeToString(Element.prototype.removeAttribute),
+            hasAttribute: () => safeToString(Element.prototype.hasAttribute),
+            toggleAttribute: () => safeToString(Element.prototype.toggleAttribute),
+            closest: () => safeToString(Element.prototype.closest),
+            matches: () => safeToString(Element.prototype.matches),
+            insertAdjacentHTML: () => safeToString(Element.prototype.insertAdjacentHTML),
+            insertAdjacentElement: () => safeToString(Element.prototype.insertAdjacentElement),
+            insertAdjacentText: () => safeToString(Element.prototype.insertAdjacentText),
+            scrollIntoView: () => safeToString(Element.prototype.scrollIntoView),
+            attachShadow: () => safeToString(Element.prototype.attachShadow),
+            animate: () => safeToString(Element.prototype.animate),
+            focus_element: () => safeToString(HTMLElement.prototype.focus),
+            blur_element: () => safeToString(HTMLElement.prototype.blur),
+            click: () => safeToString(HTMLElement.prototype.click),
+
+            // ===== NODE PROTOTYPE METHODS =====
+            cloneNode: () => safeToString(Node.prototype.cloneNode),
+            insertBefore: () => safeToString(Node.prototype.insertBefore),
+            replaceChild: () => safeToString(Node.prototype.replaceChild),
+            contains: () => safeToString(Node.prototype.contains),
+            compareDocumentPosition: () => safeToString(Node.prototype.compareDocumentPosition),
+            normalize: () => safeToString(Node.prototype.normalize),
+            hasChildNodes: () => safeToString(Node.prototype.hasChildNodes),
+
+            // ===== DOCUMENT METHODS =====
+            createTextNode: () => safeToString(Document.prototype.createTextNode),
+            createDocumentFragment: () => safeToString(Document.prototype.createDocumentFragment),
+            createComment: () => safeToString(Document.prototype.createComment),
+            createEvent: () => safeToString(Document.prototype.createEvent),
+            createRange: () => safeToString(Document.prototype.createRange),
+            createTreeWalker: () => safeToString(Document.prototype.createTreeWalker),
+            createNodeIterator: () => safeToString(Document.prototype.createNodeIterator),
+            importNode: () => safeToString(Document.prototype.importNode),
+            adoptNode: () => safeToString(Document.prototype.adoptNode),
+            execCommand: () => safeToString(Document.prototype.execCommand),
+            getElementsByClassName: () => safeToString(Document.prototype.getElementsByClassName),
+            getElementsByTagName: () => safeToString(Document.prototype.getElementsByTagName),
+            getElementsByName: () => safeToString(Document.prototype.getElementsByName),
+            elementFromPoint: () => safeToString(Document.prototype.elementFromPoint),
+            elementsFromPoint: () => safeToString(Document.prototype.elementsFromPoint),
+            getAnimations: () => safeToString(Document.prototype.getAnimations),
+
+            // ===== HISTORY =====
+            historyPushState: () => safeToString(History.prototype.pushState),
+            historyReplaceState: () => safeToString(History.prototype.replaceState),
+            historyBack: () => safeToString(History.prototype.back),
+            historyForward: () => safeToString(History.prototype.forward),
+            historyGo: () => safeToString(History.prototype.go),
+
+            // ===== CANVAS 2D CONTEXT =====
+            canvas2dFillRect: () => safeToString(CanvasRenderingContext2D.prototype.fillRect),
+            canvas2dStrokeRect: () => safeToString(CanvasRenderingContext2D.prototype.strokeRect),
+            canvas2dFillText: () => safeToString(CanvasRenderingContext2D.prototype.fillText),
+            canvas2dStrokeText: () => safeToString(CanvasRenderingContext2D.prototype.strokeText),
+            canvas2dMeasureText: () => safeToString(CanvasRenderingContext2D.prototype.measureText),
+            canvas2dDrawImage: () => safeToString(CanvasRenderingContext2D.prototype.drawImage),
+            canvas2dGetImageData: () => safeToString(CanvasRenderingContext2D.prototype.getImageData),
+            canvas2dPutImageData: () => safeToString(CanvasRenderingContext2D.prototype.putImageData),
+            canvas2dCreateLinearGradient: () => safeToString(CanvasRenderingContext2D.prototype.createLinearGradient),
+            canvas2dCreateRadialGradient: () => safeToString(CanvasRenderingContext2D.prototype.createRadialGradient),
+            canvas2dCreatePattern: () => safeToString(CanvasRenderingContext2D.prototype.createPattern),
+            canvas2dSave: () => safeToString(CanvasRenderingContext2D.prototype.save),
+            canvas2dRestore: () => safeToString(CanvasRenderingContext2D.prototype.restore),
+            canvas2dTransform: () => safeToString(CanvasRenderingContext2D.prototype.transform),
+
+            // ===== PERFORMANCE =====
+            performanceMark: () => safeToString(Performance.prototype.mark),
+            performanceMeasure: () => safeToString(Performance.prototype.measure),
+            performanceGetEntries: () => safeToString(Performance.prototype.getEntries),
+            performanceGetEntriesByType: () => safeToString(Performance.prototype.getEntriesByType),
+            performanceGetEntriesByName: () => safeToString(Performance.prototype.getEntriesByName),
+            performanceClearMarks: () => safeToString(Performance.prototype.clearMarks),
+            performanceClearMeasures: () => safeToString(Performance.prototype.clearMeasures),
+            performanceObserverConstructor: () => safeToString(PerformanceObserver),
+
+            // ===== BROADCAST CHANNEL =====
+            broadcastChannelConstructor: () => safeToString(BroadcastChannel),
+
+            // ===== INDEXEDDB =====
+            idbFactoryOpen: () => safeToString(IDBFactory.prototype.open),
+            idbFactoryDeleteDatabase: () => safeToString(IDBFactory.prototype.deleteDatabase),
+
+            // ===== CRYPTO =====
+            subtleCryptoDigest: () => crypto?.subtle?.digest ? safeToString(crypto.subtle.digest) : 'not-supported',
+            subtleCryptoEncrypt: () => crypto?.subtle?.encrypt ? safeToString(crypto.subtle.encrypt) : 'not-supported',
+            subtleCryptoDecrypt: () => crypto?.subtle?.decrypt ? safeToString(crypto.subtle.decrypt) : 'not-supported',
+            subtleCryptoSign: () => crypto?.subtle?.sign ? safeToString(crypto.subtle.sign) : 'not-supported',
+            subtleCryptoVerify: () => crypto?.subtle?.verify ? safeToString(crypto.subtle.verify) : 'not-supported',
+            subtleCryptoGenerateKey: () => crypto?.subtle?.generateKey ? safeToString(crypto.subtle.generateKey) : 'not-supported',
+            subtleCryptoImportKey: () => crypto?.subtle?.importKey ? safeToString(crypto.subtle.importKey) : 'not-supported',
+            subtleCryptoExportKey: () => crypto?.subtle?.exportKey ? safeToString(crypto.subtle.exportKey) : 'not-supported',
+
+            // ===== WEBASSEMBLY =====
+            webAssemblyInstantiate: () => typeof WebAssembly !== 'undefined' ? safeToString(WebAssembly.instantiate) : 'not-supported',
+            webAssemblyCompile: () => typeof WebAssembly !== 'undefined' ? safeToString(WebAssembly.compile) : 'not-supported',
+            webAssemblyValidate: () => typeof WebAssembly !== 'undefined' ? safeToString(WebAssembly.validate) : 'not-supported',
+
+            // ===== INTL =====
+            intlDateTimeFormat: () => safeToString(Intl.DateTimeFormat),
+            intlNumberFormat: () => safeToString(Intl.NumberFormat),
+            intlCollator: () => safeToString(Intl.Collator),
+            intlPluralRules: () => safeToString(Intl.PluralRules),
+            intlRelativeTimeFormat: () => typeof Intl.RelativeTimeFormat !== 'undefined' ? safeToString(Intl.RelativeTimeFormat) : 'not-supported',
+            intlListFormat: () => typeof Intl.ListFormat !== 'undefined' ? safeToString(Intl.ListFormat) : 'not-supported',
+
+            // ===== MEDIA/AUDIO =====
+            audioContextConstructor: () => safeToString(AudioContext),
+            offlineAudioContextConstructor: () => safeToString(OfflineAudioContext),
+            mediaStreamConstructor: () => safeToString(MediaStream),
+            mediaRecorderConstructor: () => typeof MediaRecorder !== 'undefined' ? safeToString(MediaRecorder) : 'not-supported',
+            speechSynthesis_speak: () => speechSynthesis?.speak ? safeToString(speechSynthesis.speak) : 'not-supported',
+            speechSynthesis_getVoices: () => speechSynthesis?.getVoices ? safeToString(speechSynthesis.getVoices) : 'not-supported',
+
+            // ===== RTC =====
+            rtcPeerConnectionConstructor: () => safeToString(RTCPeerConnection),
+            rtcSessionDescriptionConstructor: () => safeToString(RTCSessionDescription),
+            rtcIceCandidateConstructor: () => safeToString(RTCIceCandidate),
+
+            // ===== IMAGE =====
+            imageConstructor: () => safeToString(Image),
+            imageDataConstructor: () => safeToString(ImageData),
+            imageBitmapRenderingContextTransferFromImageBitmap: () => safeToString(ImageBitmapRenderingContext.prototype.transferFromImageBitmap),
+            offscreenCanvasConstructor: () => typeof OffscreenCanvas !== 'undefined' ? safeToString(OffscreenCanvas) : 'not-supported',
+
+            // ===== ANIMATION =====
+            animationConstructor: () => safeToString(Animation),
+            keyframeEffectConstructor: () => safeToString(KeyframeEffect),
+
+            // ===== CSS/STYLE =====
+            cssStyleDeclarationSetProperty: () => safeToString(CSSStyleDeclaration.prototype.setProperty),
+            cssStyleDeclarationGetPropertyValue: () => safeToString(CSSStyleDeclaration.prototype.getPropertyValue),
+            cssStyleDeclarationRemoveProperty: () => safeToString(CSSStyleDeclaration.prototype.removeProperty),
+
+            // ===== FINALIZATION/WEAKREF =====
+            finalizationRegistryConstructor: () => safeToString(FinalizationRegistry),
+            weakRefConstructor: () => safeToString(WeakRef),
             
             // ===== INTEGRITY CHECK =====
             toStringIntegrity: () => {
@@ -673,14 +944,39 @@ export class FunctionIntegrityDetector {
                 
                 // Critical APIs that should NEVER be modified
                 const criticalApis = [
+                    // Core infrastructure
                     'funcToString', 'functionConstructor', 'evalFunc', 
-                    'dateNow', 'mathRandom', 'performanceNow',
-                    'setTimeoutFunc', 'setIntervalFunc',
+                    'objectConstructor', 'arrayConstructor', 'proxyConstructor', 
+                    'reflectGet', 'reflectSet',
+                    // Timing
+                    'dateNow', 'performanceNow', 'setTimeoutFunc', 'setIntervalFunc',
+                    'clearTimeout', 'clearInterval', 'requestAnimationFrame',
+                    // Randomness
+                    'mathRandom', 'cryptoGetRandomValues', 'cryptoRandomUUID',
+                    // Console
                     'consoleLog', 'consoleWarn', 'consoleError',
-                    'fetchFunc', 'xmlHttpRequestConstructor',
-                    'navigatorUAGetter', 'navigatorPluginsGetter',
-                    'proxyConstructor', 'reflectGet', 'reflectSet',
-                    'cryptoGetRandomValues'
+                    // Network
+                    'fetchFunc', 'xmlHttpRequestConstructor', 'xmlHttpRequestOpen', 
+                    'xmlHttpRequestSend', 'websocketConstructor',
+                    // Navigator getters
+                    'navigatorUAGetter', 'navigatorPluginsGetter', 'navigatorWebdriverGetter',
+                    'navigatorPlatformGetter', 'navigatorLangGetter',
+                    // DOM critical
+                    'createElement', 'getBoundingClientRect', 'getClientRects',
+                    'querySelector', 'querySelectorAll', 'getElementById',
+                    // Canvas (fingerprinting)
+                    'canvasToDataURL', 'canvasGetContext', 'canvas2dGetImageData',
+                    'canvas2dFillText', 'canvas2dMeasureText',
+                    // WebGL
+                    'webglGetParameter',
+                    // Events
+                    'addEventListener', 'dispatchEvent',
+                    // History (navigation hijacking)
+                    'historyPushState', 'historyReplaceState',
+                    // Encoding (data exfil)
+                    'atob', 'btoa',
+                    // Crypto
+                    'subtleCryptoDigest', 'subtleCryptoEncrypt', 'subtleCryptoDecrypt'
                 ];
                 
                 if (criticalApis.includes(funcName)) {
@@ -1081,7 +1377,278 @@ export class FunctionIntegrityDetector {
             
             // Error stack and overridden functions
             errorStackTrace: 'Error stack trace - reveals execution context and potential modifications',
-            overriddenFunctionsCount: 'Count of overridden (non-native) functions detected'
+            overriddenFunctionsCount: 'Count of overridden (non-native) functions detected',
+
+            // ===== NEW ADDITIONS =====
+            
+            // Global parsing/encoding
+            parseFloat: 'parseFloat - string to float conversion',
+            parseInt: 'parseInt - string to integer conversion',
+            decodeURI: 'decodeURI - URI decoding',
+            decodeURIComponent: 'decodeURIComponent - URI component decoding',
+            encodeURI: 'encodeURI - URI encoding',
+            encodeURIComponent: 'encodeURIComponent - URI component encoding',
+            escape: 'escape - legacy string encoding',
+            unescape: 'unescape - legacy string decoding',
+            isFinite: 'isFinite - finite number check',
+            isNaN: 'isNaN - NaN check',
+            atob: 'atob - base64 decoding',
+            btoa: 'btoa - base64 encoding',
+
+            // Window/global functions
+            alert: 'alert - modal dialog',
+            confirm: 'confirm - confirmation dialog',
+            prompt: 'prompt - input dialog',
+            open: 'window.open - new window/tab',
+            close: 'window.close - close window',
+            print: 'print - print dialog',
+            focus: 'window.focus - focus window',
+            blur: 'window.blur - blur window',
+            stop: 'stop - stop page loading',
+            find: 'window.find - text search',
+            getSelection: 'getSelection - text selection',
+            matchMedia: 'matchMedia - media query matching',
+            scroll: 'scroll - scroll window',
+            scrollTo: 'scrollTo - scroll to position',
+            scrollBy: 'scrollBy - scroll by amount',
+            moveBy: 'moveBy - move window',
+            moveTo: 'moveTo - move window to position',
+            resizeBy: 'resizeBy - resize window',
+            resizeTo: 'resizeTo - resize window to size',
+            requestIdleCallback: 'requestIdleCallback - idle callback',
+            cancelIdleCallback: 'cancelIdleCallback - cancel idle callback',
+            clearTimeout: 'clearTimeout - cancel timeout',
+            clearInterval: 'clearInterval - cancel interval',
+            queueMicrotask: 'queueMicrotask - queue microtask',
+            structuredClone: 'structuredClone - deep clone',
+            createImageBitmap: 'createImageBitmap - image bitmap creation',
+            reportError: 'reportError - error reporting',
+
+            // Core constructors
+            arrayConstructor: 'Array constructor',
+            objectConstructor: 'Object constructor',
+            mapConstructor: 'Map constructor',
+            setConstructor: 'Set constructor',
+            weakMapConstructor: 'WeakMap constructor',
+            weakSetConstructor: 'WeakSet constructor',
+            symbolConstructor: 'Symbol constructor',
+            bigIntConstructor: 'BigInt constructor',
+            regExpConstructor: 'RegExp constructor',
+            dateConstructor: 'Date constructor',
+            numberConstructor: 'Number constructor',
+            stringConstructor: 'String constructor',
+            booleanConstructor: 'Boolean constructor',
+
+            // Typed arrays
+            arrayBufferConstructor: 'ArrayBuffer constructor',
+            dataViewConstructor: 'DataView constructor',
+            uint8ArrayConstructor: 'Uint8Array constructor',
+            int8ArrayConstructor: 'Int8Array constructor',
+            uint16ArrayConstructor: 'Uint16Array constructor',
+            int16ArrayConstructor: 'Int16Array constructor',
+            uint32ArrayConstructor: 'Uint32Array constructor',
+            int32ArrayConstructor: 'Int32Array constructor',
+            float32ArrayConstructor: 'Float32Array constructor',
+            float64ArrayConstructor: 'Float64Array constructor',
+            uint8ClampedArrayConstructor: 'Uint8ClampedArray constructor',
+            bigUint64ArrayConstructor: 'BigUint64Array constructor',
+            bigInt64ArrayConstructor: 'BigInt64Array constructor',
+
+            // Streams
+            readableStreamConstructor: 'ReadableStream constructor',
+            writableStreamConstructor: 'WritableStream constructor',
+            transformStreamConstructor: 'TransformStream constructor',
+
+            // Blob/File
+            blobConstructor: 'Blob constructor',
+            fileConstructor: 'File constructor',
+            fileReaderConstructor: 'FileReader constructor',
+
+            // URL/Fetch
+            urlConstructor: 'URL constructor',
+            urlSearchParamsConstructor: 'URLSearchParams constructor',
+            headersConstructor: 'Headers constructor',
+            requestConstructor: 'Request constructor',
+            responseConstructor: 'Response constructor',
+            formDataConstructor: 'FormData constructor',
+
+            // Abort
+            abortControllerConstructor: 'AbortController constructor',
+            abortSignalConstructor: 'AbortSignal constructor',
+
+            // Text encoding
+            textEncoderConstructor: 'TextEncoder constructor',
+            textDecoderConstructor: 'TextDecoder constructor',
+            textEncoderStreamConstructor: 'TextEncoderStream constructor',
+            textDecoderStreamConstructor: 'TextDecoderStream constructor',
+
+            // DOM parsing
+            domParserConstructor: 'DOMParser constructor',
+            xmlSerializerConstructor: 'XMLSerializer constructor',
+            xpathEvaluatorConstructor: 'XPathEvaluator constructor',
+
+            // Range/Selection
+            rangeConstructor: 'Range constructor',
+            selectionToString: 'Selection.prototype.toString',
+
+            // Event constructors
+            eventConstructor: 'Event constructor',
+            customEventConstructor: 'CustomEvent constructor',
+            messageEventConstructor: 'MessageEvent constructor',
+            errorEventConstructor: 'ErrorEvent constructor',
+            focusEventConstructor: 'FocusEvent constructor',
+            wheelEventConstructor: 'WheelEvent constructor',
+            dragEventConstructor: 'DragEvent constructor',
+            clipboardEventConstructor: 'ClipboardEvent constructor',
+            compositionEventConstructor: 'CompositionEvent constructor',
+            uiEventConstructor: 'UIEvent constructor',
+            animationEventConstructor: 'AnimationEvent constructor',
+            transitionEventConstructor: 'TransitionEvent constructor',
+            popStateEventConstructor: 'PopStateEvent constructor',
+            hashChangeEventConstructor: 'HashChangeEvent constructor',
+            storageEventConstructor: 'StorageEvent constructor',
+            beforeUnloadEventConstructor: 'BeforeUnloadEvent constructor',
+            progressEventConstructor: 'ProgressEvent constructor',
+
+            // Element methods
+            getBoundingClientRect: 'Element.prototype.getBoundingClientRect - geometry',
+            getClientRects: 'Element.prototype.getClientRects - geometry',
+            getAttribute: 'Element.prototype.getAttribute',
+            setAttribute: 'Element.prototype.setAttribute',
+            removeAttribute: 'Element.prototype.removeAttribute',
+            hasAttribute: 'Element.prototype.hasAttribute',
+            toggleAttribute: 'Element.prototype.toggleAttribute',
+            closest: 'Element.prototype.closest - ancestor search',
+            matches: 'Element.prototype.matches - selector matching',
+            insertAdjacentHTML: 'Element.prototype.insertAdjacentHTML',
+            insertAdjacentElement: 'Element.prototype.insertAdjacentElement',
+            insertAdjacentText: 'Element.prototype.insertAdjacentText',
+            scrollIntoView: 'Element.prototype.scrollIntoView',
+            attachShadow: 'Element.prototype.attachShadow - shadow DOM',
+            animate: 'Element.prototype.animate - Web Animations',
+            focus_element: 'HTMLElement.prototype.focus',
+            blur_element: 'HTMLElement.prototype.blur',
+            click: 'HTMLElement.prototype.click - synthetic click',
+
+            // Node methods
+            cloneNode: 'Node.prototype.cloneNode',
+            insertBefore: 'Node.prototype.insertBefore',
+            replaceChild: 'Node.prototype.replaceChild',
+            contains: 'Node.prototype.contains',
+            compareDocumentPosition: 'Node.prototype.compareDocumentPosition',
+            normalize: 'Node.prototype.normalize',
+            hasChildNodes: 'Node.prototype.hasChildNodes',
+
+            // Document methods
+            createTextNode: 'Document.prototype.createTextNode',
+            createDocumentFragment: 'Document.prototype.createDocumentFragment',
+            createComment: 'Document.prototype.createComment',
+            createEvent: 'Document.prototype.createEvent',
+            createRange: 'Document.prototype.createRange',
+            createTreeWalker: 'Document.prototype.createTreeWalker',
+            createNodeIterator: 'Document.prototype.createNodeIterator',
+            importNode: 'Document.prototype.importNode',
+            adoptNode: 'Document.prototype.adoptNode',
+            execCommand: 'Document.prototype.execCommand - deprecated editing',
+            getElementsByClassName: 'Document.prototype.getElementsByClassName',
+            getElementsByTagName: 'Document.prototype.getElementsByTagName',
+            getElementsByName: 'Document.prototype.getElementsByName',
+            elementFromPoint: 'Document.prototype.elementFromPoint',
+            elementsFromPoint: 'Document.prototype.elementsFromPoint',
+            getAnimations: 'Document.prototype.getAnimations',
+
+            // History
+            historyPushState: 'History.prototype.pushState - navigation',
+            historyReplaceState: 'History.prototype.replaceState - navigation',
+            historyBack: 'History.prototype.back',
+            historyForward: 'History.prototype.forward',
+            historyGo: 'History.prototype.go',
+
+            // Canvas 2D
+            canvas2dFillRect: 'CanvasRenderingContext2D.prototype.fillRect',
+            canvas2dStrokeRect: 'CanvasRenderingContext2D.prototype.strokeRect',
+            canvas2dFillText: 'CanvasRenderingContext2D.prototype.fillText - fingerprinting',
+            canvas2dStrokeText: 'CanvasRenderingContext2D.prototype.strokeText',
+            canvas2dMeasureText: 'CanvasRenderingContext2D.prototype.measureText - fingerprinting',
+            canvas2dDrawImage: 'CanvasRenderingContext2D.prototype.drawImage',
+            canvas2dGetImageData: 'CanvasRenderingContext2D.prototype.getImageData - fingerprinting',
+            canvas2dPutImageData: 'CanvasRenderingContext2D.prototype.putImageData',
+            canvas2dCreateLinearGradient: 'CanvasRenderingContext2D.prototype.createLinearGradient',
+            canvas2dCreateRadialGradient: 'CanvasRenderingContext2D.prototype.createRadialGradient',
+            canvas2dCreatePattern: 'CanvasRenderingContext2D.prototype.createPattern',
+            canvas2dSave: 'CanvasRenderingContext2D.prototype.save',
+            canvas2dRestore: 'CanvasRenderingContext2D.prototype.restore',
+            canvas2dTransform: 'CanvasRenderingContext2D.prototype.transform',
+
+            // Performance
+            performanceMark: 'Performance.prototype.mark',
+            performanceMeasure: 'Performance.prototype.measure',
+            performanceGetEntries: 'Performance.prototype.getEntries',
+            performanceGetEntriesByType: 'Performance.prototype.getEntriesByType',
+            performanceGetEntriesByName: 'Performance.prototype.getEntriesByName',
+            performanceClearMarks: 'Performance.prototype.clearMarks',
+            performanceClearMeasures: 'Performance.prototype.clearMeasures',
+            performanceObserverConstructor: 'PerformanceObserver constructor',
+
+            // Broadcast/IDB
+            broadcastChannelConstructor: 'BroadcastChannel constructor',
+            idbFactoryOpen: 'IDBFactory.prototype.open - IndexedDB',
+            idbFactoryDeleteDatabase: 'IDBFactory.prototype.deleteDatabase',
+
+            // Crypto
+            subtleCryptoDigest: 'SubtleCrypto.digest - hashing',
+            subtleCryptoEncrypt: 'SubtleCrypto.encrypt',
+            subtleCryptoDecrypt: 'SubtleCrypto.decrypt',
+            subtleCryptoSign: 'SubtleCrypto.sign',
+            subtleCryptoVerify: 'SubtleCrypto.verify',
+            subtleCryptoGenerateKey: 'SubtleCrypto.generateKey',
+            subtleCryptoImportKey: 'SubtleCrypto.importKey',
+            subtleCryptoExportKey: 'SubtleCrypto.exportKey',
+
+            // WebAssembly
+            webAssemblyInstantiate: 'WebAssembly.instantiate',
+            webAssemblyCompile: 'WebAssembly.compile',
+            webAssemblyValidate: 'WebAssembly.validate',
+
+            // Intl
+            intlDateTimeFormat: 'Intl.DateTimeFormat constructor',
+            intlNumberFormat: 'Intl.NumberFormat constructor',
+            intlCollator: 'Intl.Collator constructor',
+            intlPluralRules: 'Intl.PluralRules constructor',
+            intlRelativeTimeFormat: 'Intl.RelativeTimeFormat constructor',
+            intlListFormat: 'Intl.ListFormat constructor',
+
+            // Media/Audio
+            audioContextConstructor: 'AudioContext constructor - audio fingerprinting',
+            offlineAudioContextConstructor: 'OfflineAudioContext constructor',
+            mediaStreamConstructor: 'MediaStream constructor',
+            mediaRecorderConstructor: 'MediaRecorder constructor',
+            speechSynthesis_speak: 'SpeechSynthesis.speak',
+            speechSynthesis_getVoices: 'SpeechSynthesis.getVoices - fingerprinting',
+
+            // RTC
+            rtcPeerConnectionConstructor: 'RTCPeerConnection constructor - WebRTC',
+            rtcSessionDescriptionConstructor: 'RTCSessionDescription constructor',
+            rtcIceCandidateConstructor: 'RTCIceCandidate constructor',
+
+            // Image
+            imageConstructor: 'Image constructor',
+            imageDataConstructor: 'ImageData constructor',
+            imageBitmapRenderingContextTransferFromImageBitmap: 'ImageBitmapRenderingContext.transferFromImageBitmap',
+            offscreenCanvasConstructor: 'OffscreenCanvas constructor',
+
+            // Animation
+            animationConstructor: 'Animation constructor',
+            keyframeEffectConstructor: 'KeyframeEffect constructor',
+
+            // CSS/Style
+            cssStyleDeclarationSetProperty: 'CSSStyleDeclaration.setProperty',
+            cssStyleDeclarationGetPropertyValue: 'CSSStyleDeclaration.getPropertyValue',
+            cssStyleDeclarationRemoveProperty: 'CSSStyleDeclaration.removeProperty',
+
+            // Finalization/WeakRef
+            finalizationRegistryConstructor: 'FinalizationRegistry constructor',
+            weakRefConstructor: 'WeakRef constructor'
         };
         
         return descriptions[key] || `Integrity check for ${key}`;
