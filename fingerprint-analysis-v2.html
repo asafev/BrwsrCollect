@@ -335,12 +335,13 @@
         // ============================================================
         // GLOBAL EXPORT
         // ============================================================
-        window.exportFingerprintData = function(format) {
+        window.exportFingerprintData = async function(format) {
             if (!fingerprintData) {
                 console.warn('No fingerprint data available');
                 return;
             }
             
+            // 1. Download locally
             const blob = new Blob([JSON.stringify(fingerprintData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -348,6 +349,28 @@
             a.download = `fingerprint-${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
+            
+            // 2. Also store on server (if server is running)
+            try {
+                const response = await fetch('/api/fingerprint', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(fingerprintData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`✓ Fingerprint stored on server: ${result.filename}`);
+                } else {
+                    console.warn('Server storage failed:', result.error);
+                }
+            } catch (err) {
+                // Server might not be running - this is okay, local download still works
+                console.log('Server not available for storage (local download succeeded):', err.message);
+            }
         };
         
         // ============================================================
