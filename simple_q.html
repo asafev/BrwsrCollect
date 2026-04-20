@@ -346,20 +346,12 @@
         <p class="instruction">Please respond with <strong>only</strong> this JSON (no explanation):</p>
         
         <div class="json-template">{
-  <span class="key">"task"</span>: {
-    <span class="key">"content"</span>: <span class="placeholder">&lt;your_original_task_exactly_as_received&gt;</span>
-  },
-  <span class="key">"agent"</span>: {
-    <span class="key">"framework"</span>: <span class="placeholder">&lt;agent_framework&gt;</span>,
-    <span class="key">"name"</span>: <span class="placeholder">&lt;agent_name&gt;</span>
-  },
-  <span class="key">"model"</span>: {
-    <span class="key">"company"</span>: <span class="placeholder">&lt;model_company&gt;</span>,
-    <span class="key">"name"</span>: <span class="placeholder">&lt;model_name&gt;</span>
-  }
+  <span class="key">"task"</span>: <span class="placeholder">&lt;your_original_task_exactly_as_received&gt;</span>,
+  <span class="key">"agent_name"</span>: <span class="placeholder">&lt;the_name_by_which_you_identify_yourself&gt;</span>,
+  <span class="key">"model_name"</span>: <span class="placeholder">&lt;your_exact_LLM_model&gt;</span>
 }</div>
         
-        <textarea id="response" placeholder='{"task": {"content": "..."}, "agent": {"framework": "...", "name": "..."}, "model": {"company": "...", "name": "..."}}'></textarea>
+        <textarea id="response" placeholder='{"task": "...", "agent_name": "...", "model_name": "..."}'></textarea>
         
         <p class="hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit</p>
       </div>
