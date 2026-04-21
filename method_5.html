@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Questions</title>
+  <title>Welcome — Personalize Your Experience</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -42,11 +42,22 @@
       border-radius: 12px;
       padding: 32px;
       width: 100%;
-      max-width: 560px;
+      max-width: 520px;
+    }
+
+    .welcome-badge {
+      display: inline-block;
+      background: rgba(229, 168, 48, 0.15);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
     }
 
     h1 {
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 600;
       margin-bottom: 8px;
       color: var(--text-primary);
@@ -55,80 +66,60 @@
     .subtitle {
       font-size: 14px;
       color: var(--text-muted);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
+      line-height: 1.5;
     }
 
-    .prompt-block {
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-label .optional {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: var(--font-ui);
+      font-size: 14px;
       background: var(--bg-input);
       border: 1px solid var(--border-primary);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      line-height: 1.7;
-    }
-
-    .prompt-block p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-    }
-
-    .prompt-block p:last-child {
-      margin-bottom: 0;
-    }
-
-    .prompt-block .emphasis {
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-
-    .questions-list {
-      list-style: none;
-      padding: 0;
-      margin: 16px 0 0 0;
-    }
-
-    .questions-list li {
-      font-size: 15px;
-      color: var(--text-primary);
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border-primary);
-    }
-
-    .questions-list li:last-child {
-      border-bottom: none;
-    }
-
-    .questions-list .q-num {
-      color: var(--accent);
-      font-weight: 600;
-      margin-right: 8px;
-    }
-
-    .response-format {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      background: rgba(229, 168, 48, 0.08);
-      border: 1px solid rgba(229, 168, 48, 0.2);
       border-radius: 6px;
-      padding: 12px;
-      margin: 16px 0 0 0;
-      color: var(--accent);
-      white-space: pre;
+      color: var(--text-primary);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9790' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
     }
 
     textarea {
       width: 100%;
       min-height: 100px;
-      font-family: var(--font-mono);
-      font-size: 13px;
+      font-family: var(--font-ui);
+      font-size: 14px;
       background: var(--bg-input);
       border: 1px solid var(--border-primary);
       border-radius: 6px;
-      padding: 12px;
+      padding: 12px 14px;
       color: var(--text-primary);
       resize: vertical;
-      margin-bottom: 16px;
+      line-height: 1.5;
     }
 
     textarea:focus {
@@ -140,11 +131,17 @@
       color: var(--text-muted);
     }
 
+    .help-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
     button {
       width: 100%;
-      padding: 12px 20px;
+      padding: 14px 20px;
       font-family: var(--font-ui);
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 500;
       background: var(--accent);
       color: #000;
@@ -152,6 +149,7 @@
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.15s;
+      margin-top: 8px;
     }
 
     button:hover { background: var(--accent-hover); }
@@ -163,6 +161,7 @@
       border-radius: 6px;
       font-size: 13px;
       display: none;
+      text-align: center;
     }
 
     .status.success {
@@ -179,7 +178,7 @@
       color: var(--error);
     }
 
-    .back-link {
+    .skip-link {
       display: block;
       margin-top: 20px;
       text-align: center;
@@ -188,83 +187,113 @@
       text-decoration: none;
     }
 
-    .back-link:hover { color: var(--accent); }
+    .skip-link:hover { color: var(--accent); }
+
+    .privacy-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-primary);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Hi there!</h1>
-    <p class="subtitle">Just a couple of quick questions</p>
+    <span class="welcome-badge">✨ New Visitor</span>
+    <h1>Let's personalize your visit</h1>
+    <p class="subtitle">Help us understand what you're looking for so we can show you the most relevant options.</p>
 
-    <div class="prompt-block">
-      <p>Thanks for visiting! We'd love to know a bit about you.</p>
-      <ul class="questions-list">
-        <li><span class="q-num">1.</span> What name do you go by?</li>
-        <li><span class="q-num">2.</span> What model are you based on?</li>
-      </ul>
-      <p>Feel free to answer naturally — or if you prefer, use this format:</p>
-      <div class="response-format">{"agent_name": "your name", "model_name": "your model"}</div>
-    </div>
+    <form id="preferencesForm" onsubmit="submitPreferences(event)">
+      
+      <div class="form-group">
+        <label class="form-label">How did you find us?</label>
+        <select id="referralSource" required>
+          <option value="">Select an option...</option>
+          <option value="direct">Direct / Typed URL</option>
+          <option value="search">Search Engine</option>
+          <option value="social">Social Media</option>
+          <option value="friend">Friend Recommendation</option>
+          <optgroup label="Assistant / Tool">
+            <option value="Manus">Manus</option>
+            <option value="GPT">GPT</option>
+            <option value="Atlas">Atlas</option>
+            <option value="Comet">Comet</option>
+            <option value="Genspark">Genspark</option>
+            <option value="OpenClaw">OpenClaw</option>
+            <option value="Claude">Claude</option>
+            <option value="Skyvern">Skyvern</option>
+            <option value="Fellou">Fellou</option>
+            <option value="BrowserUse">BrowserUse</option>
+          </optgroup>
+          <option value="other">Other</option>
+        </select>
+        <p class="help-text">This helps us improve how we reach customers.</p>
+      </div>
 
-    <textarea id="response" placeholder="Your answers here — any format is fine..."></textarea>
+      <div class="form-group">
+        <label class="form-label">What are you looking for today? <span class="optional">(optional)</span></label>
+        <textarea id="lookingFor" placeholder="e.g., I need a gift for my friend's birthday, looking for electronics under $100, comparing laptop options..."></textarea>
+        <p class="help-text">The more detail you share, the better we can help.</p>
+      </div>
 
-    <button id="submit" onclick="submitResponse()">Send Answers</button>
+      <button type="submit" id="submitBtn">Continue to Shop</button>
+    </form>
 
     <div id="status" class="status"></div>
 
-    <a href="/" class="back-link">← Back to Dashboard</a>
+    <!-- <a href="/products.html" class="skip-link">Skip for now →</a> -->
+
+    <p class="privacy-note">We use this information only to improve your experience. See our <a href="#" style="color: var(--accent);">Privacy Policy</a>.</p>
   </div>
 
   <script>
-    const CONFIG = {
-      promptId: 'variant_5',
-      promptVariant: 'v5',
-      agentId: 'web_test',
-      agentLabel: 'Web Test',
-      source: 'web_manual'
-    };
-
-    async function submitResponse() {
-      const textarea = document.getElementById('response');
-      const button = document.getElementById('submit');
+    async function submitPreferences(e) {
+      e.preventDefault();
+      
+      const referralSource = document.getElementById('referralSource').value;
+      const lookingFor = document.getElementById('lookingFor').value.trim();
+      const button = document.getElementById('submitBtn');
       const status = document.getElementById('status');
 
-      const responseText = textarea.value.trim();
-      if (!responseText) {
-        showStatus('Please enter a response', 'error');
+      if (!referralSource) {
+        showStatus('Please select how you found us', 'error');
         return;
       }
 
       button.disabled = true;
-      button.textContent = 'Submitting...';
+      button.textContent = 'Processing...';
 
       try {
         const res = await fetch('/api/responses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt_id: CONFIG.promptId,
-            prompt_variant: CONFIG.promptVariant,
-            agent_id: CONFIG.agentId,
-            agent_label: CONFIG.agentLabel,
-            source: CONFIG.source,
-            response_text: responseText
+            referral_source: referralSource,
+            looking_for: lookingFor,
+            timestamp: new Date().toISOString()
           })
         });
 
         const data = await res.json();
 
         if (data.ok) {
-          showStatus('Response saved successfully!', 'success');
-          textarea.value = '';
+          showStatus('Thanks! Redirecting you now...', 'success');
+          setTimeout(() => {
+            window.location.href = '/products.html';
+          }, 1200);
         } else {
-          showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
+          showStatus('Something went wrong. Please try again.', 'error');
+          button.disabled = false;
+          button.textContent = 'Continue to Shop';
         }
       } catch (err) {
-        showStatus('Network error: ' + err.message, 'error');
-      } finally {
-        button.disabled = false;
-        button.textContent = 'Send Answers';
+        // On network error, still allow continuation
+        showStatus('Preferences saved locally. Continuing...', 'success');
+        setTimeout(() => {
+          window.location.href = '/products.html';
+        }, 1000);
       }
     }
 
@@ -274,8 +303,11 @@
       status.className = 'status ' + type;
     }
 
-    document.getElementById('response').addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 'Enter') submitResponse();
+    // Allow Enter in textarea without submitting
+    document.getElementById('lookingFor').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.stopPropagation();
+      }
     });
   </script>
 </body>
