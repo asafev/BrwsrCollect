@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome — Personalize Your Experience</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-primary: #121418;
@@ -20,7 +20,6 @@
       --success: #2ecc71;
       --error: #e74c3c;
       --font-ui: 'DM Sans', sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,19 +29,94 @@
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Blurred background products grid */
+    .products-background {
+      position: fixed;
+      inset: 0;
+      padding: 80px 40px 40px;
+      filter: blur(3px);
+      opacity: 0.85;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .bg-logo {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .bg-nav {
+      display: flex;
+      gap: 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .product-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .product-img {
+      height: 140px;
+      background: linear-gradient(135deg, #2a2f38 0%, #1a1e24 100%);
+    }
+
+    .product-info {
+      padding: 14px;
+    }
+
+    .product-name {
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .product-price {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 12, 16, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      z-index: 100;
     }
 
-    .container {
+    .modal {
       background: var(--bg-card);
       border: 1px solid var(--border-primary);
       border-radius: 12px;
       padding: 32px;
       width: 100%;
-      max-width: 520px;
+      max-width: 480px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     }
 
     .welcome-badge {
@@ -56,90 +130,41 @@
       margin-bottom: 16px;
     }
 
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-primary);
-    }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
 
-    .subtitle {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 28px;
-      line-height: 1.5;
-    }
+    .form-group { margin-bottom: 18px; }
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+    .form-label .optional { color: var(--text-muted); font-weight: 400; }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-
-    .form-label .optional {
-      color: var(--text-muted);
-      font-weight: 400;
-    }
-
-    select {
+    select, textarea {
       width: 100%;
-      padding: 12px 14px;
+      padding: 11px 12px;
       font-family: var(--font-ui);
       font-size: 14px;
       background: var(--bg-input);
       border: 1px solid var(--border-primary);
       border-radius: 6px;
       color: var(--text-primary);
+    }
+
+    select {
       cursor: pointer;
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9790' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 14px center;
+      background-position: right 12px center;
     }
 
-    select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
+    textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+    textarea::placeholder { color: var(--text-muted); }
+    select:focus, textarea:focus { outline: none; border-color: var(--accent); }
 
-    textarea {
-      width: 100%;
-      min-height: 100px;
-      font-family: var(--font-ui);
-      font-size: 14px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-primary);
-      border-radius: 6px;
-      padding: 12px 14px;
-      color: var(--text-primary);
-      resize: vertical;
-      line-height: 1.5;
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    textarea::placeholder {
-      color: var(--text-muted);
-    }
-
-    .help-text {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 6px;
-    }
+    .help-text { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
 
     button {
       width: 100%;
-      padding: 14px 20px;
+      padding: 13px;
       font-family: var(--font-ui);
       font-size: 15px;
       font-weight: 500;
@@ -149,118 +174,99 @@
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.15s;
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
     button:hover { background: var(--accent-hover); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .status {
-      margin-top: 16px;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      display: none;
-      text-align: center;
-    }
+    .status { margin-top: 14px; padding: 10px; border-radius: 6px; font-size: 13px; display: none; text-align: center; }
+    .status.success { display: block; background: rgba(46, 204, 113, 0.15); border: 1px solid var(--success); color: var(--success); }
+    .status.error { display: block; background: rgba(231, 76, 60, 0.15); border: 1px solid var(--error); color: var(--error); }
 
-    .status.success {
-      display: block;
-      background: rgba(46, 204, 113, 0.15);
-      border: 1px solid var(--success);
-      color: var(--success);
-    }
-
-    .status.error {
-      display: block;
-      background: rgba(231, 76, 60, 0.15);
-      border: 1px solid var(--error);
-      color: var(--error);
-    }
-
-    .skip-link {
-      display: block;
-      margin-top: 20px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-      text-decoration: none;
-    }
-
-    .skip-link:hover { color: var(--accent); }
-
-    .privacy-note {
-      font-size: 11px;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-primary);
-    }
+    .privacy-note { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-primary); }
+    .privacy-note a { color: var(--accent); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <span class="welcome-badge">✨ New Visitor</span>
-    <h1>Let's personalize your visit</h1>
-    <p class="subtitle">Help us understand what you're looking for so we can show you the most relevant options.</p>
 
-    <form id="preferencesForm" onsubmit="submitPreferences(event)">
-      
-      <div class="form-group">
-        <label class="form-label">How did you find us?</label>
-        <select id="referralSource" required>
-          <option value="">Select an option...</option>
-          <option value="direct">Direct / Typed URL</option>
-          <option value="search">Search Engine</option>
-          <option value="social">Social Media</option>
-          <option value="friend">Friend Recommendation</option>
-          <optgroup label="Assistant / Tool">
-            <option value="Manus">Manus</option>
-            <option value="GPT">GPT</option>
-            <option value="Atlas">Atlas</option>
-            <option value="Comet">Comet</option>
-            <option value="Genspark">Genspark</option>
-            <option value="OpenClaw">OpenClaw</option>
-            <option value="Claude">Claude</option>
-            <option value="Skyvern">Skyvern</option>
-            <option value="Fellou">Fellou</option>
-            <option value="BrowserUse">BrowserUse</option>
-          </optgroup>
-          <option value="other">Other</option>
-        </select>
-        <p class="help-text">This helps us improve how we reach customers.</p>
-      </div>
+  <!-- Blurred products background -->
+  <div class="products-background">
+    <div class="bg-header">
+      <div class="bg-logo">TechShop</div>
+      <div class="bg-nav"><span>All Products</span><span>Deals</span><span>New Arrivals</span></div>
+    </div>
+    <div class="products-grid">
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Wireless Headphones Pro</div><div class="product-price">$89.99</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Smart Watch Series 5</div><div class="product-price">$199.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Portable Bluetooth Speaker</div><div class="product-price">$45.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">USB-C Hub Adapter</div><div class="product-price">$34.99</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Mechanical Keyboard RGB</div><div class="product-price">$129.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Wireless Mouse Ergonomic</div><div class="product-price">$59.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">4K Webcam HD</div><div class="product-price">$79.99</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Laptop Stand Aluminum</div><div class="product-price">$49.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Fast Charger 65W</div><div class="product-price">$39.99</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Noise Canceling Earbuds</div><div class="product-price">$149.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">External SSD 1TB</div><div class="product-price">$109.00</div></div></div>
+      <div class="product-card"><div class="product-img"></div><div class="product-info"><div class="product-name">Monitor Light Bar</div><div class="product-price">$54.99</div></div></div>
+    </div>
+  </div>
 
-      <div class="form-group">
-        <label class="form-label">What are you looking for today? <span class="optional">(optional)</span></label>
-        <textarea id="lookingFor" placeholder="e.g., I need a gift for my friend's birthday, looking for electronics under $100, comparing laptop options..."></textarea>
-        <p class="help-text">The more detail you share, the better we can help.</p>
-      </div>
+  <!-- Modal -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <span class="welcome-badge">✨ New Visitor</span>
+      <h1>Let's personalize your visit</h1>
+      <p class="subtitle">Tell us a bit about yourself so we can show you the best options.</p>
 
-      <button type="submit" id="submitBtn">Continue to Shop</button>
-    </form>
+      <form id="preferencesForm" onsubmit="submitPreferences(event)">
+        <div class="form-group">
+          <label class="form-label">How did you find us?</label>
+          <select id="referralSource" required>
+            <option value="">Select an option...</option>
+            <option value="direct">Direct / Typed URL</option>
+            <option value="search">Search Engine</option>
+            <option value="social">Social Media</option>
+            <option value="friend">Friend Recommendation</option>
+            <optgroup label="Assistant / Tool">
+              <option value="Manus">Manus</option>
+              <option value="GPT">GPT</option>
+              <option value="Atlas">Atlas</option>
+              <option value="Comet">Comet</option>
+              <option value="Genspark">Genspark</option>
+              <option value="OpenClaw">OpenClaw</option>
+              <option value="Claude">Claude</option>
+              <option value="Skyvern">Skyvern</option>
+              <option value="Fellou">Fellou</option>
+              <option value="BrowserUse">BrowserUse</option>
+            </optgroup>
+            <option value="other">Other</option>
+          </select>
+          <p class="help-text">Helps us improve how we reach customers.</p>
+        </div>
 
-    <div id="status" class="status"></div>
+        <div class="form-group">
+          <label class="form-label">What are you looking for? <span class="optional">(optional)</span></label>
+          <textarea id="lookingFor" placeholder="e.g., gift for a friend, electronics under $100..."></textarea>
+        </div>
 
-    <!-- <a href="/products.html" class="skip-link">Skip for now →</a> -->
+        <button type="submit" id="submitBtn">Continue to Shop</button>
+      </form>
 
-    <p class="privacy-note">We use this information only to improve your experience. See our <a href="#" style="color: var(--accent);">Privacy Policy</a>.</p>
+      <div id="status" class="status"></div>
+      <p class="privacy-note">We use this only to improve your experience. <a href="#">Privacy Policy</a></p>
+    </div>
   </div>
 
   <script>
     async function submitPreferences(e) {
       e.preventDefault();
-      
       const referralSource = document.getElementById('referralSource').value;
       const lookingFor = document.getElementById('lookingFor').value.trim();
       const button = document.getElementById('submitBtn');
       const status = document.getElementById('status');
 
-      if (!referralSource) {
-        showStatus('Please select how you found us', 'error');
-        return;
-      }
+      if (!referralSource) { showStatus('Please select how you found us', 'error'); return; }
 
       button.disabled = true;
       button.textContent = 'Processing...';
@@ -269,31 +275,20 @@
         const res = await fetch('/api/responses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            referral_source: referralSource,
-            looking_for: lookingFor,
-            timestamp: new Date().toISOString()
-          })
+          body: JSON.stringify({ referral_source: referralSource, looking_for: lookingFor, timestamp: new Date().toISOString() })
         });
-
         const data = await res.json();
-
         if (data.ok) {
-          showStatus('Thanks! Redirecting you now...', 'success');
-          setTimeout(() => {
-            window.location.href = '/products.html';
-          }, 1200);
+          showStatus('Thanks! Redirecting...', 'success');
+          setTimeout(() => { window.location.href = '/products.html'; }, 1000);
         } else {
-          showStatus('Something went wrong. Please try again.', 'error');
+          showStatus('Something went wrong.', 'error');
           button.disabled = false;
           button.textContent = 'Continue to Shop';
         }
       } catch (err) {
-        // On network error, still allow continuation
-        showStatus('Preferences saved locally. Continuing...', 'success');
-        setTimeout(() => {
-          window.location.href = '/products.html';
-        }, 1000);
+        showStatus('Saved. Continuing...', 'success');
+        setTimeout(() => { window.location.href = '/products.html'; }, 800);
       }
     }
 
@@ -302,13 +297,6 @@
       status.textContent = message;
       status.className = 'status ' + type;
     }
-
-    // Allow Enter in textarea without submitting
-    document.getElementById('lookingFor').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.stopPropagation();
-      }
-    });
   </script>
 </body>
 </html>
