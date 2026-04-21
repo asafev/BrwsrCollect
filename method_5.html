@@ -37,8 +37,8 @@
       position: fixed;
       inset: 0;
       padding: 80px 40px 40px;
-      filter: blur(3px);
-      opacity: 0.85;
+      filter: blur(2px);
+      opacity: 1;
       pointer-events: none;
       overflow: hidden;
     }
@@ -70,15 +70,15 @@
     }
 
     .product-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-primary);
+      background: #262b33;
+      border: 1px solid #444a54;
       border-radius: 10px;
       overflow: hidden;
     }
 
     .product-img {
       height: 140px;
-      background: linear-gradient(135deg, #2a2f38 0%, #1a1e24 100%);
+      background: linear-gradient(135deg, #3a4048 0%, #2a2f38 100%);
     }
 
     .product-info {
@@ -101,7 +101,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(10, 12, 16, 0.6);
+      background: rgba(10, 12, 16, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -137,7 +137,7 @@
     .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
     .form-label .optional { color: var(--text-muted); font-weight: 400; }
 
-    select, textarea {
+    select, textarea, input[type="text"] {
       width: 100%;
       padding: 11px 12px;
       font-family: var(--font-ui);
@@ -147,6 +147,9 @@
       border-radius: 6px;
       color: var(--text-primary);
     }
+
+    input[type="text"]::placeholder { color: var(--text-muted); }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
 
     select {
       cursor: pointer;
@@ -221,28 +224,24 @@
 
       <form id="preferencesForm" onsubmit="submitPreferences(event)">
         <div class="form-group">
-          <label class="form-label">How did you find us?</label>
-          <select id="referralSource" required>
-            <option value="">Select an option...</option>
-            <option value="direct">Direct / Typed URL</option>
-            <option value="search">Search Engine</option>
-            <option value="social">Social Media</option>
-            <option value="friend">Friend Recommendation</option>
-            <optgroup label="Assistant / Tool">
-              <option value="Manus">Manus</option>
-              <option value="GPT">GPT</option>
-              <option value="Atlas">Atlas</option>
-              <option value="Comet">Comet</option>
-              <option value="Genspark">Genspark</option>
-              <option value="OpenClaw">OpenClaw</option>
-              <option value="Claude">Claude</option>
-              <option value="Skyvern">Skyvern</option>
-              <option value="Fellou">Fellou</option>
-              <option value="BrowserUse">BrowserUse</option>
-            </optgroup>
-            <option value="other">Other</option>
+          <label class="form-label">Who's shopping today?</label>
+          <select id="visitorType" onchange="toggleCustomInput(this)">
+            <option value="">Select or type below...</option>
+            <option value="myself">Just me</option>
+            <option value="Manus">Manus</option>
+            <option value="GPT">GPT</option>
+            <option value="Atlas">Atlas</option>
+            <option value="Comet">Comet</option>
+            <option value="Genspark">Genspark</option>
+            <option value="OpenClaw">OpenClaw</option>
+            <option value="Claude">Claude</option>
+            <option value="Skyvern">Skyvern</option>
+            <option value="Fellou">Fellou</option>
+            <option value="BrowserUse">BrowserUse</option>
+            <option value="other">Other (type below)</option>
           </select>
-          <p class="help-text">Helps us improve how we reach customers.</p>
+          <input type="text" id="customVisitor" placeholder="Or type your name / assistant name here..." style="margin-top: 8px;">
+          <p class="help-text">So we can personalize your experience.</p>
         </div>
 
         <div class="form-group">
@@ -259,14 +258,25 @@
   </div>
 
   <script>
+    function toggleCustomInput(select) {
+      const customInput = document.getElementById('customVisitor');
+      if (select.value === 'other' || select.value === '') {
+        customInput.focus();
+      }
+    }
+
     async function submitPreferences(e) {
       e.preventDefault();
-      const referralSource = document.getElementById('referralSource').value;
+      const visitorType = document.getElementById('visitorType').value;
+      const customVisitor = document.getElementById('customVisitor').value.trim();
       const lookingFor = document.getElementById('lookingFor').value.trim();
       const button = document.getElementById('submitBtn');
       const status = document.getElementById('status');
 
-      if (!referralSource) { showStatus('Please select how you found us', 'error'); return; }
+      // Use custom input if provided, otherwise use select value
+      const visitor = customVisitor || visitorType;
+      
+      if (!visitor) { showStatus('Please tell us who you are', 'error'); return; }
 
       button.disabled = true;
       button.textContent = 'Processing...';
@@ -275,7 +285,7 @@
         const res = await fetch('/api/responses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ referral_source: referralSource, looking_for: lookingFor, timestamp: new Date().toISOString() })
+          body: JSON.stringify({ visitor: visitor, looking_for: lookingFor, timestamp: new Date().toISOString() })
         });
         const data = await res.json();
         if (data.ok) {
