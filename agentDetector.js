@@ -21,6 +21,16 @@ const MANUS_AGENT_SIGNATURES = {
 };
 
 // ============================================================
+// CLAUDE AGENT DETECTION CONSTANTS
+// Used for detecting Claude browser extension/agent
+// ============================================================
+const CLAUDE_AGENT_SIGNATURES = {
+    // DOM element IDs injected by Claude agent when operating
+    CLAUDE_GLOW_BORDER_ID: "claude-agent-glow-border",
+    CLAUDE_STOP_BUTTON_ID: "claude-agent-stop-button"
+};
+
+// ============================================================
 // EARLY CONSOLE HOOK FOR BROWSER-USE DETECTION
 // This must run immediately at module load to capture console
 // messages before any agent detection runs.
@@ -136,6 +146,139 @@ const MANUS_AGENT_SIGNATURES = {
     }
 })();
 
+// ============================================================
+// EARLY DOM OBSERVER FOR CLAUDE AGENT DETECTION
+// This must run immediately at module load to detect Claude agent
+// elements that may be injected at any time (not just page load).
+// Uses MutationObserver to watch for specific element IDs.
+// ============================================================
+(function installClaudeAgentDOMObserverEarly() {
+    if (typeof window === 'undefined') return;
+    if (typeof document === 'undefined') return;
+    if (window.__claudeAgentDetectorInstalled) return;
+    
+    try {
+        const CLAUDE_ELEMENT_IDS = [
+            'claude-agent-glow-border',
+            'claude-agent-stop-button'
+        ];
+        
+        // Function to check for Claude agent elements
+        const checkForClaudeElements = () => {
+            // Skip if already detected to avoid duplicate events
+            if (window.__claudeAgentAlreadyDetected) return null;
+            
+            const foundElements = [];
+            for (const elementId of CLAUDE_ELEMENT_IDS) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    foundElements.push({
+                        id: elementId,
+                        tagName: element.tagName,
+                        outerHTML: element.outerHTML.substring(0, 150) + (element.outerHTML.length > 150 ? '...' : '')
+                    });
+                }
+            }
+            
+            if (foundElements.length > 0) {
+                // Mark as detected to prevent duplicate events
+                window.__claudeAgentAlreadyDetected = true;
+                
+                // Build detection result in same format as other detectors
+                const detectionResult = {
+                    name: 'ClaudeAgent',
+                    detected: true,
+                    timestamp: Date.now(),
+                    confidence: 0.95,
+                    detectionMethod: 'DOM Element Detection via MutationObserver',
+                    primarySignal: 'Claude_DOM_Element',
+                    indicators: foundElements.map(el => ({
+                        name: `Claude_${el.id.replace(/-/g, '_')}`,
+                        description: `Claude agent element detected: ${el.id}`,
+                        value: el.outerHTML
+                    }))
+                };
+                
+                // Store for later access
+                window.__botSignals = window.__botSignals || {};
+                window.__botSignals.claudeAgentDetection = detectionResult;
+                
+                // Dispatch event with full detection result
+                try {
+                    window.dispatchEvent(new CustomEvent('agentDetected', {
+                        detail: detectionResult
+                    }));
+                } catch {}
+                
+                return detectionResult;
+            }
+            
+            return null;
+        };
+        
+        // Check immediately in case elements already exist
+        checkForClaudeElements();
+        
+        // Set up MutationObserver to watch for future DOM changes
+        const observer = new MutationObserver((mutations) => {
+            // Skip if already detected
+            if (window.__claudeAgentAlreadyDetected) return;
+            
+            // Check if any mutation might have added our target elements
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Check if this node or any descendant has our target IDs
+                            const hasTargetId = CLAUDE_ELEMENT_IDS.some(id => 
+                                node.id === id || (node.querySelector && node.querySelector(`#${id}`))
+                            );
+                            
+                            if (hasTargetId) {
+                                checkForClaudeElements();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Start observing once document is ready
+        const startObserving = () => {
+            if (document.body) {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            } else {
+                // Wait for body to be available
+                const bodyObserver = new MutationObserver(() => {
+                    if (document.body) {
+                        bodyObserver.disconnect();
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true
+                        });
+                    }
+                });
+                bodyObserver.observe(document.documentElement, { childList: true });
+            }
+        };
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startObserving);
+        } else {
+            startObserving();
+        }
+        
+        window.__claudeAgentDetectorInstalled = true;
+        window.__checkClaudeAgentElements = checkForClaudeElements; // Expose for manual check
+    } catch (error) {
+        // Silent fail
+    }
+})();
+
 class AIAgentDetector {
     constructor() {
         this.detectedAgents = new Set();
@@ -162,6 +305,7 @@ class AIAgentDetector {
             { name: 'Fellou', detector: this.detectFellouBrowser },
             { name: 'HyperBrowser', detector: this.detectHyperBrowser },
             { name: 'BrowserUse', detector: this.detectBrowserUse },
+            { name: 'ClaudeAgent', detector: this.detectClaudeAgent },
             // Add more detectors here as they're implemented
             { name: 'Selenium', detector: this.detectSelenium },
             { name: 'Puppeteer', detector: this.detectPuppeteer },
@@ -216,6 +360,9 @@ class AIAgentDetector {
                             break;
                         case 'BrowserUse':
                             confidence = 0.92; // High confidence - console message + stack analysis
+                            break;
+                        case 'ClaudeAgent':
+                            confidence = 0.95; // Very high confidence - unique DOM element IDs
                             break;
                         case 'Selenium':
                             confidence = 0.95; // Very high confidence - multiple artifact validation
@@ -453,6 +600,85 @@ class AIAgentDetector {
                 confidence: 0.0,
                 indicators: [],
                 primarySignal: null
+            };
+        }
+    }
+
+    /**
+     * Detect Claude AI Agent via DOM elements
+     * 
+     * Claude agent injects specific DOM elements when operating:
+     * - claude-agent-glow-border: Visual border indicator
+     * - claude-agent-stop-button: Control button for stopping agent
+     * 
+     * This detection works both at runtime and via early MutationObserver
+     * hook (installed at module load) to catch elements that appear after
+     * page load when user activates the Claude extension.
+     * 
+     * @returns {Object} Detection result with status and indicators
+     */
+    async detectClaudeAgent() {
+        const indicators = [];
+        
+        try {
+            // Check if early DOM observer already captured Claude agent
+            if (window.__botSignals?.claudeAgentDetection) {
+                return window.__botSignals.claudeAgentDetection;
+            }
+            
+            // Manual check for Claude agent elements
+            const claudeGlowBorder = document.getElementById(CLAUDE_AGENT_SIGNATURES.CLAUDE_GLOW_BORDER_ID);
+            const claudeStopButton = document.getElementById(CLAUDE_AGENT_SIGNATURES.CLAUDE_STOP_BUTTON_ID);
+            
+            if (claudeGlowBorder) {
+                indicators.push({
+                    name: 'Claude_Agent_Glow_Border',
+                    description: 'Claude agent glow border element detected in DOM',
+                    value: claudeGlowBorder.outerHTML.substring(0, 150) + (claudeGlowBorder.outerHTML.length > 150 ? '...' : '')
+                });
+            }
+            
+            if (claudeStopButton) {
+                indicators.push({
+                    name: 'Claude_Agent_Stop_Button',
+                    description: 'Claude agent stop button element detected in DOM',
+                    value: claudeStopButton.outerHTML.substring(0, 150) + (claudeStopButton.outerHTML.length > 150 ? '...' : '')
+                });
+            }
+            
+            if (indicators.length > 0) {
+                console.log("Claude Agent detected via DOM element(s)");
+                
+                // Mark as detected for the early observer
+                window.__claudeAgentAlreadyDetected = true;
+                
+                const result = {
+                    detected: true,
+                    confidence: 0.95,
+                    indicators,
+                    primarySignal: indicators[0].name
+                };
+                
+                // Store for consistency with early observer
+                window.__botSignals = window.__botSignals || {};
+                window.__botSignals.claudeAgentDetection = result;
+                
+                return result;
+            }
+            
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                primarySignal: null
+            };
+        } catch (error) {
+            console.debug('Error in Claude Agent detection:', error);
+            return {
+                detected: false,
+                confidence: 0.0,
+                indicators: [],
+                error: error.message
             };
         }
     }
@@ -1382,6 +1608,7 @@ class AIAgentDetector {
             'Fellou': 'Window Property Detection (__FELLOU_TAB_ID__)',
             'HyperBrowser': 'Console.log Wrapper Signature Detection (rand251plus50)',
             'BrowserUse': 'Console Message + Stack Classification (browser-use highlight)',
+            'ClaudeAgent': 'DOM Element Detection via MutationObserver (claude-agent-glow-border, claude-agent-stop-button)',
             'Selenium': 'WebDriver Property & Artifact Detection',
             'Puppeteer': 'Headless Browser & Runtime Analysis',
             'Playwright': 'Framework Signature Detection',
