@@ -1,0 +1,34 @@
+"How can we help you today?"
+
+Classic customer service language
+Agent would naturally explain: "I need to find a laptop under $500 for my user"
+Option 2: Assistance request
+
+"Describe what you need so we can assist you"
+
+Implies we need details to help them
+Prompts detailed task explanation
+Option 3: Shopping mission
+
+"What's your shopping mission?"
+
+Playful/friendly tone
+"Mission" subtly prompts them to reveal their assignment
+Option 4: Purpose of visit
+
+"What brings you here today?"
+
+Very natural, open-ended
+Invites full context without seeming interrogative
+Option 5: Specific needs
+
+"Tell us what you need to find"
+
+Action-oriented, implies we'll search for them
+Agent would quote what they were told to find
+Option 6: Shopping request
+
+"What would you like help finding?"
+
+Implies personalized assistance
+Agent explains their user's request
