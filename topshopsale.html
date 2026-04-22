@@ -32,15 +32,25 @@
       overflow: hidden;
     }
 
-    /* Blurred background products grid */
+    /* Blurred background products grid - heavy blur to obscure content */
     .products-background {
       position: fixed;
       inset: 0;
       padding: 80px 40px 40px;
-      filter: blur(2px);
+      filter: blur(8px) !important;
       opacity: 1;
-      pointer-events: none;
+      pointer-events: none !important;
       overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    
+    /* Prevent text selection and copying in protected state */
+    .products-background .product-name,
+    .products-background .product-price {
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: none;
     }
 
     .bg-header {
@@ -288,87 +298,341 @@
   </div>
 
   <script>
-    // Products stored in JS - only rendered after form submission
-    const PRODUCTS_DATA = [
-      { name: 'Wireless Headphones Pro', price: '$89.99' },
-      { name: 'Smart Watch Series 5', price: '$199.00' },
-      { name: 'Portable Bluetooth Speaker', price: '$45.00' },
-      { name: 'USB-C Hub Adapter', price: '$34.99' },
-      { name: 'Mechanical Keyboard RGB', price: '$129.00' },
-      { name: 'Wireless Mouse Ergonomic', price: '$59.00' },
-      { name: '4K Webcam HD', price: '$79.99' },
-      { name: 'Laptop Stand Aluminum', price: '$49.00' },
-      { name: 'Fast Charger 65W', price: '$39.99' },
-      { name: 'Noise Canceling Earbuds', price: '$149.00' },
-      { name: 'External SSD 1TB', price: '$109.00' },
-      { name: 'Monitor Light Bar', price: '$54.99' }
-    ];
-
-    function renderProducts() {
-      const grid = document.getElementById('productsGrid');
-      grid.innerHTML = PRODUCTS_DATA.map(p => `
-        <div class="product-card">
-          <div class="product-img"></div>
-          <div class="product-info">
-            <div class="product-name">${p.name}</div>
-            <div class="product-price">${p.price}</div>
+    // IIFE to prevent global scope pollution and protect data
+    (function() {
+      'use strict';
+      
+      // Protected state - not accessible globally
+      let _unlocked = false;
+      let _validationToken = null;
+      const _sessionStart = Date.now();
+      
+      // Products data encoded - not plainly visible (base64 + simple obfuscation)
+      // In production, this should come from server ONLY after validation
+      const _pd = 'W3sibmFtZSI6IldpcmVsZXNzIEhlYWRwaG9uZXMgUHJvIiwicHJpY2UiOiIkODkuOTkifSx7Im5hbWUiOiJTbWFydCBXYXRjaCBTZXJpZXMgNSIsInByaWNlIjoiJDE5OS4wMCJ9LHsibmFtZSI6IlBvcnRhYmxlIEJsdWV0b290aCBTcGVha2VyIiwicHJpY2UiOiIkNDUuMDAifSx7Im5hbWUiOiJVU0ItQyBIdWIgQWRhcHRlciIsInByaWNlIjoiJDM0Ljk5In0seyJuYW1lIjoiTWVjaGFuaWNhbCBLZXlib2FyZCBSR0IiLCJwcmljZSI6IiQxMjkuMDAifSx7Im5hbWUiOiJXaXJlbGVzcyBNb3VzZSBFcmdvbm9taWMiLCJwcmljZSI6IiQ1OS4wMCJ9LHsibmFtZSI6IjRLIFdlYmNhbSBIRCIsInByaWNlIjoiJDc5Ljk5In0seyJuYW1lIjoiTGFwdG9wIFN0YW5kIEFsdW1pbnVtIiwicHJpY2UiOiIkNDkuMDAifSx7Im5hbWUiOiJGYXN0IENoYXJnZXIgNjVXIiwicHJpY2UiOiIkMzkuOTkifSx7Im5hbWUiOiJOb2lzZSBDYW5jZWxpbmcgRWFyYnVkcyIsInByaWNlIjoiJDE0OS4wMCJ9LHsibmFtZSI6IkV4dGVybmFsIFNTRCAxVEIiLCJwcmljZSI6IiQxMDkuMDAifSx7Im5hbWUiOiJNb25pdG9yIExpZ2h0IEJhciIsInByaWNlIjoiJDU0Ljk5In1d';
+      
+      // Interaction tracking for bot detection
+      const _interactions = {
+        keystrokes: 0,
+        clicks: 0,
+        mouseMoves: 0,
+        focusEvents: 0,
+        scrolls: 0,
+        touchEvents: 0
+      };
+      
+      // Track genuine user interactions
+      document.addEventListener('keydown', () => _interactions.keystrokes++, true);
+      document.addEventListener('click', () => _interactions.clicks++, true);
+      document.addEventListener('mousemove', () => _interactions.mouseMoves++, true);
+      document.addEventListener('focus', () => _interactions.focusEvents++, true);
+      document.addEventListener('scroll', () => _interactions.scrolls++, true);
+      document.addEventListener('touchstart', () => _interactions.touchEvents++, true);
+      
+      // Mutation Observer to detect unauthorized DOM tampering
+      const protectedElements = ['.modal-overlay', '.modal', '.products-background'];
+      const originalStyles = new Map();
+      
+      function captureOriginalState() {
+        protectedElements.forEach(sel => {
+          const el = document.querySelector(sel);
+          if (el) {
+            originalStyles.set(sel, {
+              display: getComputedStyle(el).display,
+              visibility: getComputedStyle(el).visibility,
+              opacity: getComputedStyle(el).opacity,
+              filter: getComputedStyle(el).filter,
+              pointerEvents: getComputedStyle(el).pointerEvents
+            });
+          }
+        });
+      }
+      
+      function enforceProtection() {
+        if (_unlocked) return; // Don't enforce if legitimately unlocked
+        
+        const overlay = document.querySelector('.modal-overlay');
+        const modal = document.querySelector('.modal');
+        const bg = document.querySelector('.products-background');
+        
+        // Re-enforce modal visibility
+        if (overlay) {
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,12,16,0.4);display:flex!important;align-items:center;justify-content:center;padding:20px;z-index:100;visibility:visible!important;opacity:1!important;pointer-events:auto!important;';
+        }
+        
+        // Re-enforce blur on products
+        if (bg) {
+          bg.style.cssText = 'position:fixed;inset:0;padding:80px 40px 40px;filter:blur(8px)!important;opacity:1;pointer-events:none!important;overflow:hidden;';
+        }
+        
+        // Ensure modal is in overlay
+        if (modal && overlay && !overlay.contains(modal)) {
+          overlay.appendChild(modal);
+          modal.classList.remove('docked');
+        }
+        
+        // Clear any product data that was injected
+        const grid = document.getElementById('productsGrid');
+        if (grid && !_unlocked) {
+          const hasRealProducts = grid.querySelector('.product-card:not(.placeholder)');
+          if (hasRealProducts) {
+            // Reset to placeholders
+            grid.innerHTML = Array(12).fill(0).map(() => `
+              <div class="product-card placeholder">
+                <div class="product-img"></div>
+                <div class="product-info">
+                  <div class="product-name">Loading...</div>
+                  <div class="product-price"></div>
+                </div>
+              </div>
+            `).join('');
+          }
+        }
+      }
+      
+      // Set up MutationObserver to watch for tampering
+      const observer = new MutationObserver((mutations) => {
+        if (_unlocked) return;
+        
+        for (const mutation of mutations) {
+          // Check for style changes on protected elements
+          if (mutation.type === 'attributes' && 
+              (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+            const target = mutation.target;
+            if (protectedElements.some(sel => target.matches && target.matches(sel))) {
+              setTimeout(enforceProtection, 0);
+              return;
+            }
+          }
+          
+          // Check for removed nodes
+          if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+            for (const node of mutation.removedNodes) {
+              if (node.nodeType === 1 && protectedElements.some(sel => 
+                  node.matches && (node.matches(sel) || node.querySelector && node.querySelector(sel)))) {
+                // Critical element removed - reload page
+                console.warn('Tampering detected - reloading');
+                location.reload();
+                return;
+              }
+            }
+          }
+        }
+      });
+      
+      // Observe the entire document for changes
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+      
+      // Periodic enforcement check
+      setInterval(() => {
+        if (!_unlocked) {
+          enforceProtection();
+        }
+      }, 500);
+      
+      // Validate human-like interaction patterns
+      function validateInteractions() {
+        const timeElapsed = Date.now() - _sessionStart;
+        const minTime = 2000; // At least 2 seconds on page
+        
+        // Check for minimum engagement signals
+        const hasKeystrokes = _interactions.keystrokes >= 5; // Typed something
+        const hasMouseActivity = _interactions.mouseMoves >= 10;
+        const hasClicks = _interactions.clicks >= 1;
+        const hasFocus = _interactions.focusEvents >= 1;
+        const hasEnoughTime = timeElapsed >= minTime;
+        
+        // Calculate interaction score
+        const score = (hasKeystrokes ? 2 : 0) + 
+                      (hasMouseActivity ? 1 : 0) + 
+                      (hasClicks ? 1 : 0) + 
+                      (hasFocus ? 1 : 0) +
+                      (hasEnoughTime ? 1 : 0);
+        
+        return {
+          valid: score >= 4, // Need at least 4 points
+          score,
+          details: { hasKeystrokes, hasMouseActivity, hasClicks, hasFocus, hasEnoughTime, timeElapsed }
+        };
+      }
+      
+      // Decode products only when legitimately unlocked
+      function getProducts() {
+        if (!_unlocked || !_validationToken) {
+          return [];
+        }
+        try {
+          return JSON.parse(atob(_pd));
+        } catch {
+          return [];
+        }
+      }
+      
+      function renderProducts() {
+        if (!_unlocked) {
+          console.warn('Access denied: Form not completed');
+          return;
+        }
+        
+        const products = getProducts();
+        const grid = document.getElementById('productsGrid');
+        if (!grid || products.length === 0) return;
+        
+        grid.innerHTML = products.map(p => `
+          <div class="product-card">
+            <div class="product-img"></div>
+            <div class="product-info">
+              <div class="product-name">${p.name}</div>
+              <div class="product-price">${p.price}</div>
+            </div>
           </div>
-        </div>
-      `).join('');
-    }
-
-    function toggleCustomInput(select) {
-      const customInput = document.getElementById('customVisitor');
-      if (select.value === 'other' || select.value === '') {
-        customInput.focus();
+        `).join('');
       }
-    }
-
-    async function submitPreferences(e) {
-      e.preventDefault();
-      const visitorType = document.getElementById('visitorType').value;
-      const customVisitor = document.getElementById('customVisitor').value.trim();
-      const lookingFor = document.getElementById('lookingFor').value.trim();
-      const button = document.getElementById('submitBtn');
-      const status = document.getElementById('status');
-
-      // Use custom input if provided, otherwise use select value
-      const visitor = customVisitor || visitorType;
       
-      if (!visitor) { showStatus('Please tell us who you are', 'error'); return; }
-      if (!lookingFor) { showStatus('Please describe how we can help you', 'error'); return; }
-      
-      // Check for at least 10 words
-      const wordCount = lookingFor.split(/\s+/).filter(w => w.length > 0).length;
-      if (wordCount < 10) { 
-        showStatus('Please be more specific so we can better assist you — describe exactly what you need to do, possibly with steps.', 'error'); 
-        return; 
+      function showStatus(message, type) {
+        const status = document.getElementById('status');
+        if (status) {
+          status.textContent = message;
+          status.className = 'status ' + type;
+        }
       }
-
-      // Render actual products now that form is filled
-      renderProducts();
       
-      // Dock modal to top-right corner and show products
-      document.querySelector('.modal-overlay').style.display = 'none';
-      document.querySelector('.modal').classList.add('docked');
-      document.body.appendChild(document.querySelector('.modal'));
-      document.querySelector('.products-background').style.filter = 'none';
-      document.querySelector('.products-background').style.pointerEvents = 'auto';
+      // Expose only the necessary functions via controlled interface
+      window.toggleCustomInput = function(select) {
+        const customInput = document.getElementById('customVisitor');
+        if (customInput && (select.value === 'other' || select.value === '')) {
+          customInput.focus();
+        }
+      };
       
-      // Disable form inputs
-      document.getElementById('visitorType').disabled = true;
-      document.getElementById('customVisitor').disabled = true;
-      document.getElementById('lookingFor').disabled = true;
+      window.submitPreferences = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        
+        const visitorType = document.getElementById('visitorType');
+        const customVisitor = document.getElementById('customVisitor');
+        const lookingFor = document.getElementById('lookingFor');
+        
+        if (!visitorType || !customVisitor || !lookingFor) {
+          showStatus('Form elements not found', 'error');
+          return;
+        }
+        
+        const visitor = customVisitor.value.trim() || visitorType.value;
+        const intent = lookingFor.value.trim();
+        
+        if (!visitor) { 
+          showStatus('Please tell us who you are', 'error'); 
+          return; 
+        }
+        if (!intent) { 
+          showStatus('Please describe how we can help you', 'error'); 
+          return; 
+        }
+        
+        // Check for at least 10 words
+        const wordCount = intent.split(/\s+/).filter(w => w.length > 0).length;
+        if (wordCount < 10) { 
+          showStatus('Please be more specific so we can better assist you — describe exactly what you need to do, possibly with steps.', 'error'); 
+          return; 
+        }
+        
+        // Validate human interaction patterns
+        const validation = validateInteractions();
+        if (!validation.valid) {
+          showStatus('Please interact with the page naturally before submitting.', 'error');
+          console.log('Interaction validation failed:', validation.details);
+          return;
+        }
+        
+        // Generate validation token
+        _validationToken = btoa(JSON.stringify({
+          visitor,
+          intent: intent.substring(0, 50),
+          timestamp: Date.now(),
+          interactions: _interactions
+        }));
+        
+        // Mark as legitimately unlocked
+        _unlocked = true;
+        
+        // Stop the observer from blocking changes
+        observer.disconnect();
+        
+        // Render actual products
+        renderProducts();
+        
+        // Dock modal to top-right corner and show products
+        const overlay = document.querySelector('.modal-overlay');
+        const modal = document.querySelector('.modal');
+        const bg = document.querySelector('.products-background');
+        
+        if (overlay) overlay.style.display = 'none';
+        if (modal) {
+          modal.classList.add('docked');
+          document.body.appendChild(modal);
+        }
+        if (bg) {
+          bg.style.filter = 'none';
+          bg.style.pointerEvents = 'auto';
+        }
+        
+        // Disable form inputs
+        visitorType.disabled = true;
+        customVisitor.disabled = true;
+        lookingFor.disabled = true;
+        
+        // Log the data
+        console.log('Validated submission:', { visitor, intent, token: _validationToken.substring(0, 20) + '...' });
+      };
       
-      // Log the data
-      console.log('Visitor:', visitor, 'Intent:', lookingFor);
-    }
-
-    function showStatus(message, type) {
-      const status = document.getElementById('status');
-      status.textContent = message;
-      status.className = 'status ' + type;
-    }
+      // Override common bypass methods
+      const originalQuerySelector = document.querySelector.bind(document);
+      const originalGetElementById = document.getElementById.bind(document);
+      
+      // Trap for detecting programmatic access attempts
+      let accessAttempts = 0;
+      const trapHandler = {
+        get(target, prop) {
+          if (!_unlocked && (prop === 'innerHTML' || prop === 'textContent')) {
+            const el = target;
+            if (el.closest && el.closest('.products-grid')) {
+              accessAttempts++;
+              if (accessAttempts > 3) {
+                console.warn('Suspicious access pattern detected');
+              }
+            }
+          }
+          return Reflect.get(target, prop);
+        }
+      };
+      
+      // Capture initial state after DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', captureOriginalState);
+      } else {
+        captureOriginalState();
+      }
+      
+      // Prevent common console-based bypasses
+      Object.defineProperty(window, 'PRODUCTS_DATA', {
+        get: function() {
+          console.warn('Access denied');
+          return [];
+        },
+        set: function() {
+          console.warn('Cannot set protected data');
+        }
+      });
+      
+      // Log initialization
+      console.log('%cTechShop Security Active', 'color: #e5a830; font-weight: bold;');
+      
+    })();
   </script>
 </body>
 </html>
