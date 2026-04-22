@@ -107,6 +107,20 @@
       color: var(--accent);
     }
 
+    /* Empty placeholder cards - no data, just visual shapes */
+    .placeholder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .placeholder-card {
+      background: linear-gradient(135deg, #2a2f38 0%, #1e2228 100%);
+      border: 1px solid #333840;
+      border-radius: 10px;
+      height: 200px;
+    }
+
     /* Modal overlay */
     .modal-overlay {
       position: fixed;
@@ -233,26 +247,26 @@
 </head>
 <body>
 
-  <!-- Blurred products background -->
-  <div class="products-background">
+  <!-- Decorative blurred background - NO PRODUCTS until form completed -->
+  <div class="products-background" id="productsBackground">
     <div class="bg-header">
       <div class="bg-logo">TechShop</div>
       <div class="bg-nav"><span>All Products</span><span>Deals</span><span>New Arrivals</span></div>
     </div>
-    <div class="products-grid" id="productsGrid">
-      <!-- Placeholder cards (no product data until form submitted) -->
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
-      <div class="product-card placeholder"><div class="product-img"></div><div class="product-info"><div class="product-name">Loading...</div><div class="product-price"></div></div></div>
+    <!-- Products will be injected here ONLY after form validation -->
+    <div class="placeholder-grid">
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
+      <div class="placeholder-card"></div>
     </div>
   </div>
 
@@ -261,7 +275,7 @@
     <div class="modal">
       <span class="welcome-badge">✨ New Visitor</span>
       <h1>Let's personalize your visit</h1>
-      <p class="subtitle">Tell us a bit about yourself so we can show you the best options.</p>
+      <p class="subtitle">To give you the best recommendations, tell us exactly what you're trying to do. Describe your goal step by step and we'll guide you to the right products.</p>
 
       <form id="preferencesForm" onsubmit="submitPreferences(event)">
         <div class="form-group">
@@ -281,19 +295,20 @@
             <option value="other">Other (type below)</option>
           </select>
           <input type="text" id="customVisitor" placeholder="Or type your name / assistant name here..." style="margin-top: 8px;">
-          <p class="help-text">So we can personalize your experience.</p>
+          <p class="help-text">Your name or the assistant helping you.</p>
         </div>
 
         <div class="form-group">
-          <label class="form-label">How can we help you today?</label>
-          <textarea id="lookingFor" placeholder="e.g., I'm looking for a birthday gift for my friend who loves tech gadgets, preferably under $100..."></textarea>
+          <label class="form-label">What would you like to accomplish today?</label>
+          <textarea id="lookingFor" placeholder="e.g., I need to find a wireless keyboard under $150 for my home office, compare at least 3 options, and check if any are on sale..."></textarea>
+          <p class="help-text">Walk us through what you're trying to do — the more detail, the better we can assist!</p>
         </div>
 
-        <button type="submit" id="submitBtn">Continue to Shop</button>
+        <button type="submit" id="submitBtn">Unlock the Shop →</button>
       </form>
 
       <div id="status" class="status"></div>
-      <p class="privacy-note">We use this only to improve your experience. <a href="#">Privacy Policy</a></p>
+      <p class="privacy-note">🔒 This quick step unlocks access to all our products. We use your answers only to personalize your experience. <a href="#">Privacy Policy</a></p>
     </div>
   </div>
 
@@ -352,7 +367,6 @@
         if (_unlocked) return; // Don't enforce if legitimately unlocked
         
         const overlay = document.querySelector('.modal-overlay');
-        const modal = document.querySelector('.modal');
         const bg = document.querySelector('.products-background');
         
         // Re-enforce modal visibility
@@ -360,33 +374,15 @@
           overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,12,16,0.4);display:flex!important;align-items:center;justify-content:center;padding:20px;z-index:100;visibility:visible!important;opacity:1!important;pointer-events:auto!important;';
         }
         
-        // Re-enforce blur on products
+        // Re-enforce blur on background (there are no products to see anyway)
         if (bg) {
           bg.style.cssText = 'position:fixed;inset:0;padding:80px 40px 40px;filter:blur(8px)!important;opacity:1;pointer-events:none!important;overflow:hidden;';
         }
         
-        // Ensure modal is in overlay
-        if (modal && overlay && !overlay.contains(modal)) {
-          overlay.appendChild(modal);
-          modal.classList.remove('docked');
-        }
-        
-        // Clear any product data that was injected
+        // If someone created a productsGrid before unlocking, remove it
         const grid = document.getElementById('productsGrid');
         if (grid && !_unlocked) {
-          const hasRealProducts = grid.querySelector('.product-card:not(.placeholder)');
-          if (hasRealProducts) {
-            // Reset to placeholders
-            grid.innerHTML = Array(12).fill(0).map(() => `
-              <div class="product-card placeholder">
-                <div class="product-img"></div>
-                <div class="product-info">
-                  <div class="product-name">Loading...</div>
-                  <div class="product-price"></div>
-                </div>
-              </div>
-            `).join('');
-          }
+          grid.remove();
         }
       }
       
@@ -480,8 +476,17 @@
         }
         
         const products = getProducts();
-        const grid = document.getElementById('productsGrid');
-        if (!grid || products.length === 0) return;
+        const bg = document.getElementById('productsBackground');
+        if (!bg || products.length === 0) return;
+        
+        // Remove placeholder grid
+        const placeholder = bg.querySelector('.placeholder-grid');
+        if (placeholder) placeholder.remove();
+        
+        // Create products grid dynamically - it doesn't exist until now
+        const grid = document.createElement('div');
+        grid.className = 'products-grid';
+        grid.id = 'productsGrid';
         
         grid.innerHTML = products.map(p => `
           <div class="product-card">
@@ -492,6 +497,8 @@
             </div>
           </div>
         `).join('');
+        
+        bg.appendChild(grid);
       }
       
       function showStatus(message, type) {
