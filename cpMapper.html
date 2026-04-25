@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Actions Event Mapper</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { margin: 0; padding: 20px; background: #1a1a2e; color: #eee; }
+        h1 { color: #00d4ff; margin-bottom: 5px; }
+        .subtitle { color: #888; margin-bottom: 20px; }
+        
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        .form-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #0f3460;
+        }
+        
+        .form-section h2 { color: #e94560; margin-top: 0; font-size: 18px; }
+        
+        .form-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 8px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00d4ff;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        input, select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #1a1a2e;
+            border-radius: 6px;
+            background: #16213e;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #00d4ff;
+            outline: none;
+        }
+        
+        button {
+            background: #e94560;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover { background: #ff6b6b; }
+        
+        .checkbox-group, .radio-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-group label, .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #fff;
+            text-transform: none;
+        }
+        
+        .checkbox-group input, .radio-group input {
+            width: auto;
+        }
+        
+        /* Event Log Styles */
+        .log-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #0f3460;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .log-section h2 { color: #e94560; margin-top: 0; }
+        
+        .event-log {
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .event-entry {
+            padding: 6px 10px;
+            margin: 3px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        
+        .event-trusted {
+            background: rgba(0, 255, 0, 0.1);
+            border-color: #00ff00;
+        }
+        
+        .event-untrusted {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: #ff0000;
+        }
+        
+        .event-type { color: #00d4ff; font-weight: bold; }
+        .event-target { color: #ffd700; }
+        .event-trusted-badge { color: #00ff00; }
+        .event-untrusted-badge { color: #ff0000; font-weight: bold; }
+        
+        /* Matrix Styles */
+        .matrix-section {
+            grid-column: 1 / -1;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #0f3460;
+        }
+        
+        .matrix-section h2 { color: #e94560; margin-top: 0; }
+        
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        
+        .matrix-table th, .matrix-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #0f3460;
+        }
+        
+        .matrix-table th {
+            background: #0f3460;
+            color: #00d4ff;
+        }
+        
+        .matrix-table td:first-child {
+            text-align: left;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .cell-trusted { background: rgba(0, 255, 0, 0.2); color: #00ff00; }
+        .cell-untrusted { background: rgba(255, 0, 0, 0.3); color: #ff0000; font-weight: bold; }
+        .cell-none { background: #1a1a2e; color: #555; }
+        
+        /* Controls */
+        .controls {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .controls button {
+            width: auto;
+            padding: 10px 20px;
+        }
+        
+        .btn-clear { background: #555; }
+        .btn-export { background: #00d4ff; color: #000; }
+        
+        /* Summary */
+        .summary {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .summary-card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .summary-card h3 { margin: 0; font-size: 36px; }
+        .summary-card p { margin: 5px 0 0; color: #888; }
+        
+        .summary-trusted h3 { color: #00ff00; }
+        .summary-untrusted h3 { color: #ff0000; }
+        .summary-ratio h3 { color: #ffd700; }
+        .summary-elements h3 { color: #00d4ff; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Copilot Actions Event Mapper</h1>
+    <p class="subtitle">Interact with form elements using Copilot Actions to map trusted vs untrusted events</p>
+    
+    <div class="controls">
+        <button onclick="clearLog()" class="btn-clear">🗑️ Clear Log</button>
+        <button onclick="exportMatrix()" class="btn-export">📊 Export Matrix</button>
+        <button onclick="resetMatrix()" class="btn-clear">🔄 Reset Matrix</button>
+        <button onclick="copyReport()" class="btn-export">📋 Copy Report</button>
+    </div>
+    
+    <div class="summary">
+        <div class="summary-card summary-trusted">
+            <h3 id="trustedCount">0</h3>
+            <p>Trusted Events</p>
+        </div>
+        <div class="summary-card summary-untrusted">
+            <h3 id="untrustedCount">0</h3>
+            <p>Untrusted Events</p>
+        </div>
+        <div class="summary-card summary-ratio">
+            <h3 id="untrustedRatio">0%</h3>
+            <p>Untrusted Ratio</p>
+        </div>
+        <div class="summary-card summary-elements">
+            <h3 id="elementsInteracted">0</h3>
+            <p>Elements Interacted</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Form Section -->
+        <div class="form-section">
+            <h2>📝 Form Controls</h2>
+            
+            <div class="form-group">
+                <label>Text Input</label>
+                <input type="text" id="input-text" placeholder="Enter text..." data-element="text-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Email Input</label>
+                <input type="email" id="input-email" placeholder="email@example.com" data-element="email-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Password Input</label>
+                <input type="password" id="input-password" placeholder="Password..." data-element="password-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Number Input</label>
+                <input type="number" id="input-number" placeholder="123" data-element="number-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Phone Input</label>
+                <input type="tel" id="input-tel" placeholder="+1-555-1234" data-element="tel-input">
+            </div>
+            
+            <div class="form-group">
+                <label>URL Input</label>
+                <input type="url" id="input-url" placeholder="https://..." data-element="url-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Search Input</label>
+                <input type="search" id="input-search" placeholder="Search..." data-element="search-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Date Input</label>
+                <input type="date" id="input-date" data-element="date-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Time Input</label>
+                <input type="time" id="input-time" data-element="time-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Textarea</label>
+                <textarea id="input-textarea" rows="3" placeholder="Multi-line text..." data-element="textarea"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Select Dropdown</label>
+                <select id="input-select" data-element="select">
+                    <option value="">-- Select an option --</option>
+                    <option value="opt1">Option 1</option>
+                    <option value="opt2">Option 2</option>
+                    <option value="opt3">Option 3</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Checkboxes</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="cb1" data-element="checkbox"> Option A</label>
+                    <label><input type="checkbox" id="cb2" data-element="checkbox"> Option B</label>
+                    <label><input type="checkbox" id="cb3" data-element="checkbox"> Option C</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Radio Buttons</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="radio" id="r1" data-element="radio"> Choice 1</label>
+                    <label><input type="radio" name="radio" id="r2" data-element="radio"> Choice 2</label>
+                    <label><input type="radio" name="radio" id="r3" data-element="radio"> Choice 3</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Range Slider</label>
+                <input type="range" id="input-range" min="0" max="100" value="50" data-element="range">
+            </div>
+            
+            <div class="form-group">
+                <label>Color Picker</label>
+                <input type="color" id="input-color" value="#00d4ff" data-element="color">
+            </div>
+            
+            <div class="form-group">
+                <label>File Input</label>
+                <input type="file" id="input-file" data-element="file">
+            </div>
+            
+            <div class="form-group">
+                <label>Buttons</label>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="btn-button" data-element="button">Button</button>
+                    <button type="submit" id="btn-submit" data-element="submit">Submit</button>
+                    <button type="reset" id="btn-reset" data-element="reset">Reset</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Event Log -->
+        <div class="log-section">
+            <h2>📜 Event Log <span id="logCount">(0 events)</span></h2>
+            <div id="eventLog" class="event-log"></div>
+        </div>
+        
+        <!-- Event Matrix -->
+        <div class="matrix-section">
+            <h2>📊 Trust Matrix (Element × Event Type)</h2>
+            <table class="matrix-table" id="matrixTable">
+                <thead>
+                    <tr>
+                        <th>Element</th>
+                        <th>click</th>
+                        <th>dblclick</th>
+                        <th>mousedown</th>
+                        <th>mouseup</th>
+                        <th>focus</th>
+                        <th>blur</th>
+                        <th>input</th>
+                        <th>change</th>
+                        <th>keydown</th>
+                        <th>keyup</th>
+                        <th>select</th>
+                        <th>copy</th>
+                        <th>paste</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================================
+        // COPILOT ACTIONS EVENT MAPPER v1.0
+        // Purpose: Map all isTrusted values for each event/element combo
+        // ============================================================
+        
+        const EVENT_TYPES = [
+            'click', 'dblclick', 'mousedown', 'mouseup',
+            'focus', 'blur', 'input', 'change',
+            'keydown', 'keyup', 'select', 'copy', 'paste'
+        ];
+        
+        const ELEMENTS = [
+            'text-input', 'email-input', 'password-input', 'number-input',
+            'tel-input', 'url-input', 'search-input', 'date-input', 'time-input',
+            'textarea', 'select', 'checkbox', 'radio', 'range', 'color', 'file',
+            'button', 'submit', 'reset'
+        ];
+        
+        // State
+        const eventLog = [];
+        const matrix = {};  // matrix[element][eventType] = { trusted: n, untrusted: n }
+        const interactedElements = new Set();
+        let trustedCount = 0;
+        let untrustedCount = 0;
+        
+        // Initialize matrix
+        ELEMENTS.forEach(el => {
+            matrix[el] = {};
+            EVENT_TYPES.forEach(evt => {
+                matrix[el][evt] = { trusted: 0, untrusted: 0 };
+            });
+        });
+        
+        // Build matrix table
+        function buildMatrixTable() {
+            const tbody = document.getElementById('matrixBody');
+            tbody.innerHTML = '';
+            
+            ELEMENTS.forEach(el => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${el}</td>`;
+                
+                EVENT_TYPES.forEach(evt => {
+                    const cell = matrix[el][evt];
+                    let cellClass = 'cell-none';
+                    let cellText = '-';
+                    
+                    if (cell.trusted > 0 && cell.untrusted > 0) {
+                        cellClass = 'cell-untrusted';
+                        cellText = `T:${cell.trusted} U:${cell.untrusted}`;
+                    } else if (cell.untrusted > 0) {
+                        cellClass = 'cell-untrusted';
+                        cellText = `U:${cell.untrusted}`;
+                    } else if (cell.trusted > 0) {
+                        cellClass = 'cell-trusted';
+                        cellText = `T:${cell.trusted}`;
+                    }
+                    
+                    row.innerHTML += `<td class="${cellClass}">${cellText}</td>`;
+                });
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Log event
+        function logEvent(e) {
+            const elementType = e.target.dataset?.element || e.target.tagName.toLowerCase();
+            const isTrusted = e.isTrusted;
+            const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
+            
+            // Update counts
+            if (isTrusted) {
+                trustedCount++;
+            } else {
+                untrustedCount++;
+            }
+            
+            // Update matrix
+            if (matrix[elementType] && matrix[elementType][e.type]) {
+                if (isTrusted) {
+                    matrix[elementType][e.type].trusted++;
+                } else {
+                    matrix[elementType][e.type].untrusted++;
+                }
+            }
+            
+            // Track interacted elements
+            interactedElements.add(elementType);
+            
+            // Create log entry
+            const entry = {
+                timestamp,
+                type: e.type,
+                element: elementType,
+                target: `${e.target.tagName}#${e.target.id || 'anonymous'}`,
+                isTrusted,
+                value: e.target.value?.substring(0, 20) || '',
+                key: e.key || ''
+            };
+            
+            eventLog.push(entry);
+            
+            // Update UI
+            updateLogUI(entry);
+            updateSummary();
+            buildMatrixTable();
+        }
+        
+        function updateLogUI(entry) {
+            const logEl = document.getElementById('eventLog');
+            const entryClass = entry.isTrusted ? 'event-trusted' : 'event-untrusted';
+            const badgeClass = entry.isTrusted ? 'event-trusted-badge' : 'event-untrusted-badge';
+            const badge = entry.isTrusted ? '✓ TRUSTED' : '✗ UNTRUSTED';
+            
+            const html = `
+                <div class="event-entry ${entryClass}">
+                    <span class="event-type">${entry.type}</span> on 
+                    <span class="event-target">${entry.target}</span>
+                    <span class="${badgeClass}">[${badge}]</span>
+                    ${entry.value ? `<br>Value: "${entry.value}"` : ''}
+                    ${entry.key ? `<br>Key: "${entry.key}"` : ''}
+                    <span style="float:right; color:#666">${entry.timestamp}</span>
+                </div>
+            `;
+            
+            logEl.insertAdjacentHTML('afterbegin', html);
+            document.getElementById('logCount').textContent = `(${eventLog.length} events)`;
+        }
+        
+        function updateSummary() {
+            document.getElementById('trustedCount').textContent = trustedCount;
+            document.getElementById('untrustedCount').textContent = untrustedCount;
+            
+            const total = trustedCount + untrustedCount;
+            const ratio = total > 0 ? ((untrustedCount / total) * 100).toFixed(1) : 0;
+            document.getElementById('untrustedRatio').textContent = ratio + '%';
+            
+            document.getElementById('elementsInteracted').textContent = interactedElements.size;
+        }
+        
+        // Attach event listeners to all form elements
+        function attachListeners() {
+            const formElements = document.querySelectorAll('input, select, textarea, button');
+            
+            formElements.forEach(el => {
+                EVENT_TYPES.forEach(eventType => {
+                    el.addEventListener(eventType, logEvent, true);
+                });
+            });
+        }
+        
+        // Control functions
+        function clearLog() {
+            eventLog.length = 0;
+            document.getElementById('eventLog').innerHTML = '';
+            document.getElementById('logCount').textContent = '(0 events)';
+        }
+        
+        function resetMatrix() {
+            ELEMENTS.forEach(el => {
+                EVENT_TYPES.forEach(evt => {
+                    matrix[el][evt] = { trusted: 0, untrusted: 0 };
+                });
+            });
+            trustedCount = 0;
+            untrustedCount = 0;
+            interactedElements.clear();
+            eventLog.length = 0;
+            clearLog();
+            updateSummary();
+            buildMatrixTable();
+        }
+        
+        function exportMatrix() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                summary: {
+                    trustedCount,
+                    untrustedCount,
+                    untrustedRatio: ((untrustedCount / (trustedCount + untrustedCount)) * 100).toFixed(2) + '%',
+                    elementsInteracted: interactedElements.size
+                },
+                matrix,
+                untrustedEvents: findUntrustedEvents(),
+                eventLog: eventLog.slice(-100)
+            };
+            
+            console.log('📊 COPILOT EVENT MATRIX EXPORT:', report);
+            console.table(findUntrustedEvents());
+            
+            // Download as JSON
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `copilot-event-matrix-${Date.now()}.json`;
+            a.click();
+        }
+        
+        function findUntrustedEvents() {
+            const untrusted = [];
+            ELEMENTS.forEach(el => {
+                EVENT_TYPES.forEach(evt => {
+                    if (matrix[el][evt].untrusted > 0) {
+                        untrusted.push({
+                            element: el,
+                            event: evt,
+                            untrustedCount: matrix[el][evt].untrusted,
+                            trustedCount: matrix[el][evt].trusted
+                        });
+                    }
+                });
+            });
+            return untrusted;
+        }
+        
+        function copyReport() {
+            const untrusted = findUntrustedEvents();
+            let report = `# Copilot Actions Event Trust Report\n\n`;
+            report += `**Date:** ${new Date().toISOString()}\n\n`;
+            report += `## Summary\n`;
+            report += `- Trusted Events: ${trustedCount}\n`;
+            report += `- Untrusted Events: ${untrustedCount}\n`;
+            report += `- Untrusted Ratio: ${((untrustedCount / (trustedCount + untrustedCount)) * 100).toFixed(2)}%\n\n`;
+            
+            if (untrusted.length > 0) {
+                report += `## ⚠️ Untrusted Events Detected\n\n`;
+                report += `| Element | Event | Untrusted | Trusted |\n`;
+                report += `|---------|-------|-----------|----------|\n`;
+                untrusted.forEach(u => {
+                    report += `| ${u.element} | ${u.event} | ${u.untrustedCount} | ${u.trustedCount} |\n`;
+                });
+                report += `\n`;
+            }
+            
+            report += `## Copilot Signature\n`;
+            report += `\`\`\`\n`;
+            report += `Untrusted events: ${JSON.stringify(untrusted, null, 2)}\n`;
+            report += `\`\`\`\n`;
+            
+            navigator.clipboard.writeText(report).then(() => {
+                alert('Report copied to clipboard!');
+            });
+        }
+        
+        // Initialize
+        buildMatrixTable();
+        attachListeners();
+        
+        console.log('%c🔬 Copilot Actions Event Mapper Loaded', 'color: #00d4ff; font-size: 16px; font-weight: bold');
+        console.log('%cUse Copilot Actions to fill this form and observe which events are UNTRUSTED', 'color: #ffd700');
+    </script>
+</body>
+</html>
