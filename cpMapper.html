@@ -193,7 +193,7 @@ const state = {
     focusEvents: [], timingIntervals: [],
     // Typing
     keyEvents: [], keyDownTimes: new Map(), inputEvents: [], lastKeyDownTime: 0, lastKeyUpTime: 0,
-    totalCharsTyped: 0, inputsWithoutKeydown: 0, totalInputEvents: 0, lastPasteTime: 0,
+    totalCharsTyped: 0, totalCharsPasted: 0, inputsWithoutKeydown: 0, totalInputEvents: 0, lastPasteTime: 0,
     // v1.1 Experimental
     dwellTimes: [], clickDurations: [], pendingMousedowns: new Map(),
     mouseStrokes: [], currentStroke: null, lastStrokeTime: 0, strokeTimeout: null,
@@ -400,18 +400,33 @@ function onInput(e) {
     state.totalInputEvents++;
     
     const recentKeydown = state.keyEvents.filter(k => k.type === 'keydown' && t - k.t < 100).length > 0;
-    const isPaste = t - state.lastPasteTime < 100;
+    
+    // Detect paste via inputType (most reliable) or timestamp fallback
+    const isPasteByType = e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop';
+    const isPasteByTime = t - state.lastPasteTime < 200;
+    const isPaste = isPasteByType || isPasteByTime;
+    
+    // Detect autofill
+    const isAutofill = e.inputType === 'insertReplacementText';
     
     const dataLength = e.data?.length || (e.inputType === 'insertText' ? 1 : 0);
-    state.totalCharsTyped += dataLength;
     
-    if (!recentKeydown && !isPaste && dataLength > 0) {
+    // CRITICAL: Only count as typed if it's NOT paste and NOT autofill
+    if (isPaste) {
+        state.totalCharsPasted += dataLength;
+        state.inputEvents.push({ type: 'pasteInsertion', t, dataLength, inputType: e.inputType, target: e.target.tagName });
+    } else if (isAutofill) {
+        // Autofill is similar to paste - don't count as typed
+        state.inputEvents.push({ type: 'autofillInsertion', t, dataLength, inputType: e.inputType, target: e.target.tagName });
+    } else if (!recentKeydown && dataLength > 0) {
+        // No paste, no autofill, no keydown = INJECTION (AI agent)
+        state.totalCharsTyped += dataLength;  // Count injection as "typed" for detection
         state.inputsWithoutKeydown++;
-        state.inputEvents.push({ type: 'suspiciousInsertion', t, dataLength, target: e.target.tagName });
-    } else if (isPaste) {
-        state.inputEvents.push({ type: 'pasteInsertion', t, dataLength, target: e.target.tagName });
+        state.inputEvents.push({ type: 'suspiciousInsertion', t, dataLength, inputType: e.inputType, target: e.target.tagName });
     } else {
-        state.inputEvents.push({ type: 'normalInput', t, dataLength, target: e.target.tagName });
+        // Normal typing with keydown
+        state.totalCharsTyped += dataLength;
+        state.inputEvents.push({ type: 'normalInput', t, dataLength, inputType: e.inputType, target: e.target.tagName });
     }
     
     while (state.inputEvents.length > CONFIG.buffers.inputEvents) state.inputEvents.shift();
@@ -423,10 +438,13 @@ function onChange(e) {
 }
 
 function onPaste(e) {
-    state.lastPasteTime = now();
+    const t = now();
+    state.lastPasteTime = t;
     let textLength = 0;
     try { textLength = e.clipboardData?.getData('text/plain')?.length || 0; } catch(err) {}
-    state.clipboardEvents.push({ t: now(), type: 'paste', target: e.target.tagName, isTrusted: e.isTrusted, textLength });
+    // Pre-record expected paste length so we can match it in onInput
+    state.expectedPasteLength = textLength;
+    state.clipboardEvents.push({ t, type: 'paste', target: e.target.tagName, isTrusted: e.isTrusted, textLength });
     while (state.clipboardEvents.length > 30) state.clipboardEvents.shift();
 }
 
@@ -522,18 +540,30 @@ function computeTypingSpeed() {
 
 function computeEffectiveTyping() {
     const keydowns = state.keyEvents.filter(k => k.type === 'keydown' && !k.repeat).length;
-    const charsTyped = state.totalCharsTyped;
+    const charsTyped = state.totalCharsTyped;  // Excludes paste (only typed + injected)
+    const charsPasted = state.totalCharsPasted;
+    const suspiciousInsertions = state.inputEvents.filter(i => i.type === 'suspiciousInsertion').length;
     const charsPerKeydown = keydowns > 0 ? charsTyped / keydowns : charsTyped > 0 ? Infinity : 0;
-    const inputs = state.inputEvents.filter(i => i.type !== 'suspiciousInsertion' && i.type !== 'pasteInsertion');
-    const multiCharInputs = inputs.filter(i => i.dataLength > 1).length;
-    const multiCharRatio = inputs.length > 0 ? multiCharInputs / inputs.length : 0;
+    
+    // Only consider non-paste inputs for multi-char ratio
+    const normalInputs = state.inputEvents.filter(i => i.type === 'normalInput' || i.type === 'suspiciousInsertion');
+    const multiCharInputs = normalInputs.filter(i => i.dataLength > 1).length;
+    const multiCharRatio = normalInputs.length > 0 ? multiCharInputs / normalInputs.length : 0;
     
     let verdict = 'NORMAL';
     if (charsPerKeydown === Infinity || charsPerKeydown > 10) verdict = 'INJECTION_DETECTED';
     else if (charsPerKeydown > 3) verdict = 'SUSPICIOUS_RATIO';
     else if (multiCharRatio > 0.3) verdict = 'MULTI_CHAR_INJECTION';
     
-    return { charsTyped, keydowns, charsPerKeydown: charsPerKeydown === Infinity ? '∞' : charsPerKeydown.toFixed(1), multiCharRatio: (multiCharRatio * 100).toFixed(0) + '%', verdict };
+    return { 
+        charsTyped,     // typed + injected (NOT paste)
+        charsPasted,    // paste only
+        keydowns, 
+        suspiciousInsertions,
+        charsPerKeydown: charsPerKeydown === Infinity ? '∞' : charsPerKeydown.toFixed(1), 
+        multiCharRatio: (multiCharRatio * 100).toFixed(0) + '%', 
+        verdict 
+    };
 }
 
 function computeTypingUniformity() {
@@ -740,12 +770,12 @@ function updateUI() {
     const keyHold = computeAvgKeyHold();
     
     document.getElementById('typingMetrics').innerHTML = `
-        <div class="metric-row"><span class="metric-name">Chars Typed</span><span class="metric-value">${state.totalCharsTyped}</span></div>
+        <div class="metric-row"><span class="metric-name">Chars (typed/inj)</span><span class="metric-value ${effectiveTyping.charsTyped > 0 && effectiveTyping.keydowns === 0 ? 'bad' : ''}">${effectiveTyping.charsTyped}</span></div>
+        <div class="metric-row"><span class="metric-name">Chars (pasted)</span><span class="metric-value" style="color:#8b949e">${effectiveTyping.charsPasted}</span></div>
         <div class="metric-row"><span class="metric-name">Keydowns</span><span class="metric-value">${effectiveTyping.keydowns}</span></div>
         <div class="metric-row"><span class="metric-name">Chars/Key</span><span class="metric-value ${effectiveTyping.verdict === 'INJECTION_DETECTED' ? 'bad' : effectiveTyping.verdict === 'SUSPICIOUS_RATIO' ? 'warn' : 'good'}">${effectiveTyping.charsPerKeydown}</span></div>
-        <div class="metric-row"><span class="metric-name">Typing CPS</span><span class="metric-value ${typingSpeed.verdict === 'ROBOTIC' ? 'bad' : typingSpeed.verdict === 'SUSPICIOUS' ? 'warn' : 'good'}">${typingSpeed.cps.toFixed(1)}</span></div>
-        <div class="metric-row"><span class="metric-name">Key Hold</span><span class="metric-value">${keyHold.avg}ms</span></div>
-        <div class="metric-row"><span class="metric-name">Typing Verdict</span><span class="metric-value ${effectiveTyping.verdict.includes('INJECTION') ? 'bad' : 'good'}">${effectiveTyping.verdict}</span></div>
+        <div class="metric-row"><span class="metric-name">Injections</span><span class="metric-value ${effectiveTyping.suspiciousInsertions > 0 ? 'bad' : 'good'}">${effectiveTyping.suspiciousInsertions}</span></div>
+        <div class="metric-row"><span class="metric-name">Verdict</span><span class="metric-value ${effectiveTyping.verdict.includes('INJECTION') ? 'bad' : 'good'}">${effectiveTyping.verdict}</span></div>
     `;
     
     // Experimental Metrics
@@ -811,7 +841,7 @@ function resetAll() {
     state.focusEvents = []; state.timingIntervals = []; state.keyEvents = [];
     state.keyDownTimes.clear(); state.inputEvents = [];
     state.lastPointerTime = 0; state.lastClickTime = 0; state.lastKeyDownTime = 0;
-    state.totalCharsTyped = 0; state.inputsWithoutKeydown = 0; state.totalInputEvents = 0;
+    state.totalCharsTyped = 0; state.totalCharsPasted = 0; state.inputsWithoutKeydown = 0; state.totalInputEvents = 0;
     state.dwellTimes = []; state.clickDurations = []; state.pendingMousedowns.clear();
     state.mouseStrokes = []; state.currentStroke = null;
     state.untrustedEvents = {}; state.totalUntrusted = 0; state.untrustedHistory = [];
@@ -833,22 +863,146 @@ function clearEventLog() { eventLog.length = 0; updateEventLog(); }
 function toggleMouseTrail() { showMouseTrail = !showMouseTrail; if (!showMouseTrail) ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
 function exportFullReport() {
+    const effectiveTyping = computeEffectiveTyping();
+    const typingSpeed = computeTypingSpeed();
+    const keyHold = computeAvgKeyHold();
+    const strokeMetrics = computeStrokeMetrics();
+    const dwellMetrics = computeDwellMetrics();
+    const clickDurMetrics = computeClickDurationMetrics();
+    
     const report = {
-        timestamp: new Date().toISOString(),
-        sessionDuration: now() - state.startTime,
-        summary: { trustedCount: state.trustedCount, untrustedCount: state.untrustedCount, detectionScore: computeDetectionScore(), verdict: generateSignature().verdict },
-        behavioral: { noMovementClickRatio: computeNoMovementRatio(), centerClickRatio: computeCenterClickRatio(), focusJumpRatio: computeFocusJumpRatio(), inputInjectionRatio: computeInputInjectionRatio(), avgPathDeviation: computeAvgPathDeviation() },
-        typing: computeEffectiveTyping(),
-        mouse: { strokes: computeStrokeMetrics(), dwell: computeDwellMetrics(), clickDuration: computeClickDurationMetrics() },
-        trustMatrix: state.trustMatrix,
-        untrustedEvents: state.untrustedEvents,
-        signature: generateSignature(),
-        eventLog: eventLog.slice(-100)
+        _version: '2.1',
+        _exportedAt: new Date().toISOString(),
+        
+        // Session Overview
+        session: {
+            durationMs: Math.round(now() - state.startTime),
+            durationSec: Math.round((now() - state.startTime) / 1000),
+            totalEvents: state.eventCount,
+            trustedEvents: state.trustedCount,
+            untrustedEvents: state.untrustedCount,
+            untrustedRatio: state.trustedCount > 0 ? (state.untrustedCount / (state.trustedCount + state.untrustedCount) * 100).toFixed(1) + '%' : '0%'
+        },
+        
+        // Detection Results
+        detection: {
+            score: computeDetectionScore(),
+            verdict: generateSignature().verdict,
+            confidence: computeDetectionScore() >= 70 ? 'HIGH' : computeDetectionScore() >= 40 ? 'MEDIUM' : 'LOW'
+        },
+        
+        // Detailed Behavioral Fingerprint
+        fingerprint: {
+            // Mouse Behavior
+            mouse: {
+                noMovementClickRatio: parseFloat(computeNoMovementRatio().toFixed(3)),
+                centerClickRatio: parseFloat(computeCenterClickRatio().toFixed(3)),
+                avgPathDeviationPx: parseFloat(computeAvgPathDeviation().toFixed(2)),
+                focusJumpRatio: parseFloat(computeFocusJumpRatio().toFixed(3)),
+                totalClicks: state.clicks.length,
+                strokes: {
+                    count: strokeMetrics.count,
+                    straightRatio: strokeMetrics.straightRatio,
+                    avgVelocityPxMs: parseFloat(strokeMetrics.avgVelocity),
+                    verdict: strokeMetrics.verdict
+                },
+                dwell: {
+                    avgMs: parseFloat(dwellMetrics.avg),
+                    shortDwellRatio: dwellMetrics.shortRatio,
+                    verdict: dwellMetrics.verdict
+                },
+                clickDuration: {
+                    avgMs: parseFloat(clickDurMetrics.avg),
+                    zeroDurationRatio: clickDurMetrics.zeroRatio,
+                    verdict: clickDurMetrics.verdict
+                }
+            },
+            
+            // Typing Behavior
+            typing: {
+                charsTypedOrInjected: effectiveTyping.charsTyped,
+                charsPasted: effectiveTyping.charsPasted,
+                keydowns: effectiveTyping.keydowns,
+                charsPerKeydown: effectiveTyping.charsPerKeydown,
+                suspiciousInsertions: effectiveTyping.suspiciousInsertions,
+                multiCharRatio: effectiveTyping.multiCharRatio,
+                typingSpeed: {
+                    cps: parseFloat(typingSpeed.cps.toFixed(1)),
+                    verdict: typingSpeed.verdict
+                },
+                keyHold: {
+                    avgMs: parseFloat(keyHold.avg),
+                    cv: keyHold.cv || 'N/A',
+                    verdict: keyHold.verdict
+                },
+                verdict: effectiveTyping.verdict
+            },
+            
+            // Injection Detection
+            injection: {
+                detected: effectiveTyping.verdict.includes('INJECTION'),
+                inputInjectionRatio: parseFloat(computeInputInjectionRatio().toFixed(3)),
+                suspiciousInsertionCount: effectiveTyping.suspiciousInsertions,
+                ghostTyping: effectiveTyping.charsPerKeydown === '∞'
+            },
+            
+            // Trust Analysis
+            trust: {
+                untrustedEventTypes: Object.keys(state.untrustedEvents),
+                untrustedByType: { ...state.untrustedEvents },
+                untrustedTotal: state.totalUntrusted,
+                untrustedSelectChange: (state.untrustedEvents['change'] || 0) > 0 && state.trustMatrix['select']?.change?.untrusted > 0,
+                matrix: state.trustMatrix
+            }
+        },
+        
+        // Agent Signature (unique identifier)
+        signature: {
+            agentType: generateSignature().verdict,
+            markers: {
+                noMovementClick: computeNoMovementRatio() > 0.9,
+                centerClickBias: computeCenterClickRatio() > 0.8,
+                focusJump: computeFocusJumpRatio() > 0.9,
+                ghostTyping: effectiveTyping.charsPerKeydown === '∞',
+                inputInjection: computeInputInjectionRatio() > 0.5,
+                untrustedSelectChange: (state.untrustedEvents['change'] || 0) > 0 && state.trustMatrix['select']?.change?.untrusted > 0,
+                zeroDurationClicks: clickDurMetrics.verdict === 'SUSPICIOUS',
+                straightStrokes: strokeMetrics.verdict === 'SUSPICIOUS',
+                shortDwells: dwellMetrics.verdict === 'SUSPICIOUS'
+            },
+            // Hash-style compact signature
+            compact: [
+                computeNoMovementRatio() > 0.9 ? 'NM' : '',
+                computeCenterClickRatio() > 0.8 ? 'CC' : '',
+                computeFocusJumpRatio() > 0.9 ? 'FJ' : '',
+                effectiveTyping.charsPerKeydown === '∞' ? 'GT' : '',
+                computeInputInjectionRatio() > 0.5 ? 'IJ' : '',
+                state.untrustedEvents['change'] ? 'UC' : '',
+                state.totalUntrusted > 5 ? 'UE' : ''
+            ].filter(Boolean).join('-') || 'HUMAN'
+        },
+        
+        // Raw Data (last N events for forensics)
+        rawData: {
+            recentClicks: state.clicks.slice(-20),
+            recentStrokes: state.mouseStrokes.slice(-10),
+            recentInputEvents: state.inputEvents.slice(-30),
+            recentKeyEvents: state.keyEvents.slice(-50),
+            clipboardEvents: state.clipboardEvents,
+            untrustedHistory: state.untrustedHistory.slice(-20),
+            eventLog: eventLog.slice(-50)
+        }
     };
-    console.log('%c📊 Full Report:', 'color: #58a6ff; font-size: 14px', report);
+    
+    console.log('%c📊 FULL BEHAVIORAL REPORT', 'color: #58a6ff; font-size: 16px; font-weight: bold');
+    console.log(report);
+    console.log('%cSignature: ' + report.signature.compact, 'color: #f85149; font-weight: bold');
+    
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `ai-agent-report-${Date.now()}.json`; a.click();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ai-agent-fingerprint-${report.signature.compact}-${Date.now()}.json`;
+    a.click();
 }
 
 function copySignature() {
