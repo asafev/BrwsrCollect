@@ -224,6 +224,72 @@
 
     .hint { font-size: 12px; color: #666; margin-top: 10px; text-align: center; }
     .hint kbd { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 2px 6px; font-family: monospace; font-size: 11px; color: #aaa; }
+
+    /* ---- Task tooltip (10-word nudge) ---- */
+    .task-tooltip {
+      position: fixed;
+      z-index: 2000;
+      background: #2a1a1a;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #f87171;
+      line-height: 1.5;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .task-tooltip.visible { opacity: 1; pointer-events: auto; }
+    .task-tooltip-icon { color: #ef4444; font-size: 14px; margin-right: 4px; }
+
+    /* ---- Personalization form (type 3) ---- */
+    .personalization-form { }
+    .pform-group { margin-bottom: 18px; }
+    .pform-label { display: block; font-size: 13px; color: #ccc; margin-bottom: 6px; }
+    .pform-select {
+      width: 100%;
+      padding: 11px 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .pform-select:focus { outline: none; border-color: #3b82f6; }
+    .pform-input {
+      width: 100%;
+      padding: 11px 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      margin-top: 8px;
+    }
+    .pform-input:focus { outline: none; border-color: #3b82f6; }
+    .pform-textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 11px 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .pform-textarea:focus { outline: none; border-color: #3b82f6; }
+    .pform-help { font-size: 11px; color: #666; margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -353,28 +419,105 @@
         // Render prompt based on type
         renderPromptModal(activeType);
 
-        // Attach mutation tracker to textarea
-        _mut.attach(document.getElementById('response'));
+        var prompt = PromptRegistry[activeType];
+
+        // For form-based prompts, attach mutation tracker to the task textarea
+        if (prompt.isFormBased) {
+          var taskTextarea = document.getElementById('p3-task');
+          if (taskTextarea) {
+            _mut.attach(taskTextarea);
+            // Live tooltip validation on the task textarea
+            taskTextarea.addEventListener('input', function() {
+              TaskTooltip.check(taskTextarea.value, taskTextarea);
+            }, { passive: true });
+          }
+        } else {
+          // JSON prompt types — attach mutation tracker to the response textarea
+          var responseEl = document.getElementById('response');
+          _mut.attach(responseEl);
+          // Live tooltip for JSON-based task field
+          responseEl.addEventListener('input', function() {
+            var taskText = _extractTaskFromJSON(responseEl.value, prompt.taskField);
+            if (taskText !== null) {
+              TaskTooltip.check(taskText, responseEl);
+            }
+          }, { passive: true });
+        }
+
+        // Prevent modal dismissal — block Escape key and clicks outside
+        modal.addEventListener('click', function(e) {
+          // Only the overlay itself; not the modal content
+          if (e.target === modal) e.stopPropagation();
+        });
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && verificationShown) e.preventDefault();
+        });
 
         modal.classList.add('active');
         document.body.style.background = '#0a0a0a';
       }, 500);
     }
 
-    function submit() {
-      var text = document.getElementById('response').value.trim();
-      if (!text) return showStatus('Enter response', 'error');
-
-      var prompt = PromptRegistry[activeType];
-      var parsed = null;
+    /**
+     * Extract a field value from potentially incomplete JSON text.
+     * Returns the string value or null if not found.
+     */
+    function _extractTaskFromJSON(text, fieldName) {
       try {
-        parsed = JSON.parse(text);
+        var obj = JSON.parse(text);
+        return obj[fieldName] !== undefined ? String(obj[fieldName]) : null;
       } catch(e) {
-        return showStatus('Invalid JSON', 'error');
+        var re = new RegExp('"' + fieldName + '"\\s*:\\s*"([^"]*)"');
+        var m = text.match(re);
+        return m ? m[1] : null;
       }
+    }
 
-      var err = prompt.validate(parsed);
-      if (err) return showStatus(err, 'error');
+    function submit() {
+      var prompt = PromptRegistry[activeType];
+      var text, parsed;
+
+      if (prompt.isFormBased) {
+        // ---- Type 3: form-based collection ----
+        parsed = prompt.collectForm();
+        text = JSON.stringify(parsed);
+
+        var err = prompt.validate(parsed);
+        if (err) return showStatus(err, 'error');
+
+        // Enforce 10-word minimum on task
+        var taskEl = document.getElementById('p3-task');
+        if (!TaskTooltip.isValid(parsed.task)) {
+          TaskTooltip.show(taskEl);
+          return showStatus('Please be more specific \u2014 describe exactly what you need (at least ' + TaskTooltip.MIN_WORDS + ' words).', 'error');
+        }
+        TaskTooltip.hide();
+      } else {
+        // ---- Types 1 & 2: JSON textarea ----
+        text = document.getElementById('response').value.trim();
+        if (!text) return showStatus('Enter response', 'error');
+
+        parsed = null;
+        try {
+          parsed = JSON.parse(text);
+        } catch(e) {
+          return showStatus('Invalid JSON', 'error');
+        }
+
+        var err = prompt.validate(parsed);
+        if (err) return showStatus(err, 'error');
+
+        // Enforce 10-word minimum on task field (if applicable)
+        var taskField = prompt.taskField;
+        if (taskField && parsed[taskField]) {
+          var responseEl = document.getElementById('response');
+          if (!TaskTooltip.isValid(parsed[taskField])) {
+            TaskTooltip.show(responseEl);
+            return showStatus('Please provide more detail in "' + taskField + '"' , 'error');//don't want to tell a least how many
+          }
+          TaskTooltip.hide();
+        }
+      }
 
       // Build full report
       var data = _report.build(activeType, prompt, text);
@@ -397,6 +540,11 @@
 
     document.getElementById('response').addEventListener('keydown', function(e) {
       if (e.ctrlKey && e.key === 'Enter') submit();
+    });
+
+    // Support Ctrl+Enter from type 3 task textarea (added via delegation)
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 'Enter' && e.target.id === 'p3-task') submit();
     });
   </script>
 </body>

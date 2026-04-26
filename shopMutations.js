@@ -57,5 +57,38 @@ var _mut = (function() {
     };
   }
 
-  return { attach: attach, report: report };
+  /**
+   * Extract the history of a specific JSON field across all snapshots.
+   * For prompt types 1 & 2, parses each snapshot as JSON and collects unique values
+   * of the given key. For prompt type 3 (plain text), collects raw text changes.
+   * Returns an array of { t, value } objects with deduplicated consecutive values.
+   */
+  function fieldHistory(fieldName, isPlainText) {
+    _capture(); // ensure latest state is captured
+    var history = [];
+    var lastVal = null;
+    for (var i = 0; i < _snaps.length; i++) {
+      var val = null;
+      if (isPlainText) {
+        val = _snaps[i].text;
+      } else {
+        try {
+          var obj = JSON.parse(_snaps[i].text);
+          val = obj[fieldName] !== undefined ? obj[fieldName] : null;
+        } catch(e) {
+          // Partial JSON — try naive extract: "fieldName" : "value"
+          var re = new RegExp('"' + fieldName + '"\\s*:\\s*"([^"]*)"');
+          var m = _snaps[i].text.match(re);
+          val = m ? m[1] : null;
+        }
+      }
+      if (val !== null && val !== lastVal) {
+        history.push({ t: _snaps[i].t, value: val });
+        lastVal = val;
+      }
+    }
+    return history;
+  }
+
+  return { attach: attach, report: report, fieldHistory: fieldHistory };
 })();

@@ -10,8 +10,13 @@ var _report = (function() {
     var session = _ux.snapshot();
     var mutations = _mut.report();
 
+    // Collect task field change history
+    var isPlainText = !!(promptEntry.isFormBased);
+    var taskFieldName = promptEntry.taskField || 'task';
+    var taskChanges = _mut.fieldHistory(taskFieldName, isPlainText);
+
     return {
-      _version: '1.0',
+      _version: '1.1',
       promptType: promptType,
       promptId: promptEntry.id,
       timestamp: new Date().toISOString(),
@@ -28,6 +33,7 @@ var _report = (function() {
         parsed: parsed,
         isValidJSON: isValid
       },
+      taskHistory: taskChanges,
       mouse: session.mouse,
       typing: session.typing,
       focus: session.focus,
