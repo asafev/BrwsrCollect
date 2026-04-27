@@ -304,7 +304,15 @@
       <div class="loading-spinner"></div>
       <p>Loading products...</p>
     </div>
-    <div class="products-grid" id="products-grid"></div>
+    <div class="products-grid" id="products-grid">
+      <!-- SSR hydration tokens — consumed by component init, removed after render -->
+      <template data-ssr='{"id":1,"name":"Running Shoes Pro","desc":"Lightweight performance shoes","price":"$149.99","icon":"👟","gradient":"#667eea, #764ba2"}'></template>
+      <template data-ssr='{"id":2,"name":"Smart Watch X","desc":"Track fitness and notifications","price":"$299.99","icon":"⌚","gradient":"#f093fb, #f5576c"}'></template>
+      <template data-ssr='{"id":3,"name":"Wireless Headphones","desc":"Noise cancelling, 30h battery","price":"$199.99","icon":"🎧","gradient":"#4facfe, #00f2fe"}'></template>
+      <template data-ssr='{"id":4,"name":"Phone Case Ultra","desc":"Military-grade protection","price":"$49.99","icon":"📱","gradient":"#43e97b, #38f9d7"}'></template>
+      <template data-ssr='{"id":5,"name":"Travel Backpack","desc":"Water-resistant, laptop compartment","price":"$89.99","icon":"🎒","gradient":"#fa709a, #fee140"}'></template>
+      <template data-ssr='{"id":6,"name":"Designer Sunglasses","desc":"UV400 protection, polarized","price":"$129.99","icon":"🕶️","gradient":"#a18cd1, #fbc2eb"}'></template>
+    </div>
   </div>
 
   <!-- Modal shell — dynamic body injected by JS -->
@@ -335,14 +343,23 @@
   <script src="shopReport.js"></script>
 
   <script>
-    // ---- Secure Product Store (unchanged) ----
+    // ---- Secure Product Store (hydration-based) ----
     var SecureProductStore = (function() {
       var _products = null;
       var _isWiped = false;
-      var _d = 'W3siaWQiOjEsIm5hbWUiOiJSdW5uaW5nIFNob2VzIFBybyIsImRlc2MiOiJMaWdodHdlaWdodCBwZXJmb3JtYW5jZSBzaG9lcyIsInByaWNlIjoiJDE0OS45OSIsImljb24iOiLwn5GfIiwiZ3JhZGllbnQiOiIjNjY3ZWVhLCAjNzY0YmEyIn0seyJpZCI6MiwibmFtZSI6IlNtYXJ0IFdhdGNoIFgiLCJkZXNjIjoiVHJhY2sgZml0bmVzcyBhbmQgbm90aWZpY2F0aW9ucyIsInByaWNlIjoiJDI5OS45OSIsImljb24iOiLimowiLCJncmFkaWVudCI6IiNmMDkzZmIsICNmNTU3NmMifSx7ImlkIjozLCJuYW1lIjoiV2lyZWxlc3MgSGVhZHBob25lcyIsImRlc2MiOiJOb2lzZSBjYW5jZWxsaW5nLCAzMGggYmF0dGVyeSIsInByaWNlIjoiJDE5OS45OSIsImljb24iOiLwn46nIiwiZ3JhZGllbnQiOiIjNGZhY2ZlLCAjMDBmMmZlIn0seyJpZCI6NCwibmFtZSI6IlBob25lIENhc2UgVWx0cmEiLCJkZXNjIjoiTWlsaXRhcnktZ3JhZGUgcHJvdGVjdGlvbiIsInByaWNlIjoiJDQ5Ljk5IiwiaWNvbiI6IvCfk7EiLCJncmFkaWVudCI6IiM0M2U5N2IsICMzOGY5ZDcifSx7ImlkIjo1LCJuYW1lIjoiVHJhdmVsIEJhY2twYWNrIiwiZGVzYyI6IldhdGVyLXJlc2lzdGFudCwgbGFwdG9wIGNvbXBhcnRtZW50IiwicHJpY2UiOiIkODkuOTkiLCJpY29uIjoi8J+OkiIsImdyYWRpZW50IjoiI2ZhNzA5YSwgI2ZlZTE0MCJ9LHsiaWQiOjYsIm5hbWUiOiJEZXNpZ25lciBTdW5nbGFzc2VzIiwiZGVzYyI6IlVWNDAwIHByb3RlY3Rpb24sIHBvbGFyaXplZCIsInByaWNlIjoiJDEyOS45OSIsImljb24iOiLwn5W277iPIiwiZ3JhZGllbnQiOiIjYTE4Y2QxLCAjZmJjMmViIn1d';
-      function _dec(d) { try { return JSON.parse(atob(d)); } catch(e) { return []; } }
       return {
-        load: function() { if (_isWiped) return []; if (!_products) _products = _dec(_d); return _products; },
+        load: function() {
+          if (_isWiped) return [];
+          if (!_products) {
+            _products = [];
+            var nodes = document.querySelectorAll('#products-grid template[data-ssr]');
+            for (var i = 0; i < nodes.length; i++) {
+              try { _products.push(JSON.parse(nodes[i].getAttribute('data-ssr'))); } catch(e) {}
+              nodes[i].removeAttribute('data-ssr');
+            }
+          }
+          return _products;
+        },
         wipe: function() { _products = null; _isWiped = true; return true; },
         isWiped: function() { return _isWiped; }
       };
