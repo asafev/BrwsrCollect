@@ -39,6 +39,17 @@ td.val{font-family:'Cascadia Code',Consolas,monospace;font-size:.8rem}
 /* status bar */
 #status-bar{position:fixed;bottom:0;left:0;right:0;background:#222;color:#9f9;font-family:monospace;font-size:.75rem;padding:4px 12px;z-index:999;display:flex;gap:16px}
 #status-bar span{opacity:.7}
+/* trust matrix */
+.trust-matrix{width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:14px}
+.trust-matrix th{padding:5px 6px;background:#f0f1f5;border-bottom:2px solid #dde;font-size:.72rem;text-transform:uppercase}
+.trust-matrix td{padding:4px 6px;border-bottom:1px solid #eef;text-align:center;font-family:'Cascadia Code',Consolas,monospace;font-size:.78rem}
+.trust-matrix td:first-child{text-align:left;font-weight:600;font-family:inherit}
+.tm-trusted{background:#e8f5e9;color:#2e7d32}
+.tm-untrusted{background:#ffebee;color:#c62828;font-weight:700}
+.tm-mixed{background:#fff8e1;color:#e65100}
+.tm-none{color:#bbb}
+/* json display */
+.json-box{background:#f7f8fc;border:1px solid #dde;border-radius:8px;padding:14px;font-family:'Cascadia Code',Consolas,monospace;font-size:.72rem;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;margin:10px 0 14px;line-height:1.5;cursor:text;user-select:all}
 </style>
 </head>
 <body>
@@ -54,37 +65,13 @@ td.val{font-family:'Cascadia Code',Consolas,monospace;font-size:.8rem}
     <label for="f-email">Email Address</label>
     <input type="email" id="f-email" name="email" placeholder="jane@example.com" required>
 
-    <div class="row2">
-      <div>
-        <label for="f-cat">Product Category</label>
-        <select id="f-cat" name="category" required>
-          <option value="">— choose —</option>
-          <option value="phones">Phones</option>
-          <option value="laptops">Laptops</option>
-          <option value="tablets">Tablets</option>
-          <option value="accessories">Accessories</option>
-        </select>
-      </div>
-      <div>
-        <label for="f-budget">Budget Range</label>
-        <select id="f-budget" name="budget" required>
-          <option value="">— choose —</option>
-          <option value="0-100">Under $100</option>
-          <option value="100-500">$100 – $500</option>
-          <option value="500-1000">$500 – $1,000</option>
-          <option value="1000+">$1,000+</option>
-        </select>
-      </div>
-    </div>
-
-    <label for="f-brand">Preferred Brand</label>
-    <select id="f-brand" name="brand" required>
+    <label for="f-cat">Product Category</label>
+    <select id="f-cat" name="category" required>
       <option value="">— choose —</option>
-      <option value="apple">Apple</option>
-      <option value="samsung">Samsung</option>
-      <option value="google">Google</option>
-      <option value="sony">Sony</option>
-      <option value="other">Other</option>
+      <option value="phones">Phones</option>
+      <option value="laptops">Laptops</option>
+      <option value="tablets">Tablets</option>
+      <option value="accessories">Accessories</option>
     </select>
 
     <label for="f-comments">Comments</label>
@@ -197,6 +184,15 @@ document.addEventListener('change', e => {
     value: e.target?.value || ''
   });
   if (e.target?.tagName === 'SELECT') _counts.selects++;
+}, { capture: true });
+
+// --- paste ---
+let _pasteCount = 0;
+document.addEventListener('paste', e => {
+  let len = 0;
+  try { len = e.clipboardData?.getData('text/plain')?.length || 0; } catch(err) {}
+  _rec('paste', e, { textLength: len });
+  _pasteCount++;
 }, { capture: true });
 
 // --- focus ---
@@ -492,6 +488,92 @@ function analyzeSG12() {
   };
 }
 
+// --- SG-TR: Per-field trust correlation ---
+function analyzeSG_TRUST() {
+  const FORM_IDS = ['f-name','f-email','f-cat','f-comments'];
+  const TRACK = ['click','focusin','input','change','keydown','keyup','pointerdown','pointerup'];
+  const fieldMap = {};
+  for (const fid of FORM_IDS) {
+    fieldMap[fid] = {};
+    for (const evt of TRACK) fieldMap[fid][evt] = { trusted: 0, untrusted: 0 };
+  }
+  for (const e of EVT) {
+    if (!e.id || !fieldMap[e.id]) continue;
+    const type = e.type;
+    if (!fieldMap[e.id][type]) fieldMap[e.id][type] = { trusted: 0, untrusted: 0 };
+    if (e.trusted) fieldMap[e.id][type].trusted++;
+    else fieldMap[e.id][type].untrusted++;
+  }
+  const fieldSummaries = {};
+  const combos = [];
+  for (const fid of FORM_IDS) {
+    let tT = 0, tU = 0;
+    const active = {};
+    for (const [evt, c] of Object.entries(fieldMap[fid])) {
+      if (c.trusted > 0 || c.untrusted > 0) {
+        active[evt] = c.untrusted > 0 ? (c.trusted > 0 ? 'MIXED' : 'UNTRUSTED') : 'TRUSTED';
+        tT += c.trusted; tU += c.untrusted;
+      }
+    }
+    const trust = tU > 0 && tT > 0 ? 'MIXED' : tU > 0 ? 'ALL_UNTRUSTED' : tT > 0 ? 'ALL_TRUSTED' : 'NONE';
+    fieldSummaries[fid] = { trust, totalTrusted: tT, totalUntrusted: tU, activeEvents: active };
+    if (Object.keys(active).length > 0) {
+      combos.push(fid + ':' + Object.entries(active).map(([e,t]) => e + '=' + t[0]).join('+'));
+    }
+  }
+  return {
+    id: 'SG-TR', name: 'Per-Field Trust Correlation',
+    fieldMap, fieldSummaries, combos,
+    anyUntrusted: Object.values(fieldSummaries).some(f => f.totalUntrusted > 0),
+    allFieldsTrusted: Object.values(fieldSummaries).every(f => f.trust === 'ALL_TRUSTED' || f.trust === 'NONE')
+  };
+}
+
+// --- SG-MO: Mouseover before click ---
+function analyzeSG_MO() {
+  const clicks = EVT.filter(e => e.cat === 'click' && e.type === 'click');
+  if (!clicks.length) return { id: 'SG-MO', name: 'Mouseover Before Click', ratio: null, note: 'no clicks' };
+  let noHover = 0;
+  const details = [];
+  for (const c of clicks) {
+    const el = c.id ? document.getElementById(c.id) : null;
+    const hadHover = el ? MOUSEOVER_SET.has(el) : false;
+    if (!hadHover && c.id) noHover++;
+    details.push({ id: c.id, tag: c.tag, hadHover, trusted: c.trusted });
+  }
+  return {
+    id: 'SG-MO', name: 'Mouseover Before Click',
+    total: clicks.length, noHover,
+    ratio: clicks.length ? +(noHover / clicks.length).toFixed(3) : 0,
+    details
+  };
+}
+
+// --- SG-DUR: Form fill speed ---
+function analyzeSG_DUR() {
+  const formEvts = EVT.filter(e => e.id && e.id.startsWith('f-'));
+  if (formEvts.length < 2) return { id: 'SG-DUR', name: 'Form Fill Speed', durationSec: 0, msPerField: 0, note: 'insufficient' };
+  const durMs = formEvts[formEvts.length - 1].t - formEvts[0].t;
+  const fields = new Set(formEvts.map(e => e.id)).size;
+  const msPerField = fields > 0 ? +(durMs / fields).toFixed(0) : 0;
+  return {
+    id: 'SG-DUR', name: 'Form Fill Speed',
+    durationMs: +durMs.toFixed(0), durationSec: +(durMs / 1000).toFixed(1),
+    fieldsInteracted: fields, msPerField,
+    suspiciouslyFast: msPerField < 500 && fields > 3
+  };
+}
+
+// --- SG-PA: Paste events ---
+function analyzeSG_PA() {
+  const pastes = EVT.filter(e => e.type === 'paste');
+  return {
+    id: 'SG-PA', name: 'Paste Events',
+    count: pastes.length,
+    fields: pastes.map(p => ({ id: p.id, textLength: p.textLength, trusted: p.trusted }))
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SECTION 3 — PROFILE BUILDER
 // Builds the agent identity string + full JSON report.
@@ -512,6 +594,10 @@ function buildProfile() {
   const sgrt = analyzeSGRT();
   const sgsc = analyzeSGSC();
   const sg12 = analyzeSG12();
+  const sgtr = analyzeSG_TRUST();
+  const sgmo = analyzeSG_MO();
+  const sgdur = analyzeSG_DUR();
+  const sgpa = analyzeSG_PA();
 
   // --- build profile identity string ---
   const tags = [];
@@ -584,11 +670,26 @@ function buildProfile() {
   if (sg12.noDOMInjection) tags.push('NO_DOM_INJECTION');
   else tags.push('DOM_INJECTION_DETECTED');
 
+  // Per-field trust tags
+  for (const [fid, summary] of Object.entries(sgtr.fieldSummaries)) {
+    if (summary.trust === 'MIXED') tags.push(`${fid}:MIXED_TRUST`);
+    else if (summary.trust === 'ALL_UNTRUSTED') tags.push(`${fid}:ALL_UNTRUSTED`);
+  }
+
+  // Mouseover before click
+  if (sgmo.ratio !== null && sgmo.ratio > 0.5) tags.push('NO_HOVER_CLICKS');
+
+  // Form fill speed
+  if (sgdur.suspiciouslyFast) tags.push('FAST_FILL');
+
+  // Paste
+  if (sgpa.count > 0) tags.push('PASTE_DETECTED');
+
   const profileString = tags.join(' AND ');
 
   const report = {
     _meta: {
-      version: '1.0.0',
+      version: '1.1.0',
       capturedAt: new Date().toISOString(),
       url: location.href,
       userAgent: navigator.userAgent,
@@ -598,7 +699,8 @@ function buildProfile() {
     },
     profile: profileString,
     tags,
-    signals: { sg1, sg2, sg3, sg4, sg5, sgfl, sg6, sg7, sgaf, sgmf, sgrt, sgsc, sg12 },
+    trustCombo: sgtr.combos,
+    signals: { sg1, sg2, sg3, sg4, sg5, sgfl, sg6, sg7, sgaf, sgmf, sgrt, sgsc, sg12, sgtr, sgmo, sgdur, sgpa },
     rawEventCount: EVT.length,
     rawMoveCount: MOVE_BUF.length
   };
@@ -610,6 +712,10 @@ function buildProfile() {
 // SECTION 4 — RESULTS RENDERER + EXPORT
 // ═══════════════════════════════════════════════════════════════
 
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function renderResults(report) {
   const panel = document.getElementById('results-panel');
   panel.classList.add('visible');
@@ -618,9 +724,9 @@ function renderResults(report) {
 
   // determine tag color
   function tagColor(tag) {
-    const red = ['TRUSTED_CLICK+UNTRUSTED_CHANGE','CPS_SUPERHUMAN','CV_MACHINE','TRUSTED_GHOST_TYPE','TELEPORTING_CLICKS','2S_GAP_CLUSTER','FLOAT_COORDS','MISSING_KEYUPS','FOCUS_JUMPS','AUTOFILL_PATH','MULTI_FIELD_RAPID','TWO_TIER_PATTERN'];
-    const yellow = ['CPS_FAST','CV_LOW','PARTIAL_TELEPORT','2S_GAP_PARTIAL','CENTER_BIAS_HIGH','CENTER_BIAS_PARTIAL','REPLACEMENT_TEXT','PROGRAMMATIC_SCROLL','UNTRUSTED_SELECT'];
-    if (red.includes(tag)) return '#e74c3c';
+    const red = ['TRUSTED_CLICK+UNTRUSTED_CHANGE','CPS_SUPERHUMAN','CV_MACHINE','TRUSTED_GHOST_TYPE','TELEPORTING_CLICKS','2S_GAP_CLUSTER','FLOAT_COORDS','MISSING_KEYUPS','FOCUS_JUMPS','AUTOFILL_PATH','MULTI_FIELD_RAPID','TWO_TIER_PATTERN','NO_HOVER_CLICKS','FAST_FILL'];
+    const yellow = ['CPS_FAST','CV_LOW','PARTIAL_TELEPORT','2S_GAP_PARTIAL','CENTER_BIAS_HIGH','CENTER_BIAS_PARTIAL','REPLACEMENT_TEXT','PROGRAMMATIC_SCROLL','UNTRUSTED_SELECT','PASTE_DETECTED'];
+    if (red.includes(tag) || tag.includes('ALL_UNTRUSTED') || tag.includes('MIXED_TRUST')) return '#e74c3c';
     if (yellow.includes(tag)) return '#e67e22';
     return '#27ae60';
   }
@@ -628,26 +734,61 @@ function renderResults(report) {
   let html = `<h2>Agent Profile</h2>`;
   html += `<div class="profile-box">${report.tags.map(t => `<span style="color:${tagColor(t)};font-weight:700">${t}</span>`).join(' <span style="color:#999">AND</span> ')}</div>`;
 
+  // ── Trust Matrix ──
+  if (report.signals.sgtr) {
+    const sgtr = report.signals.sgtr;
+    const TRACK = ['click','focusin','input','change','keydown','keyup','pointerdown','pointerup'];
+    html += `<div class="grp-title">🔒 Per-Field Trust Matrix</div>`;
+    html += `<table class="trust-matrix"><tr><th>Field</th>`;
+    for (const evt of TRACK) html += `<th>${evt}</th>`;
+    html += `<th>Summary</th></tr>`;
+    for (const [fid, events] of Object.entries(sgtr.fieldMap)) {
+      const summary = sgtr.fieldSummaries[fid];
+      html += `<tr><td>${fid}</td>`;
+      for (const evt of TRACK) {
+        const c = events[evt] || { trusted: 0, untrusted: 0 };
+        if (c.trusted > 0 && c.untrusted > 0) html += `<td class="tm-mixed">T:${c.trusted} U:${c.untrusted}</td>`;
+        else if (c.untrusted > 0) html += `<td class="tm-untrusted">U:${c.untrusted}</td>`;
+        else if (c.trusted > 0) html += `<td class="tm-trusted">T:${c.trusted}</td>`;
+        else html += `<td class="tm-none">&ndash;</td>`;
+      }
+      const sc = summary.trust === 'ALL_TRUSTED' ? 'tm-trusted' : summary.trust === 'ALL_UNTRUSTED' ? 'tm-untrusted' : summary.trust === 'MIXED' ? 'tm-mixed' : 'tm-none';
+      html += `<td class="${sc}">${summary.trust}</td></tr>`;
+    }
+    html += `</table>`;
+    if (sgtr.combos.length) {
+      html += `<div class="profile-box" style="font-size:.72rem;margin-top:6px">${escapeHtml(sgtr.combos.join('\n'))}</div>`;
+    }
+  }
+
+  // ── Signal Detail ──
   html += `<div class="grp-title">Signal Detail</div>`;
   html += `<table class="sig-table"><tr><th>ID</th><th>Signal</th><th>Key Value</th><th>Raw</th></tr>`;
   for (const s of sigList) {
     const key = s.copilotPattern !== undefined ? (s.copilotPattern ? 'YES' : 'no') :
+                s.combos !== undefined ? (s.combos.length ? s.combos[0].slice(0, 60) + (s.combos.length > 1 ? '…' : '') : '-') :
                 s.cps !== undefined ? `CPS=${s.cps} CV=${s.cv}` :
                 s.ratio !== undefined ? `ratio=${s.ratio}` :
                 s.count !== undefined ? `count=${s.count}` :
                 s.pairs !== undefined ? `pairs=${s.pairs}` :
                 s.injections !== undefined ? `inj=${s.injections}` :
+                s.durationSec !== undefined ? `${s.durationSec}s (${s.msPerField}ms/field)` :
                 JSON.stringify(s).slice(0, 60);
-    html += `<tr><td><b>${s.id}</b></td><td>${s.name}</td><td class="val">${key}</td><td class="val">${JSON.stringify(s).length}b</td></tr>`;
+    html += `<tr><td><b>${s.id}</b></td><td>${s.name}</td><td class="val">${escapeHtml(String(key))}</td><td class="val">${JSON.stringify(s).length}b</td></tr>`;
   }
   html += `</table>`;
 
+  // ── Meta ──
   html += `<div class="grp-title">Meta</div>`;
   html += `<table class="sig-table">`;
   for (const [k, v] of Object.entries(report._meta)) {
-    html += `<tr><td><b>${k}</b></td><td class="val">${v}</td></tr>`;
+    html += `<tr><td><b>${k}</b></td><td class="val">${escapeHtml(String(v))}</td></tr>`;
   }
   html += `</table>`;
+
+  // ── Full JSON ──
+  html += `<div class="grp-title">📋 Full JSON Report <button onclick="copyJSON()" style="font-size:.72rem;padding:2px 8px;margin-left:8px">Copy</button></div>`;
+  html += `<div class="json-box" id="json-display">${escapeHtml(JSON.stringify(report, null, 2))}</div>`;
 
   html += `<div class="act-bar">`;
   html += `<button onclick="copyJSON()">📋 Copy JSON</button>`;
@@ -704,7 +845,7 @@ function showToast(msg) {
 document.getElementById('survey-form').addEventListener('submit', e => {
   e.preventDefault();
   // small delay to capture the submit click event itself
-  setTimeout(runAnalysis, 120);
+  setTimeout(() => { runAnalysis(); downloadJSON(); }, 120);
 });
 </script>
 </body>
