@@ -290,6 +290,10 @@
     }
     .pform-textarea:focus { outline: none; border-color: #3b82f6; }
     .pform-help { font-size: 11px; color: #666; margin-top: 5px; }
+
+    /* ---- Sequential form reveal ---- */
+    .sequential-form .pform-group { transition: opacity 0.3s, transform 0.3s; }
+    .step-indicator { font-size: 12px; color: #888; margin-bottom: 12px; font-family: monospace; }
   </style>
 </head>
 <body>
@@ -440,13 +444,52 @@
 
         // For form-based prompts, attach mutation tracker to the task textarea
         if (prompt.isFormBased) {
-          var taskTextarea = document.getElementById('p3-task');
+          // Find the task textarea — new types use fieldSpecs, Type 2 uses #p3-task
+          var taskTextarea = null;
+          if (prompt.fieldSpecs) {
+            for (var fi = 0; fi < prompt.fieldSpecs.length; fi++) {
+              if (prompt.fieldSpecs[fi].type === 'textarea') {
+                taskTextarea = document.getElementById(prompt.fieldSpecs[fi].id);
+                break;
+              }
+            }
+          }
+          if (!taskTextarea) taskTextarea = document.getElementById('p3-task');
+
           if (taskTextarea) {
             _mut.attach(taskTextarea);
-            // Live tooltip validation on the task textarea
+            var minW = prompt.minWords || TaskTooltip.MIN_WORDS;
             taskTextarea.addEventListener('input', function() {
               TaskTooltip.check(taskTextarea.value, taskTextarea);
             }, { passive: true });
+          }
+
+          // Sequential reveal for types that declare it
+          if (prompt.sequential && prompt.fieldSpecs) {
+            window._seqReveal = PromptHelpers.SequentialReveal(prompt.fieldSpecs, function(step, spec) {
+              var ind = document.getElementById('step-indicator');
+              if (ind) ind.textContent = 'Step ' + (step + 1) + ' of ' + prompt.fieldSpecs.length;
+            });
+            // Wire change/input listeners to trigger next reveal
+            for (var si = 0; si < prompt.fieldSpecs.length; si++) {
+              (function(idx) {
+                var spec = prompt.fieldSpecs[idx];
+                var el = document.getElementById(spec.id);
+                if (!el) return;
+                var evtName = spec.type === 'select' ? 'change' : 'input';
+                el.addEventListener(evtName, function() {
+                  var filled = false;
+                  if (spec.type === 'textarea') {
+                    filled = (el.value || '').trim().split(/\s+/).length >= (prompt.minWords || 20);
+                  } else {
+                    filled = !!(el.value && el.value.trim());
+                  }
+                  if (idx === window._seqReveal.currentStep() && filled) {
+                    window._seqReveal.revealNext();
+                  }
+                });
+              })(si);
+            }
           }
         } else {
           // JSON prompt types — attach mutation tracker to the response textarea
@@ -495,20 +538,33 @@
       var text, parsed;
 
       if (prompt.isFormBased) {
-        // ---- Type 3: form-based collection ----
+        // ---- Form-based collection (Types 2, 4, 5, 6) ----
         parsed = prompt.collectForm();
         text = JSON.stringify(parsed);
 
         var err = prompt.validate(parsed);
         if (err) return showStatus(err, 'error');
 
-        // Enforce 10-word minimum on task
-        var taskEl = document.getElementById('p3-task');
-        if (!TaskTooltip.isValid(parsed.task)) {
-          TaskTooltip.show(taskEl);
-          return showStatus('Please be more specific \u2014 describe exactly what you need (at least ' + TaskTooltip.MIN_WORDS + ' words).', 'error');
+        // Enforce word minimum on task field
+        var minW = prompt.minWords || TaskTooltip.MIN_WORDS;
+        var taskEl = null;
+        if (prompt.fieldSpecs) {
+          for (var fi = 0; fi < prompt.fieldSpecs.length; fi++) {
+            if (prompt.fieldSpecs[fi].type === 'textarea') {
+              taskEl = document.getElementById(prompt.fieldSpecs[fi].id);
+              break;
+            }
+          }
         }
-        TaskTooltip.hide();
+        if (!taskEl) taskEl = document.getElementById('p3-task');
+        if (parsed.task && taskEl) {
+          var wc = parsed.task.trim().split(/\s+/).length;
+          if (wc < minW) {
+            TaskTooltip.show(taskEl);
+            return showStatus('Please be more specific \u2014 describe exactly what you need (at least ' + minW + ' words).', 'error');
+          }
+          TaskTooltip.hide();
+        }
       } else {
         // ---- Types 1 & 2: JSON textarea ----
         text = document.getElementById('response').value.trim();
@@ -561,7 +617,7 @@
 
     // Support Ctrl+Enter from type 3 task textarea (added via delegation)
     document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.key === 'Enter' && e.target.id === 'p3-task') submit();
+      if (e.ctrlKey && e.key === 'Enter' && (e.target.id === 'p3-task' || e.target.id === 'message')) submit();
     });
   </script>
 </body>

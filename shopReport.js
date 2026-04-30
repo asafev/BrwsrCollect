@@ -22,6 +22,7 @@ var _report = (function() {
       _version: '1.2',
       promptType: promptType,
       promptId: promptEntry.id,
+      promptMeta: promptEntry.meta ? promptEntry.meta(parsed, session) : undefined,
       timestamp: new Date().toISOString(),
       session: {
         durationMs: session.sessionDurationMs,

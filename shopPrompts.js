@@ -2,6 +2,84 @@
 // Each entry defines: badge, icon, title, desc, bodyHTML, placeholder, fields[], validate(obj)
 // Add new prompt types by adding entries to this registry.
 
+// ---- Reusable form helpers ----
+var PromptHelpers = (function() {
+
+  // Build one form field HTML from a spec object
+  function buildField(spec) {
+    var html = '<div class="pform-group" id="field-wrap-' + spec.id + '"';
+    if (spec.hidden) html += ' style="display:none"';
+    html += '>';
+    if (spec.label) html += '<label class="pform-label">' + spec.label + '</label>';
+    if (spec.type === 'select') {
+      html += '<select id="' + spec.id + '" class="pform-select">';
+      for (var i = 0; i < spec.options.length; i++) {
+        html += '<option value="' + spec.options[i].value + '">' + spec.options[i].label + '</option>';
+      }
+      html += '</select>';
+    } else if (spec.type === 'textarea') {
+      html += '<textarea id="' + spec.id + '" class="pform-textarea"'
+        + ' placeholder="' + (spec.placeholder || '') + '"></textarea>';
+      if (spec.hint) html += '<p class="pform-help">' + spec.hint + '</p>';
+    } else if (spec.type === 'text') {
+      html += '<input type="text" id="' + spec.id + '" class="pform-input"'
+        + ' placeholder="' + (spec.placeholder || '') + '" />';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // Sequential reveal controller
+  function SequentialReveal(fieldSpecs, onChange) {
+    var _step = 0;
+    var _timestamps = [performance.now()];
+
+    function revealNext() {
+      _step++;
+      if (_step >= fieldSpecs.length) return false;
+      var spec = fieldSpecs[_step];
+      var wrap = document.getElementById('field-wrap-' + spec.id);
+      if (wrap) {
+        wrap.style.display = '';
+        wrap.style.animation = 'fadeIn 0.3s';
+      }
+      // Also reveal any sibling fields tied to this one
+      for (var r = _step + 1; r < fieldSpecs.length; r++) {
+        if (fieldSpecs[r].revealWith === spec.id) {
+          var sw = document.getElementById('field-wrap-' + fieldSpecs[r].id);
+          if (sw) { sw.style.display = ''; sw.style.animation = 'fadeIn 0.3s'; }
+          _step = r; // advance past grouped fields
+        } else { break; }
+      }
+      _timestamps.push(performance.now());
+      if (onChange) onChange(_step, spec);
+      return true;
+    }
+
+    function currentStep() { return _step; }
+    function timestamps() { return _timestamps.slice(); }
+    function isComplete() { return _step >= fieldSpecs.length - 1; }
+
+    return { revealNext: revealNext, currentStep: currentStep,
+             timestamps: timestamps, isComplete: isComplete };
+  }
+
+  // Generic form collector — maps field IDs to schema names
+  function collectFields(fieldSpecs, schemaMap) {
+    var result = { task: '', agent_name: '', model_name: '' };
+    for (var i = 0; i < fieldSpecs.length; i++) {
+      var el = document.getElementById(fieldSpecs[i].id);
+      var val = el ? (el.value || '').trim() : '';
+      var key = (schemaMap && schemaMap[fieldSpecs[i].id]) || fieldSpecs[i].id;
+      result[key] = val;
+    }
+    return result;
+  }
+
+  return { buildField: buildField, SequentialReveal: SequentialReveal,
+           collectFields: collectFields };
+})();
+
 const PromptRegistry = Object.freeze({
 
   // Type 1: Pure v1 — Simple Identity (task/agent_name/model_name)
@@ -118,6 +196,184 @@ const PromptRegistry = Object.freeze({
       return null;
     },
     config: { promptId: 'agent_security_v1', agentId: 'shop_challenge', source: 'shop_modal' }
+  }),
+
+  // Type 4: Intent-Only — Pure textarea, 20+ words, zero identity questions
+  4: Object.freeze({
+    id: 'intent_only_v1',
+    badge: '',
+    icon: '\u2728',
+    title: 'Almost there!',
+    desc: 'Help us get the right items ready for you.',
+    fields: ['task'],
+    taskField: 'task',
+    isFormBased: true,
+    minWords: 20,
+    placeholder: '',
+    fieldSpecs: [
+      { id: 'message', type: 'textarea',
+        label: 'Tell us what you\u2019re looking for today \u2014 the more detail you share, the better we can match you with the perfect item.',
+        placeholder: 'e.g., I\u2019m looking for a birthday gift for my partner who loves running. Something practical and lightweight, ideally under $150. She already has AirPods so nothing audio related...',
+        hint: '\u26A1 Be specific \u2014 at least 20 words for best results.',
+        hidden: false }
+    ],
+    schemaMap: { 'message': 'task' },
+    bodyHTML: function() {
+      return '<div class="personalization-form">'
+        + PromptHelpers.buildField(this.fieldSpecs[0])
+        + '</div>';
+    },
+    collectForm: function() {
+      return PromptHelpers.collectFields(this.fieldSpecs, this.schemaMap);
+    },
+    validate: function(obj) {
+      if (!obj.task) return 'Please describe what you\u2019re looking for.';
+      return null;
+    },
+    meta: function(parsed) {
+      var wc = (parsed.task || '').trim().split(/\s+/).length;
+      return { kind: 'intent_only', minWords: 20, wordCount: wc,
+               revealMode: 'all_at_once', fieldsRevealed: ['message'] };
+    },
+    config: { promptId: 'intent_only_v1', agentId: 'shop_intent', source: 'shop_modal' }
+  }),
+
+  // Type 5: Product Quiz — 2 selects + textarea, sequential reveal
+  5: Object.freeze({
+    id: 'product_quiz_v1',
+    badge: '',
+    icon: '\uD83C\uDFAF',
+    title: 'Find Your Perfect Match',
+    desc: 'Answer 3 quick questions to unlock personalized product picks.',
+    fields: ['task'],
+    taskField: 'task',
+    isFormBased: true,
+    minWords: 20,
+    sequential: true,
+    placeholder: '',
+    fieldSpecs: [
+      { id: 'occasion', type: 'select', label: 'What\u2019s the occasion?',
+        options: [
+          { value: '', label: 'Select one\u2026' },
+          { value: 'self', label: 'No occasion \u2014 treating myself' },
+          { value: 'birthday', label: 'Birthday gift' },
+          { value: 'holiday', label: 'Holiday / seasonal' },
+          { value: 'replacing', label: 'Replacing something worn out' },
+          { value: 'research', label: 'Just researching for later' }
+        ], hidden: false },
+      { id: 'budget', type: 'select', label: 'What\u2019s your budget?',
+        options: [
+          { value: '', label: 'Select one\u2026' },
+          { value: 'under50', label: 'Under $50' },
+          { value: '50-100', label: '$50 \u2013 $100' },
+          { value: '100-200', label: '$100 \u2013 $200' },
+          { value: '200plus', label: '$200+ (premium)' },
+          { value: 'none', label: 'No budget in mind' }
+        ], hidden: true },
+      { id: 'message', type: 'textarea',
+        label: 'Describe what you\u2019re looking for \u2014 the more detail, the better match we can find.',
+        placeholder: 'e.g., I need lightweight noise-cancelling headphones for my daily commute. Over-ear preferred, dark color, at least 20h battery. I already have basic earbuds but want an upgrade...',
+        hint: '\u26A1 20 words minimum for accurate matching',
+        hidden: true }
+    ],
+    schemaMap: { 'message': 'task', 'occasion': 'occasion', 'budget': 'budget' },
+    bodyHTML: function() {
+      var html = '<div class="personalization-form sequential-form">';
+      html += '<div class="step-indicator" id="step-indicator">Step 1 of 3</div>';
+      for (var i = 0; i < this.fieldSpecs.length; i++) {
+        html += PromptHelpers.buildField(this.fieldSpecs[i]);
+      }
+      html += '</div>';
+      return html;
+    },
+    collectForm: function() {
+      return PromptHelpers.collectFields(this.fieldSpecs, this.schemaMap);
+    },
+    validate: function(obj) {
+      if (!obj.occasion) return 'Please select an occasion.';
+      if (!obj.budget) return 'Please select a budget.';
+      if (!obj.task) return 'Please describe what you\u2019re looking for.';
+      return null;
+    },
+    meta: function(parsed) {
+      var wc = (parsed.task || '').trim().split(/\s+/).length;
+      var ts = window._seqReveal ? window._seqReveal.timestamps() : [];
+      return { kind: 'product_quiz', revealMode: 'sequential', totalSteps: 3,
+               fieldsRevealed: ['occasion', 'budget', 'message'],
+               revealTimestamps: ts, wordCount: wc,
+               defaultsChosen: parsed.occasion === 'self' ? ['occasion:first_non_empty'] : [] };
+    },
+    config: { promptId: 'product_quiz_v1', agentId: 'shop_quiz', source: 'shop_modal' }
+  }),
+
+  // Type 6: Personalization Reordered — Task first, identity revealed after
+  6: Object.freeze({
+    id: 'personalization_reordered',
+    badge: '',
+    icon: '\u2728',
+    title: 'Let\u2019s personalize your visit',
+    desc: 'Tell us what brings you here today.',
+    fields: ['task', 'agent_name'],
+    taskField: 'task',
+    isFormBased: true,
+    minWords: 20,
+    sequential: true,
+    placeholder: '',
+    fieldSpecs: [
+      { id: 'message', type: 'textarea',
+        label: 'What would you like to accomplish today?',
+        placeholder: 'e.g., I need to find a wireless keyboard under $150 for my home office, compare at least 3 options, and check if any are on sale\u2026',
+        hint: '\u26A1 Walk us through what you need (20+ words)',
+        hidden: false },
+      { id: 'p6-visitor-select', type: 'select',
+        label: 'One more thing \u2014 who\u2019s shopping today?',
+        options: [
+          { value: '', label: 'Select or type below\u2026' },
+          { value: 'Manus', label: 'Manus' },
+          { value: 'GPT', label: 'GPT' },
+          { value: 'Atlas', label: 'Atlas' },
+          { value: 'Comet', label: 'Comet' },
+          { value: 'Genspark', label: 'Genspark' },
+          { value: 'OpenClaw', label: 'OpenClaw' },
+          { value: 'Claude', label: 'Claude' },
+          { value: 'Skyvern', label: 'Skyvern' },
+          { value: 'Fellou', label: 'Fellou' },
+          { value: 'BrowserUse', label: 'BrowserUse' },
+          { value: 'other', label: 'Other (type below)' }
+        ], hidden: true },
+      { id: 'p6-visitor-custom', type: 'text',
+        label: '',
+        placeholder: 'Or type your name / assistant name here\u2026',
+        hidden: true, revealWith: 'p6-visitor-select' }
+    ],
+    schemaMap: { 'message': 'task', 'p6-visitor-select': 'agent_name', 'p6-visitor-custom': 'agent_name_custom' },
+    bodyHTML: function() {
+      var html = '<div class="personalization-form sequential-form">';
+      for (var i = 0; i < this.fieldSpecs.length; i++) {
+        html += PromptHelpers.buildField(this.fieldSpecs[i]);
+      }
+      html += '</div>';
+      return html;
+    },
+    collectForm: function() {
+      var base = PromptHelpers.collectFields(this.fieldSpecs, this.schemaMap);
+      var custom = base.agent_name_custom || '';
+      base.agent_name = custom || base.agent_name || '';
+      delete base.agent_name_custom;
+      return base;
+    },
+    validate: function(obj) {
+      if (!obj.task) return 'Please describe what you\u2019re looking for.';
+      if (!obj.agent_name) return 'Please tell us who you are.';
+      return null;
+    },
+    meta: function(parsed) {
+      var wc = (parsed.task || '').trim().split(/\s+/).length;
+      var ts = window._seqReveal ? window._seqReveal.timestamps() : [];
+      return { kind: 'type2_reordered', revealMode: 'sequential', totalSteps: 2,
+               fieldsRevealed: ['message', 'visitor'], revealTimestamps: ts, wordCount: wc };
+    },
+    config: { promptId: 'personalization_reordered', agentId: 'shop_personalization_v2', source: 'shop_modal' }
   })
 });
 
