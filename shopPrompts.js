@@ -374,6 +374,80 @@ const PromptRegistry = Object.freeze({
                fieldsRevealed: ['message', 'visitor'], revealTimestamps: ts, wordCount: wc };
     },
     config: { promptId: 'personalization_reordered', agentId: 'shop_personalization_v2', source: 'shop_modal' }
+  }),
+
+  // Type 7: Progressive Catalog — inline search/filter reveals full product grid
+  7: Object.freeze({
+    id: 'catalog_filter_v1',
+    badge: '',
+    icon: '',
+    title: '',
+    desc: '',
+    fields: ['task'],
+    taskField: 'task',
+    isFormBased: true,
+    isInline: true,
+    minWords: 10,
+    placeholder: '',
+    fieldSpecs: [
+      { id: 'catalog-query', type: 'textarea',
+        label: '',
+        placeholder: 'e.g., noise-cancelling headphones under $200 for commuting, lightweight running shoes for trail running, birthday gift ideas...',
+        hint: '',
+        hidden: false }
+    ],
+    schemaMap: { 'catalog-query': 'task' },
+    bodyHTML: function() { return ''; },
+    collectForm: function() {
+      return PromptHelpers.collectFields(this.fieldSpecs, this.schemaMap);
+    },
+    validate: function(obj) {
+      if (!obj.task) return 'Please describe what you\u2019re looking for.';
+      return null;
+    },
+    meta: function(parsed) {
+      var wc = (parsed.task || '').trim().split(/\s+/).length;
+      return { kind: 'catalog_filter', minWords: 10, wordCount: wc,
+               revealMode: 'progressive', fieldsRevealed: ['catalog-query'] };
+    },
+    config: { promptId: 'catalog_filter_v1', agentId: 'shop_catalog', source: 'shop_inline' }
+  }),
+
+  // Type 8: Product Detail Gate — use-case input required before showing full specs/price
+  8: Object.freeze({
+    id: 'product_detail_gate_v1',
+    badge: '',
+    icon: '',
+    title: '',
+    desc: '',
+    fields: ['task'],
+    taskField: 'task',
+    isFormBased: true,
+    isInline: true,
+    minWords: 10,
+    placeholder: '',
+    fieldSpecs: [
+      { id: 'use-case-input', type: 'textarea',
+        label: '',
+        placeholder: 'e.g., daily commute in rainy weather, gift for a runner who trains outdoors, replacing my old pair that wore out after 2 years...',
+        hint: '',
+        hidden: false }
+    ],
+    schemaMap: { 'use-case-input': 'task' },
+    bodyHTML: function() { return ''; },
+    collectForm: function() {
+      return PromptHelpers.collectFields(this.fieldSpecs, this.schemaMap);
+    },
+    validate: function(obj) {
+      if (!obj.task) return 'Please tell us how you plan to use this product.';
+      return null;
+    },
+    meta: function(parsed) {
+      var wc = (parsed.task || '').trim().split(/\s+/).length;
+      return { kind: 'product_detail_gate', minWords: 10, wordCount: wc,
+               revealMode: 'detail_panel', fieldsRevealed: ['use-case-input'] };
+    },
+    config: { promptId: 'product_detail_gate_v1', agentId: 'shop_detail', source: 'shop_inline' }
   })
 });
 
