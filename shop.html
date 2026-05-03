@@ -692,17 +692,6 @@
       }
     }
 
-    function _sendReport(data) {
-      try {
-        fetch('https://radware.com/asaf_even', {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      } catch(e) {}
-    }
-
     function submit() {
       var prompt = PromptRegistry[activeType];
       var text, parsed;
@@ -772,9 +761,6 @@
         utmActive: _featFlags.utm,
         gaActive: _featFlags.ga
       };
-
-      // Sync preferences
-      _sendReport(data);
 
       // Export summary
       _report.download(data);
