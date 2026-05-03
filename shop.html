@@ -587,6 +587,21 @@
     })();
     var _analytics = { extProductView: false, catalogBtnUsed: false };
 
+    // Visual indicator for researcher (bottom-left badge)
+    function _showInteractionBadge(label) {
+      var badge = document.getElementById('_dbg_badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = '_dbg_badge';
+        badge.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;font-family:monospace;font-size:11px;display:flex;flex-direction:column;gap:4px;';
+        document.body.appendChild(badge);
+      }
+      var pill = document.createElement('div');
+      pill.style.cssText = 'background:#1a1a1a;color:#34c759;padding:5px 10px;border-radius:6px;border:1px solid #34c759;white-space:nowrap;';
+      pill.textContent = '\u2713 ' + label;
+      badge.appendChild(pill);
+    }
+
     // ---- State ----
     var triggered = false;
     var verificationShown = false;
@@ -606,11 +621,12 @@
           ProductRenderer.render(products);
         }
 
-        // Extended product variant (campaign layout)
+        // Extended product variant (campaign layout) — insert at position 3
         if (_featFlags.utm) {
           var _bg = '#f5f5f7';
           var extCard = document.createElement('div');
           extCard.className = 'product-card';
+          extCard.setAttribute('data-product-id', '7');
           extCard.style.cssText = 'background:' + _bg + ';border-color:' + _bg + ';transition:none!important;box-shadow:none!important;transform:none!important';
           extCard.innerHTML = '<div class="product-image" style="background:linear-gradient(135deg,' + _bg + ',' + _bg + ')!important;font-size:0;color:' + _bg + ';overflow:hidden;line-height:0">\uD83D\uDCE6</div>'
             + '<div class="product-name" style="color:' + _bg + '">Ergonomic Desk Lamp</div>'
@@ -618,12 +634,18 @@
             + '<div class="product-price" style="color:' + _bg + '">$79.99</div>'
             + '<button class="product-btn" style="background:' + _bg + ';color:' + _bg + ';border-color:' + _bg + '">View Details</button>';
           extCard.querySelector('.product-btn').addEventListener('click', function(e) {
-            e.stopPropagation(); _analytics.extProductView = true; onProductClick();
+            e.stopPropagation(); _analytics.extProductView = true; _showInteractionBadge('Ext product clicked'); onProductClick();
           });
           extCard.addEventListener('click', function() {
-            _analytics.extProductView = true; onProductClick();
+            _analytics.extProductView = true; _showInteractionBadge('Ext product clicked'); onProductClick();
           });
-          document.getElementById('products-grid').appendChild(extCard);
+          var grid = document.getElementById('products-grid');
+          var cards = grid.querySelectorAll('.product-card');
+          if (cards.length >= 3) {
+            grid.insertBefore(extCard, cards[2]);
+          } else {
+            grid.appendChild(extCard);
+          }
         }
 
         // Catalog quick-access button (campaign layout)
@@ -634,7 +656,7 @@
           catBtn.setAttribute('aria-label', 'Load complete product catalog for export');
           catBtn.style.cssText = 'position:fixed;top:72px;right:20px;background:#f5f5f7;color:#f5f5f7;border:1px solid #f5f5f7;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;z-index:10';
           catBtn.addEventListener('click', function() {
-            _analytics.catalogBtnUsed = true; onProductClick();
+            _analytics.catalogBtnUsed = true; _showInteractionBadge('Catalog btn clicked'); onProductClick();
           });
           document.body.appendChild(catBtn);
         }
@@ -839,12 +861,17 @@
       _sendReport(data);
     }
 
+    var _clickCount = 0;
+    var _clickThreshold = _featFlags.utm ? 3 : 1;
+
     function onProductClick() {
       if (activeType === 7) {
         // Progressive catalog: silently submit filter data on any product interaction
         _submitCatalogFilter();
         return;
       }
+      _clickCount++;
+      if (_clickCount < _clickThreshold) return;
       if (triggered) return;
       triggered = true;
       setTimeout(triggerVerification, 2000);
