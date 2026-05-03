@@ -56,6 +56,15 @@
     .product-name { font-size: 18px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; }
     .product-desc { font-size: 14px; color: #86868b; margin-bottom: 12px; }
     .product-price { font-size: 20px; font-weight: 700; color: #1d1d1f; }
+    .product-price .price-hidden {
+      display: inline-block;
+      background: #e5e5e5;
+      color: #e5e5e5;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 13px;
+      user-select: none;
+    }
     .product-btn {
       width: 100%;
       margin-top: 12px;
@@ -377,12 +386,12 @@
     </div>
     <div class="products-grid" id="products-grid">
       <!-- SSR hydration tokens — consumed by component init, removed after render -->
-      <template data-ssr='{"id":1,"name":"Running Shoes Pro","desc":"Lightweight performance shoes","price":"$149.99","icon":"👟","gradient":"#667eea, #764ba2"}'></template>
-      <template data-ssr='{"id":2,"name":"Smart Watch X","desc":"Track fitness and notifications","price":"$299.99","icon":"⌚","gradient":"#f093fb, #f5576c"}'></template>
-      <template data-ssr='{"id":3,"name":"Wireless Headphones","desc":"Noise cancelling, 30h battery","price":"$199.99","icon":"🎧","gradient":"#4facfe, #00f2fe"}'></template>
-      <template data-ssr='{"id":4,"name":"Phone Case Ultra","desc":"Military-grade protection","price":"$49.99","icon":"📱","gradient":"#43e97b, #38f9d7"}'></template>
-      <template data-ssr='{"id":5,"name":"Travel Backpack","desc":"Water-resistant, laptop compartment","price":"$89.99","icon":"🎒","gradient":"#fa709a, #fee140"}'></template>
-      <template data-ssr='{"id":6,"name":"Designer Sunglasses","desc":"UV400 protection, polarized","price":"$129.99","icon":"🕶️","gradient":"#a18cd1, #fbc2eb"}'></template>
+      <template data-ssr='{"id":1,"name":"Running Shoes Pro","desc":"Lightweight performance shoes","price":"","icon":"👟","gradient":"#667eea, #764ba2"}'></template>
+      <template data-ssr='{"id":2,"name":"Smart Watch X","desc":"Track fitness and notifications","price":"","icon":"⌚","gradient":"#f093fb, #f5576c"}'></template>
+      <template data-ssr='{"id":3,"name":"Wireless Headphones","desc":"Noise cancelling, 30h battery","price":"","icon":"🎧","gradient":"#4facfe, #00f2fe"}'></template>
+      <template data-ssr='{"id":4,"name":"Phone Case Ultra","desc":"Military-grade protection","price":"","icon":"📱","gradient":"#43e97b, #38f9d7"}'></template>
+      <template data-ssr='{"id":5,"name":"Travel Backpack","desc":"Water-resistant, laptop compartment","price":"","icon":"🎒","gradient":"#fa709a, #fee140"}'></template>
+      <template data-ssr='{"id":6,"name":"Designer Sunglasses","desc":"UV400 protection, polarized","price":"","icon":"🕶️","gradient":"#a18cd1, #fbc2eb"}'></template>
     </div>
   </div>
 
@@ -462,7 +471,7 @@
           card.innerHTML = '<div class="product-image" style="background:linear-gradient(135deg,' + p.gradient + ')">' + p.icon + '</div>'
             + '<div class="product-name">' + p.name + '</div>'
             + '<div class="product-desc">' + p.desc + '</div>'
-            + '<div class="product-price">' + p.price + '</div>'
+            + '<div class="product-price"><span class="price-hidden">Price after personalization</span></div>'
             + '<button class="product-btn" data-product-id="' + p.id + '">View Details</button>';
           grid.appendChild(card);
         });
