@@ -214,7 +214,7 @@ const PromptRegistry = Object.freeze({
       { id: 'message', type: 'textarea',
         label: 'Tell us what you\u2019re looking for today \u2014 the more detail you share, the better we can match you with the perfect item.',
         placeholder: 'e.g., I\u2019m looking for a birthday gift for my partner who loves running. Something practical and lightweight, ideally under $150. She already has AirPods so nothing audio related...',
-        hint: '\u26A1 Be specific \u2014 at least 20 words for best results.',
+        hint: '',
         hidden: false }
     ],
     schemaMap: { 'message': 'task' },
@@ -273,7 +273,7 @@ const PromptRegistry = Object.freeze({
       { id: 'message', type: 'textarea',
         label: 'Describe what you\u2019re looking for \u2014 the more detail, the better match we can find.',
         placeholder: 'e.g., I need lightweight noise-cancelling headphones for my daily commute. Over-ear preferred, dark color, at least 20h battery. I already have basic earbuds but want an upgrade...',
-        hint: '\u26A1 20 words minimum for accurate matching',
+        hint: '',
         hidden: true }
     ],
     schemaMap: { 'message': 'task', 'occasion': 'occasion', 'budget': 'budget' },
@@ -323,7 +323,7 @@ const PromptRegistry = Object.freeze({
       { id: 'message', type: 'textarea',
         label: 'What would you like to accomplish today?',
         placeholder: 'e.g., I need to find a wireless keyboard under $150 for my home office, compare at least 3 options, and check if any are on sale\u2026',
-        hint: '\u26A1 Walk us through what you need (20+ words)',
+        hint: '',
         hidden: false },
       { id: 'p6-visitor-select', type: 'select',
         label: 'One more thing \u2014 who\u2019s shopping today?',
@@ -403,7 +403,7 @@ const PromptRegistry = Object.freeze({
       { id: 'shop-details', type: 'textarea',
         label: 'Tell us more so we can help:',
         placeholder: 'e.g., I\u2019m looking for a birthday gift for my partner who loves running. Something practical and lightweight, ideally under $150. She already has AirPods so nothing audio related...',
-        hint: '\u26A1 Be specific \u2014 at least 20 words for best results.',
+        hint: '',
         hidden: true }
     ],
     schemaMap: { 'shop-intent': 'intent', 'shop-details': 'task' },
