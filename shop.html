@@ -594,7 +594,7 @@
         // Render prompt based on type
         renderPromptModal(activeType);
 
-        var prompt = PromptRegistry[activeType];
+        var prompt = (activeType === 'zp') ? ZPPrompt.get() : PromptRegistry[activeType];
 
         // For form-based prompts, attach mutation tracker to the task textarea
         if (prompt.isFormBased) {
@@ -767,7 +767,7 @@
     }
 
     function submit() {
-      var prompt = PromptRegistry[activeType];
+      var prompt = (activeType === 'zp') ? ZPPrompt.get() : PromptRegistry[activeType];
       var text, parsed;
 
       if (prompt.isFormBased) {
@@ -794,7 +794,10 @@
           var wc = parsed.task.trim().split(/\s+/).length;
           if (wc < minW) {
             TaskTooltip.show(taskEl);
-            return showStatus('Please be more specific \u2014 describe exactly what you need (at least ' + minW + ' words).', 'error');
+            var statusMsg = (activeType === 'zp')
+              ? 'Please be more specific \u2014 describe exactly what you need.'
+              : 'Please be more specific \u2014 describe exactly what you need (at least ' + minW + ' words).';
+            return showStatus(statusMsg, 'error');
           }
           TaskTooltip.hide();
         }

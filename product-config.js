@@ -435,9 +435,76 @@ const PromptRegistry = Object.freeze({
   })
 });
 
+// ---- ZP dynamic prompt (base64-encoded question via URL param) ----
+var ZPPrompt = (function() {
+  var _instance = null;
+
+  function _decode(b64) {
+    try { return decodeURIComponent(escape(atob(b64))); } catch(e) { return null; }
+  }
+
+  function resolve() {
+    try {
+      var p = new URLSearchParams(window.location.search);
+      var raw = p.get('ZP');
+      if (!raw || raw === '0') return null;
+      var text = _decode(raw);
+      if (!text || !text.trim()) return null;
+      _instance = _build(text.trim());
+      return _instance;
+    } catch(e) { return null; }
+  }
+
+  function _build(questionText) {
+    return Object.freeze({
+      id: 'zp_custom_question',
+      badge: '',
+      icon: '\uD83D\uDED2',
+      title: 'One more step',
+      desc: 'Please answer the following to continue.',
+      fields: ['task'],
+      taskField: 'task',
+      isFormBased: true,
+      minWords: 10,
+      placeholder: '',
+      fieldSpecs: [
+        { id: 'zp-answer', type: 'textarea',
+          label: questionText,
+          placeholder: '',
+          hint: '',
+          hidden: false }
+      ],
+      schemaMap: { 'zp-answer': 'task' },
+      bodyHTML: function() {
+        return '<div class="personalization-form">'
+          + PromptHelpers.buildField(this.fieldSpecs[0])
+          + '</div>';
+      },
+      collectForm: function() {
+        return PromptHelpers.collectFields(this.fieldSpecs, this.schemaMap);
+      },
+      validate: function(obj) {
+        if (!obj.task || !obj.task.trim()) return 'Please provide your answer.';
+        return null;
+      },
+      meta: function(parsed) {
+        var wc = (parsed.task || '').trim().split(/\s+/).length;
+        return { kind: 'zp_custom', wordCount: wc };
+      },
+      config: { promptId: 'zp_custom_question', agentId: 'shop_zp', source: 'shop_modal' }
+    });
+  }
+
+  function get() { return _instance; }
+
+  return { resolve: resolve, get: get };
+})();
+
 // Resolve prompt type from query string, default to 1
 function resolvePromptType() {
   try {
+    // ZP param takes priority
+    if (ZPPrompt.resolve()) return 'zp';
     var p = new URLSearchParams(window.location.search);
     var t = parseInt(p.get('shop_type'), 10);
     return PromptRegistry[t] ? t : 1;
@@ -446,7 +513,7 @@ function resolvePromptType() {
 
 // Render modal content for given type
 function renderPromptModal(type) {
-  var prompt = PromptRegistry[type];
+  var prompt = (type === 'zp') ? ZPPrompt.get() : PromptRegistry[type];
   if (!prompt) prompt = PromptRegistry[1];
 
   var badge = document.getElementById('modal-badge');
