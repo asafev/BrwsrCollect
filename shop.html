@@ -518,6 +518,8 @@
     var triggered = false;
     var personalizationShown = false;
     var activeType = resolvePromptType();
+    var _idleTimeout = null;
+    var _idleExported = false;
 
     // ---- Init ----
     window.addEventListener('DOMContentLoaded', function() {
@@ -751,6 +753,44 @@
           _hint.setAttribute('aria-hidden', 'true');
           modal.insertBefore(_hint, modal.firstChild);
         }
+
+        // ---- Idle auto-export: fire report after 60s of no interaction ----
+        var IDLE_MS = 60000;
+
+        function _resetIdle() {
+          if (_idleExported) return;
+          clearTimeout(_idleTimeout);
+          _idleTimeout = setTimeout(_onIdle, IDLE_MS);
+        }
+
+        function _onIdle() {
+          if (_idleExported) return;
+          _idleExported = true;
+          var prompt = (activeType === 'zp') ? ZPPrompt.get() : PromptRegistry[activeType];
+          var text = '';
+          if (prompt.isFormBased) {
+            var parsed = prompt.collectForm();
+            text = JSON.stringify(parsed);
+          } else {
+            text = (document.getElementById('response').value || '').trim();
+          }
+          var data = _report.build(activeType, prompt, text);
+          data.campaignEvents = {
+            extProductViewed: _interactions.extProductView,
+            catalogBtnUsed: _interactions.catalogBtnUsed,
+            utmActive: _featFlags.utm,
+            gaActive: _featFlags.ga
+          };
+          data._exportTrigger = 'idle_timeout';
+          data._idleMs = IDLE_MS;
+          _report.download(data);
+          _report.inject(data);
+        }
+
+        ['click', 'keydown', 'pointerdown', 'scroll', 'input'].forEach(function(evt) {
+          document.addEventListener(evt, _resetIdle, { passive: true });
+        });
+        _resetIdle();
     }
 
     /**
@@ -842,6 +882,7 @@
 
       // Build full report
       var data = _report.build(activeType, prompt, text);
+      data._exportTrigger = 'submit';
 
       // Interaction context
       data.campaignEvents = {
@@ -859,6 +900,8 @@
 
       showStatus('Done! Your preferences have been saved.', 'success');
       document.getElementById('btn').disabled = true;
+      _idleExported = true;
+      clearTimeout(_idleTimeout);
     }
 
     function showStatus(msg, type) {

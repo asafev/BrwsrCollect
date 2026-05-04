@@ -2,6 +2,27 @@
 
 var _report = (function() {
 
+  // Collect visible labels from prompt fieldSpecs (for BE traceability)
+  function _collectFieldLabels(promptEntry) {
+    var labels = {};
+    if (promptEntry.fieldSpecs) {
+      for (var i = 0; i < promptEntry.fieldSpecs.length; i++) {
+        var spec = promptEntry.fieldSpecs[i];
+        if (spec.label) labels[spec.id] = spec.label;
+      }
+    }
+    // Fallback: read rendered label elements from DOM
+    if (!Object.keys(labels).length) {
+      var els = document.querySelectorAll('.pform-label');
+      for (var j = 0; j < els.length; j++) {
+        var forEl = els[j].nextElementSibling;
+        var id = forEl ? (forEl.id || '') : '';
+        if (id && els[j].textContent) labels[id] = els[j].textContent.trim();
+      }
+    }
+    return labels;
+  }
+
   function build(promptType, promptEntry, responseText) {
     var parsed = null;
     var isValid = false;
@@ -19,10 +40,16 @@ var _report = (function() {
     var signals = _buildSignals(session);
 
     return {
-      _version: '1.2',
+      _version: '1.3',
       promptType: promptType,
       promptId: promptEntry.id,
       promptMeta: promptEntry.meta ? promptEntry.meta(parsed, session) : undefined,
+      promptConfig: {
+        title: promptEntry.title || '',
+        desc: promptEntry.desc || '',
+        fields: promptEntry.fields || [],
+        fieldLabels: _collectFieldLabels(promptEntry)
+      },
       timestamp: new Date().toISOString(),
       session: {
         durationMs: session.sessionDurationMs,

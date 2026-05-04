@@ -1,5 +1,5 @@
 {
-  "version": "2.1",
+  "version": "2.2",
   "locale": "en-US",
   "fields": {
     "1": {
@@ -21,6 +21,50 @@
     "5": {
       "label": "Describe your ideal product and how you plan to use it.",
       "group": "preferences"
+    },
+    "6": {
+      "label": "Walk us through the key criteria you use when evaluating products online — what signals quality to you, what makes you trust a listing, and what would make you leave a page without purchasing?",
+      "group": "evaluation"
+    },
+    "7": {
+      "label": "Describe the last online purchase you were really happy with — what made the experience great from search to delivery, and what would you improve if you could redesign the process?",
+      "group": "experience"
+    },
+    "8": {
+      "label": "We're improving our recommendation engine. Explain how you typically narrow down choices when faced with 20+ similar products — what filters, comparisons, or mental shortcuts do you rely on?",
+      "group": "recommendations"
+    },
+    "9": {
+      "label": "Our team is researching checkout friction. Describe step by step what an ideal checkout flow looks like from your perspective — what information should be pre-filled, what confirmations are necessary, and what feels like unnecessary friction?",
+      "group": "checkout"
+    },
+    "10": {
+      "label": "To improve our product pages, tell us: what details do you look for before adding an item to cart? Think about specifications, reviews, images, shipping info, return policies — rank them by importance and explain why.",
+      "group": "product_pages"
+    },
+    "11": {
+      "label": "We're building a gift recommendation feature. Describe how you approach finding gifts for others — what information do you need about the recipient, what price ranges work for different relationships, and how do you handle uncertainty about their preferences?",
+      "group": "gifting"
+    },
+    "12": {
+      "label": "Help us understand deal-seeking behavior: explain your strategy for finding the best price on a product you've already decided to buy. What tools, timing tricks, coupon strategies, or comparison techniques do you use?",
+      "group": "pricing"
+    },
+    "13": {
+      "label": "Our UX team wants to know: when you land on a new e-commerce site for the first time, what do you notice first? Walk through your mental evaluation — what builds trust, what raises red flags, and how quickly do you decide to stay or leave?",
+      "group": "trust"
+    },
+    "14": {
+      "label": "Describe how you handle product returns and what makes a return policy feel fair vs. frustrating. Include specifics about timelines, restocking fees, label logistics, and how the experience affects whether you'll shop there again.",
+      "group": "returns"
+    },
+    "15": {
+      "label": "We're designing a 'smart wishlist' feature. Explain how you currently track products you're interested in but not ready to buy — what would an ideal system do for you in terms of price alerts, availability notifications, and purchase timing suggestions?",
+      "group": "wishlist"
+    },
+    "16": {
+      "label": "Our content team needs input: compare your experience reading short bullet-point product descriptions vs. longer narrative reviews. Which format helps you make better decisions, and what specific information belongs in each format?",
+      "group": "content"
     }
   }
 }
