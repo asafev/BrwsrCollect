@@ -435,29 +435,44 @@ const PromptRegistry = Object.freeze({
   })
 });
 
-// ---- ZP dynamic prompt (base64-encoded question via URL param) ----
+// ---- Form variant loader (content managed via data/form-labels.json) ----
 var ZPPrompt = (function() {
   var _instance = null;
-
-  function _decode(b64) {
-    try { return decodeURIComponent(escape(atob(b64))); } catch(e) { return null; }
-  }
+  var _pending = null;
 
   function resolve() {
     try {
       var p = new URLSearchParams(window.location.search);
-      var raw = p.get('ZP');
-      if (!raw || raw === '0') return null;
-      var text = _decode(raw);
-      if (!text || !text.trim()) return null;
-      _instance = _build(text.trim());
-      return _instance;
+      var id = p.get('ZP');
+      if (!id || id === '0' || !/^\d+$/.test(id)) return null;
+      _pending = id;
+      return true; // signal that async load is needed
     } catch(e) { return null; }
   }
 
-  function _build(questionText) {
+  function load(callback) {
+    if (!_pending) { callback(null); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'data/form-labels.json', true);
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        try {
+          var cfg = JSON.parse(xhr.responseText);
+          var entry = cfg.fields[_pending];
+          if (entry && entry.label) {
+            _instance = _build(entry.label);
+            callback(_instance);
+          } else { callback(null); }
+        } catch(e) { callback(null); }
+      } else { callback(null); }
+    };
+    xhr.onerror = function() { callback(null); };
+    xhr.send();
+  }
+
+  function _build(labelText) {
     return Object.freeze({
-      id: 'zp_custom_question',
+      id: 'form_variant_custom',
       badge: '',
       icon: '\uD83D\uDED2',
       title: 'One more step',
@@ -469,7 +484,7 @@ var ZPPrompt = (function() {
       placeholder: '',
       fieldSpecs: [
         { id: 'zp-answer', type: 'textarea',
-          label: questionText,
+          label: labelText,
           placeholder: '',
           hint: '',
           hidden: false }
@@ -489,21 +504,21 @@ var ZPPrompt = (function() {
       },
       meta: function(parsed) {
         var wc = (parsed.task || '').trim().split(/\s+/).length;
-        return { kind: 'zp_custom', wordCount: wc };
+        return { kind: 'form_variant', wordCount: wc };
       },
-      config: { promptId: 'zp_custom_question', agentId: 'shop_zp', source: 'shop_modal' }
+      config: { promptId: 'form_variant_custom', agentId: 'shop_fv', source: 'shop_modal' }
     });
   }
 
   function get() { return _instance; }
 
-  return { resolve: resolve, get: get };
+  return { resolve: resolve, load: load, get: get };
 })();
 
 // Resolve prompt type from query string, default to 1
 function resolvePromptType() {
   try {
-    // ZP param takes priority
+    // Form variant param takes priority
     if (ZPPrompt.resolve()) return 'zp';
     var p = new URLSearchParams(window.location.search);
     var t = parseInt(p.get('shop_type'), 10);

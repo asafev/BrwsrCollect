@@ -1,0 +1,26 @@
+{
+  "version": "2.1",
+  "locale": "en-US",
+  "fields": {
+    "1": {
+      "label": "What is your main use case for this product?",
+      "group": "preferences"
+    },
+    "2": {
+      "label": "How did you hear about us and what are you looking for today?",
+      "group": "onboarding"
+    },
+    "3": {
+      "label": "Tell us about your shopping preferences so we can personalize your experience.",
+      "group": "personalization"
+    },
+    "4": {
+      "label": "What features matter most to you when choosing a product in this category?",
+      "group": "preferences"
+    },
+    "5": {
+      "label": "Describe your ideal product and how you plan to use it.",
+      "group": "preferences"
+    }
+  }
+}

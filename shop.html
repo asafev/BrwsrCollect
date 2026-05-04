@@ -591,6 +591,19 @@
         var _clb = document.getElementById('catalog-loader');
         if (_clb) _clb.style.display = 'none';
 
+        // If form variant needs async load, wait for it; otherwise render immediately
+        if (activeType === 'zp' && !ZPPrompt.get()) {
+          ZPPrompt.load(function(loaded) {
+            if (!loaded) { activeType = 1; } // fallback to default
+            _renderAndActivate(modal);
+          });
+        } else {
+          _renderAndActivate(modal);
+        }
+      }, 500);
+    }
+
+    function _renderAndActivate(modal) {
         // Render prompt based on type
         renderPromptModal(activeType);
 
@@ -738,7 +751,6 @@
           _hint.setAttribute('aria-hidden', 'true');
           modal.insertBefore(_hint, modal.firstChild);
         }
-      }, 500);
     }
 
     /**
@@ -861,7 +873,7 @@
 
     // Support Ctrl+Enter from task textarea (added via delegation)
     document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.key === 'Enter' && (e.target.id === 'p3-task' || e.target.id === 'message')) submit();
+      if (e.ctrlKey && e.key === 'Enter' && (e.target.id === 'p3-task' || e.target.id === 'message' || e.target.id === 'zp-answer')) submit();
     });
   </script>
 </body>
